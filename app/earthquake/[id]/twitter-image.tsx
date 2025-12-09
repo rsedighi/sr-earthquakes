@@ -144,37 +144,30 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     (
       <div
         style={{
-          background: '#0a0a0a',
+          background: 'linear-gradient(135deg, #0a0a0a 0%, #111 50%, #0a0a0a 100%)',
           width: '100%',
           height: '100%',
           display: 'flex',
+          flexDirection: 'column',
+          padding: 56,
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        {/* Left side - Card content */}
-        <div
-          style={{
-            width: 750,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '48px 40px 48px 48px',
-          }}
-        >
-          {/* Header */}
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
+                width: 56,
+                height: 56,
+                borderRadius: 16,
                 background: '#10b981',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M2 12h4l3-9 6 18 3-9h4"
                   stroke="white"
@@ -185,124 +178,132 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               </svg>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ color: '#fff', fontSize: 22, fontWeight: 600 }}>
+              <span style={{ color: '#fff', fontSize: 24, fontWeight: 600 }}>
                 Bay Area Quake Tracker
               </span>
-              <span style={{ color: '#666', fontSize: 13 }}>
+              <span style={{ color: '#666', fontSize: 14 }}>
                 Live Earthquake Monitoring
               </span>
             </div>
           </div>
           
-          {/* Main content */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Magnitude badge and location */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
-              <div
-                style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 20,
-                  background: `${magnitudeColor}20`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: `3px solid ${magnitudeColor}50`,
-                  flexShrink: 0,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 56,
-                    fontWeight: 700,
-                    color: magnitudeColor,
-                    lineHeight: 1,
-                  }}
-                >
-                  {earthquake.magnitude.toFixed(1)}
-                </span>
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: '#888',
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginTop: 4,
-                  }}
-                >
-                  {magnitudeLabel}
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
-                <span style={{ 
-                  fontSize: 32, 
-                  fontWeight: 600, 
-                  color: '#fff', 
-                  lineHeight: 1.2,
-                }}>
-                  {truncatedLocation}
-                </span>
-                {locationContext.formattedLocation && earthquake.place && (
-                  <span style={{ fontSize: 16, color: '#666' }}>
-                    {earthquake.place.length > 50 ? earthquake.place.substring(0, 47) + '...' : earthquake.place}
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* Coordinates badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              borderRadius: 12,
+              background: '#ffffff08',
+              border: '1px solid #ffffff10',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#666" strokeWidth="2" />
+              <circle cx="12" cy="10" r="3" stroke="#666" strokeWidth="2" />
+            </svg>
+            <span style={{ color: '#888', fontSize: 14, fontFamily: 'monospace' }}>
+              {earthquake.latitude.toFixed(3)}°N, {Math.abs(earthquake.longitude).toFixed(3)}°W
+            </span>
+          </div>
+        </div>
+        
+        {/* Main content */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
+          {/* Magnitude badge */}
+          <div
+            style={{
+              width: 180,
+              height: 180,
+              borderRadius: 28,
+              background: `${magnitudeColor}15`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: `4px solid ${magnitudeColor}40`,
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 84,
+                fontWeight: 700,
+                color: magnitudeColor,
+                lineHeight: 1,
+              }}
+            >
+              {earthquake.magnitude.toFixed(1)}
+            </span>
+            <span
+              style={{
+                fontSize: 16,
+                color: '#888',
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+                marginTop: 8,
+              }}
+            >
+              {magnitudeLabel}
+            </span>
+          </div>
+          
+          {/* Location and details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+            <span style={{ 
+              fontSize: 44, 
+              fontWeight: 600, 
+              color: '#fff', 
+              lineHeight: 1.15,
+            }}>
+              {truncatedLocation}
+            </span>
+            {locationContext.formattedLocation && earthquake.place && (
+              <span style={{ fontSize: 20, color: '#666' }}>
+                {earthquake.place.length > 60 ? earthquake.place.substring(0, 57) + '...' : earthquake.place}
+              </span>
+            )}
             
             {/* Details row */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <div style={{ display: 'flex', gap: 32, marginTop: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="#666" strokeWidth="2" />
                   <path d="M12 6v6l4 2" stroke="#666" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                <span style={{ color: '#999', fontSize: 16 }}>
+                <span style={{ color: '#999', fontSize: 18 }}>
                   {formattedDate} at {formattedTime}
                 </span>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2v20M2 12h20" stroke="#666" strokeWidth="2" />
                 </svg>
-                <span style={{ color: '#999', fontSize: 16 }}>
+                <span style={{ color: '#999', fontSize: 18 }}>
                   Depth: {earthquake.depth.toFixed(1)} km
                 </span>
               </div>
-              
-              {region && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: region.color,
-                    }}
-                  />
-                  <span style={{ color: '#999', fontSize: 16 }}>{region.name}</span>
-                </div>
-              )}
             </div>
           </div>
-          
-          {/* Footer badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        </div>
+        
+        {/* Footer badges */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                padding: '10px 16px',
-                borderRadius: 10,
+                padding: '12px 20px',
+                borderRadius: 12,
                 background: `${magnitudeColor}15`,
                 border: `1px solid ${magnitudeColor}30`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 10,
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
                   stroke={magnitudeColor}
@@ -311,7 +312,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
                 <line x1="12" y1="9" x2="12" y2="13" stroke={magnitudeColor} strokeWidth="2" />
                 <line x1="12" y1="17" x2="12.01" y2="17" stroke={magnitudeColor} strokeWidth="2" />
               </svg>
-              <span style={{ color: magnitudeColor, fontSize: 14, fontWeight: 500 }}>
+              <span style={{ color: magnitudeColor, fontSize: 16, fontWeight: 500 }}>
                 {earthquake.magnitude >= 5
                   ? 'Significant Event'
                   : earthquake.magnitude >= 4
@@ -325,203 +326,40 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             {earthquake.felt && earthquake.felt > 0 && (
               <div
                 style={{
-                  padding: '10px 16px',
-                  borderRadius: 10,
+                  padding: '12px 20px',
+                  borderRadius: 12,
                   background: '#ffffff08',
                   border: '1px solid #ffffff15',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 10,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="#888" strokeWidth="2" />
                   <circle cx="9" cy="7" r="4" stroke="#888" strokeWidth="2" />
                   <path d="M23 21v-2a4 4 0 00-3-3.87" stroke="#888" strokeWidth="2" />
                   <path d="M16 3.13a4 4 0 010 7.75" stroke="#888" strokeWidth="2" />
                 </svg>
-                <span style={{ color: '#888', fontSize: 14 }}>
+                <span style={{ color: '#888', fontSize: 16 }}>
                   {earthquake.felt} felt reports
                 </span>
               </div>
             )}
-          </div>
-        </div>
-        
-        {/* Right side - Map visualization */}
-        <div
-          style={{
-            width: 450,
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '48px 48px 48px 0',
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              borderRadius: 20,
-              background: '#111',
-              border: '1px solid #222',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Map header */}
-            <div
-              style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid #222',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: '#0d0d0d',
-              }}
-            >
-              <span style={{ color: '#888', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 500 }}>
-                Epicenter Location
-              </span>
-              <span style={{ color: '#555', fontSize: 11, fontFamily: 'monospace' }}>
-                {earthquake.latitude.toFixed(3)}°N, {Math.abs(earthquake.longitude).toFixed(3)}°W
-              </span>
-            </div>
             
-            {/* Map visualization with seismic waves */}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                background: '#0d0d0d',
-              }}
-            >
-              {/* Grid pattern - simplified for satori compatibility */}
-              <div
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* Horizontal grid lines */}
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div
-                    key={`h-${i}`}
-                    style={{
-                      position: 'absolute',
-                      top: `${i * 12.5}%`,
-                      left: 0,
-                      right: 0,
-                      height: 1,
-                      background: '#1a1a1a',
-                    }}
-                  />
-                ))}
-                {/* Vertical grid lines */}
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div
-                    key={`v-${i}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${i * 12.5}%`,
-                      top: 0,
-                      bottom: 0,
-                      width: 1,
-                      background: '#1a1a1a',
-                    }}
-                  />
-                ))}
-              </div>
-              
-              {/* Seismic wave circles */}
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 280,
-                  height: 280,
-                  borderRadius: '50%',
-                  border: `1px solid ${magnitudeColor}08`,
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 210,
-                  height: 210,
-                  borderRadius: '50%',
-                  border: `1px solid ${magnitudeColor}12`,
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 140,
-                  height: 140,
-                  borderRadius: '50%',
-                  border: `1px solid ${magnitudeColor}18`,
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 70,
-                  height: 70,
-                  borderRadius: '50%',
-                  border: `2px solid ${magnitudeColor}30`,
-                  background: `${magnitudeColor}08`,
-                }}
-              />
-              
-              {/* Epicenter marker */}
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: magnitudeColor,
-                  border: '3px solid white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            </div>
-            
-            {/* Map footer */}
-            <div
-              style={{
-                padding: '14px 18px',
-                borderTop: '1px solid #222',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: '#0d0d0d',
-              }}
-            >
-              <span style={{ color: '#555', fontSize: 11 }}>
-                Depth: {earthquake.depth.toFixed(1)} km
-              </span>
-              {region && (
-                <span
+            {region && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
                   style={{
-                    padding: '4px 10px',
+                    width: 12,
+                    height: 12,
                     borderRadius: 6,
-                    background: `${region.color}15`,
-                    color: region.color,
-                    fontSize: 11,
-                    fontWeight: 600,
+                    backgroundColor: region.color,
                   }}
-                >
-                  {region.areaCode}
-                </span>
-              )}
-            </div>
+                />
+                <span style={{ color: '#999', fontSize: 16 }}>{region.name}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

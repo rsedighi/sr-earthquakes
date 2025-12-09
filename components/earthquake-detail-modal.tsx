@@ -104,7 +104,7 @@ export function EarthquakeDetailModal({
   const [sortNearbyBy, setSortNearbyBy] = useState<'distance' | 'time' | 'magnitude'>('distance');
   const [copied, setCopied] = useState(false);
   
-  // Handle ESC key press
+  // Handle ESC key press and lock body scroll
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -112,8 +112,28 @@ export function EarthquakeDetailModal({
       }
     };
     
+    // Lock body scroll when modal is open
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.top = `-${scrollY}px`;
+    
     window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      // Restore body scroll
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.style.top = '';
+      window.scrollTo(0, scrollY);
+    };
   }, [onClose]);
   
   // Handle click outside
@@ -244,12 +264,13 @@ export function EarthquakeDetailModal({
   
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/95 backdrop-blur-md animate-fade-in overscroll-contain"
       onClick={handleBackdropClick}
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <div 
         ref={modalRef}
-        className="w-full max-w-4xl m-4 my-8"
+        className="w-full max-w-4xl m-4 my-8 relative"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Datadog Style Breadcrumb */}
@@ -352,7 +373,7 @@ export function EarthquakeDetailModal({
         </div>
         
         {/* Share This Earthquake - Prominent Section */}
-        <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-x border-white/10 p-4">
+        <div className="bg-neutral-900 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 border-x border-white/10 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Share2 className="w-5 h-5 text-neutral-300" />
@@ -432,7 +453,7 @@ export function EarthquakeDetailModal({
         </div>
         
         {/* Map Section */}
-        <div className="bg-neutral-900/80 border-x border-white/10 p-4">
+        <div className="bg-neutral-900 border-x border-white/10 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-neutral-400 flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -452,7 +473,7 @@ export function EarthquakeDetailModal({
         </div>
         
         {/* Key Metrics Grid - Datadog Style */}
-        <div className="bg-neutral-900/80 border-x border-white/10 p-4">
+        <div className="bg-neutral-900 border-x border-white/10 p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <MetricCard
               icon={<Zap className="w-4 h-4" />}
@@ -522,7 +543,7 @@ export function EarthquakeDetailModal({
         )}
         
         {/* Community Comments Section - Prominent & Engaging */}
-        <div className="bg-gradient-to-b from-amber-500/5 to-transparent border-x border-white/10 p-4">
+        <div className="bg-neutral-900 bg-gradient-to-b from-amber-500/20 to-neutral-900 border-x border-white/10 p-4">
           <div className="flex items-start gap-4 mb-4">
             <div className="p-3 bg-amber-500/20 rounded-xl">
               <MessageCircle className="w-6 h-6 text-amber-400" />
@@ -542,7 +563,7 @@ export function EarthquakeDetailModal({
         
         {/* Nearby Earthquakes Section */}
         {nearbyEarthquakes.length > 0 && (
-          <div className="bg-neutral-900/60 border-x border-white/10 p-4">
+          <div className="bg-neutral-900 border-x border-white/10 p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-neutral-400 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
@@ -624,7 +645,7 @@ export function EarthquakeDetailModal({
         
         {/* Similar Earthquakes Section */}
         {similarEarthquakes.length > 0 && (
-          <div className="bg-neutral-900/60 border-x border-white/10 p-4">
+          <div className="bg-neutral-900 border-x border-white/10 p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-neutral-400 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
@@ -672,7 +693,7 @@ export function EarthquakeDetailModal({
         )}
         
         {/* What This Means Section */}
-        <div className="bg-neutral-900/60 border-x border-white/10 p-4">
+        <div className="bg-neutral-900 border-x border-white/10 p-4">
           <h3 className="text-sm font-medium text-neutral-400 mb-3 flex items-center gap-2">
             <Info className="w-4 h-4" />
             What This Means

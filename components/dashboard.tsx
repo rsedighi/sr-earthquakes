@@ -122,6 +122,25 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isLoadingAiSummary, setIsLoadingAiSummary] = useState(false);
   
+  // Lock body scroll when city selector modal is open
+  useEffect(() => {
+    if (showCitySelector) {
+      const scrollY = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${scrollY}px`;
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [showCitySelector]);
+  
   // Historical earthquakes loaded on-demand (lazy loading)
   const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);
   const [historicalLoading, setHistoricalLoading] = useState(false);
@@ -548,8 +567,8 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
             
             {/* City Selector Modal */}
             {showCitySelector && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-                <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in overscroll-contain">
+                <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col mx-4">
                   <h3 className="text-lg font-semibold mb-2">Select Your City</h3>
                   <p className="text-sm text-neutral-400 mb-4">
                     Choose a city to see personalized earthquake stats within 10 miles of your area.

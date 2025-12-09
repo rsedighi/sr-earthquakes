@@ -195,6 +195,27 @@ body {
   transform: scale(1.1);
 }
 
+/* Modal body lock - prevents background scrolling on mobile */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Overscroll behavior for modals */
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent scroll chaining on mobile */
+.modal-scroll-container {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 /* Focus states */
 :focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.5);
