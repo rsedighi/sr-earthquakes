@@ -14,11 +14,13 @@ const SWARM_TIME_WINDOW_HOURS = 72; // 3 days
 const SWARM_MIN_EARTHQUAKES = 5;
 const SWARM_DISTANCE_KM = 10;
 
-// Constants for swarm episode detection (multi-week episodes)
-const EPISODE_GAP_DAYS = 14; // If no activity for 14 days, start new episode
-const EPISODE_MIN_EARTHQUAKES = 5; // Minimum earthquakes to qualify as an episode (same as legacy)
-const EPISODE_MIN_DAYS = 1; // Must have activity on at least 1 day (allows single-day bursts too)
+// Constants for swarm episode detection (elevated activity periods)
+const EPISODE_GAP_DAYS = 7; // If 7+ days of low activity, start new episode
+const EPISODE_MIN_EARTHQUAKES = 5; // Minimum earthquakes to qualify as an episode
+const EPISODE_MIN_DAYS = 1; // Must have activity on at least 1 day
 const DAILY_MIN_QUAKES_FOR_ACTIVE = 1; // At least 1 quake to count as active day
+const ELEVATED_ACTIVITY_THRESHOLD = 2; // Days with 2+ quakes are "elevated"
+const MIN_ELEVATED_DAYS_FOR_EPISODE = 1; // Need at least 1 elevated day to be an episode
 
 // Calculate distance between two points (Haversine formula)
 function haversineDistance(
@@ -140,7 +142,11 @@ function calculateEpisodeIntensity(
   return 'minor';
 }
 
-// Detect swarm episodes - longer-term seismic sequences with daily breakdown
+// Detect swarm episodes - periods of elevated seismic activity
+// This algorithm identifies "bursts" of activity by:
+// 1. Finding days with elevated activity (2+ quakes)
+// 2. Grouping nearby elevated days into episodes
+// 3. Including surrounding context days
 export function detectSwarmEpisodes(earthquakes: Earthquake[]): SwarmEpisode[] {
   if (earthquakes.length === 0) return [];
   
@@ -162,50 +168,95 @@ export function detectSwarmEpisodes(earthquakes: Earthquake[]): SwarmEpisode[] {
   // Get sorted date keys
   const sortedDates = Array.from(byDate.keys()).sort();
   
-  // Group consecutive/nearby dates into episodes
-  let currentEpisodeQuakes: Earthquake[] = [];
-  let currentEpisodeDates: string[] = [];
-  let lastActiveDate: Date | null = null;
+  // Find "elevated" days (days with significant activity)
+  const elevatedDays = sortedDates.filter(dateStr => {
+    const count = byDate.get(dateStr)?.length || 0;
+    const peakMag = Math.max(...(byDate.get(dateStr)?.map(eq => eq.magnitude) || [0]));
+    // A day is elevated if it has 2+ quakes OR a M3+ event
+    return count >= ELEVATED_ACTIVITY_THRESHOLD || peakMag >= 3.0;
+  });
   
-  for (const dateStr of sortedDates) {
-    const dateQuakes = byDate.get(dateStr)!;
+  if (elevatedDays.length === 0) {
+    return episodes;
+  }
+  
+  // Group elevated days into episodes
+  // Episodes include elevated days plus surrounding context (up to 3 days before/after)
+  let currentEpisodeElevatedDays: string[] = [];
+  let lastElevatedDate: Date | null = null;
+  
+  for (const dateStr of elevatedDays) {
     const currentDate = new Date(dateStr);
     
-    // Check if this date should be part of the current episode or start a new one
-    if (lastActiveDate) {
-      const daysSinceLastActive = Math.floor(
-        (currentDate.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
+    if (lastElevatedDate) {
+      const daysSinceLastElevated = Math.floor(
+        (currentDate.getTime() - lastElevatedDate.getTime()) / (1000 * 60 * 60 * 24)
       );
       
-      // If gap is too large, finalize current episode and start new one
-      if (daysSinceLastActive > EPISODE_GAP_DAYS) {
-        // Finalize current episode if it meets criteria
-        if (currentEpisodeQuakes.length >= EPISODE_MIN_EARTHQUAKES && 
-            currentEpisodeDates.length >= EPISODE_MIN_DAYS) {
-          const episode = createSwarmEpisode(currentEpisodeQuakes, currentEpisodeDates);
-          if (episode) episodes.push(episode);
+      // If gap between elevated days is too large, finalize current episode
+      if (daysSinceLastElevated > EPISODE_GAP_DAYS) {
+        if (currentEpisodeElevatedDays.length >= MIN_ELEVATED_DAYS_FOR_EPISODE) {
+          const episode = createEpisodeFromElevatedDays(currentEpisodeElevatedDays, byDate, sortedDates);
+          if (episode && episode.totalCount >= EPISODE_MIN_EARTHQUAKES) {
+            episodes.push(episode);
+          }
         }
-        
-        // Start new episode
-        currentEpisodeQuakes = [];
-        currentEpisodeDates = [];
+        currentEpisodeElevatedDays = [];
       }
     }
     
-    // Add to current episode
-    currentEpisodeQuakes.push(...dateQuakes);
-    currentEpisodeDates.push(dateStr);
-    lastActiveDate = currentDate;
+    currentEpisodeElevatedDays.push(dateStr);
+    lastElevatedDate = currentDate;
   }
   
   // Don't forget the last episode
-  if (currentEpisodeQuakes.length >= EPISODE_MIN_EARTHQUAKES && 
-      currentEpisodeDates.length >= EPISODE_MIN_DAYS) {
-    const episode = createSwarmEpisode(currentEpisodeQuakes, currentEpisodeDates);
-    if (episode) episodes.push(episode);
+  if (currentEpisodeElevatedDays.length >= MIN_ELEVATED_DAYS_FOR_EPISODE) {
+    const episode = createEpisodeFromElevatedDays(currentEpisodeElevatedDays, byDate, sortedDates);
+    if (episode && episode.totalCount >= EPISODE_MIN_EARTHQUAKES) {
+      episodes.push(episode);
+    }
   }
   
   return episodes.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+}
+
+// Create episode from elevated days, including context days
+function createEpisodeFromElevatedDays(
+  elevatedDays: string[],
+  byDate: Map<string, Earthquake[]>,
+  allDates: string[]
+): SwarmEpisode | null {
+  if (elevatedDays.length === 0) return null;
+  
+  // Find the range of the episode with context
+  const firstElevated = new Date(elevatedDays[0]);
+  const lastElevated = new Date(elevatedDays[elevatedDays.length - 1]);
+  
+  // Add 2 days context before and after
+  const contextDays = 2;
+  const startDate = new Date(firstElevated);
+  startDate.setDate(startDate.getDate() - contextDays);
+  const endDate = new Date(lastElevated);
+  endDate.setDate(endDate.getDate() + contextDays);
+  
+  // Collect all dates and earthquakes in this range
+  const episodeDates: string[] = [];
+  const episodeQuakes: Earthquake[] = [];
+  
+  for (const dateStr of allDates) {
+    const date = new Date(dateStr);
+    if (date >= startDate && date <= endDate) {
+      episodeDates.push(dateStr);
+      const quakes = byDate.get(dateStr);
+      if (quakes) {
+        episodeQuakes.push(...quakes);
+      }
+    }
+  }
+  
+  if (episodeQuakes.length === 0 || episodeDates.length === 0) return null;
+  
+  return createSwarmEpisode(episodeQuakes, episodeDates);
 }
 
 // Create a swarm episode from earthquakes and dates
