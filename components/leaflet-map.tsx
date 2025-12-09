@@ -180,14 +180,14 @@ function LeafletMapInner({
         )}
         
         {/* Earthquake markers */}
-        {displayedQuakes.map(eq => {
+        {displayedQuakes.map((eq, idx) => {
           const isSelected = selectedEarthquake?.id === eq.id;
           const isHovered = hoveredQuake?.id === eq.id;
           const size = getMagnitudeSize(eq.magnitude);
           
           return (
             <CircleMarker
-              key={eq.id}
+              key={`${eq.id}-${idx}`}
               center={[eq.latitude, eq.longitude]}
               radius={isSelected || isHovered ? size * 1.3 : size}
               pathOptions={{

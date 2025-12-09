@@ -270,9 +270,9 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
                 <span className="text-neutral-500">{filteredEarthquakes.length} found</span>
               </h4>
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                {filteredEarthquakes.slice(0, 50).map(eq => (
+                {filteredEarthquakes.slice(0, 50).map((eq, idx) => (
                   <EarthquakeListItem 
-                    key={eq.id} 
+                    key={`${eq.id}-${idx}`} 
                     earthquake={eq}
                     userLocation={userLocation}
                   />

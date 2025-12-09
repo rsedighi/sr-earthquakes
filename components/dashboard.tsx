@@ -30,6 +30,8 @@ import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import { detectSwarms, getMagnitudeColor, getMagnitudeLabel, getRecentActivity } from '@/lib/analysis';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
+import { HistoricalSwarms } from './historical-swarms';
+import { EarthquakeDetailModal } from './earthquake-detail-modal';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -70,8 +72,22 @@ interface DashboardProps {
   historicalData: HistoricalData;
 }
 
+// Helper to deduplicate earthquakes by ID
+function deduplicateEarthquakes(earthquakes: Earthquake[]): Earthquake[] {
+  const seen = new Set<string>();
+  const result: Earthquake[] = [];
+  for (const eq of earthquakes) {
+    if (!seen.has(eq.id)) {
+      seen.add(eq.id);
+      result.push(eq);
+    }
+  }
+  return result;
+}
+
 export function Dashboard({ historicalData }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
+  const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'neighborhood' | 'compare' | 'history' | 'learn'>('live');
 
@@ -87,15 +103,40 @@ export function Dashboard({ historicalData }: DashboardProps) {
     refreshInterval: 60000,
   });
 
-  // Historical data (10 years) for neighborhood feature
+  // Recent earthquake data (since Dec 8, 2025) - supplements the historical data from props
   const {
-    earthquakes: historicalQuakes,
-    isLoading: isLoadingHistorical,
+    earthquakes: recentQuakes,
+    isLoading: isLoadingRecent,
   } = useHistoricalEarthquakes({
-    years: 10,
-    minMagnitude: 1.0,
+    minMagnitude: 0.1,
     autoFetch: true,
   });
+  
+  // Merge historical data (from static files) with recent API data
+  // Historical data from props + any new data since Dec 8, 2025
+  const allHistoricalQuakes = useMemo(() => {
+    const seenIds = new Set<string>();
+    const merged: Earthquake[] = [];
+    
+    // Add recent quakes first (they're more up to date)
+    for (const eq of recentQuakes) {
+      if (!seenIds.has(eq.id)) {
+        seenIds.add(eq.id);
+        merged.push(eq);
+      }
+    }
+    
+    // Add historical data from props
+    for (const eq of historicalData.earthquakes) {
+      if (!seenIds.has(eq.id)) {
+        seenIds.add(eq.id);
+        merged.push(eq);
+      }
+    }
+    
+    // Sort by time descending
+    return merged.sort((a, b) => b.timestamp - a.timestamp);
+  }, [recentQuakes, historicalData.earthquakes]);
 
   // Current swarm detection
   const currentSwarm = useMemo(() => {
@@ -149,8 +190,8 @@ export function Dashboard({ historicalData }: DashboardProps) {
                 )}
               </div>
               <div>
-                <h1 className="font-semibold text-lg">NorCal Quake Tracker</h1>
-                <p className="text-xs text-neutral-500">Live earthquake monitoring for Northern California</p>
+                <h1 className="font-semibold text-lg">Bay Area Earthquake Tracker</h1>
+                <p className="text-xs text-neutral-500">Live earthquake monitoring for the Bay Area</p>
               </div>
             </div>
             
@@ -305,13 +346,14 @@ export function Dashboard({ historicalData }: DashboardProps) {
                   </div>
                 ) : (
                   <>
-                    {(showAllQuakes ? realtimeQuakes : realtimeQuakes.slice(0, 10)).map((eq, i) => (
+                    {deduplicateEarthquakes(showAllQuakes ? realtimeQuakes : realtimeQuakes.slice(0, 10)).map((eq, i) => (
                       <EarthquakeRow 
-                        key={eq.id} 
+                        key={`${eq.id}-${i}`} 
                         earthquake={eq} 
                         isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
                         isSelected={selectedEarthquake?.id === eq.id}
-                        onClick={() => setSelectedEarthquake(selectedEarthquake?.id === eq.id ? null : eq)}
+                        onClick={() => setDetailEarthquake(eq)}
+                        onMapSelect={() => setSelectedEarthquake(selectedEarthquake?.id === eq.id ? null : eq)}
                       />
                     ))}
                     {realtimeQuakes.length > 10 && !showAllQuakes && (
@@ -332,18 +374,23 @@ export function Dashboard({ historicalData }: DashboardProps) {
 
         {activeTab === 'neighborhood' && (
           <MyNeighborhood 
-            historicalEarthquakes={historicalQuakes.length > 0 ? historicalQuakes : historicalData.earthquakes}
+            historicalEarthquakes={allHistoricalQuakes}
           />
         )}
 
         {activeTab === 'compare' && (
           <RegionComparison 
-            earthquakes={historicalQuakes.length > 0 ? historicalQuakes : historicalData.earthquakes}
+            earthquakes={allHistoricalQuakes}
           />
         )}
 
         {activeTab === 'history' && (
           <>
+            {/* Historical Swarms by Region - New Feature */}
+            <HistoricalSwarms 
+              earthquakes={allHistoricalQuakes}
+            />
+            
             {/* Historical Context */}
             <section className="grid md:grid-cols-2 gap-6">
               <div className="card p-6">
@@ -400,36 +447,6 @@ export function Dashboard({ historicalData }: DashboardProps) {
                       );
                     })}
                 </div>
-              </div>
-            </section>
-
-            {/* Swarm History */}
-            <section className="card p-6">
-              <h3 className="font-semibold mb-4">Notable Swarm Events</h3>
-              <p className="text-sm text-neutral-400 mb-6">
-                Earthquake swarms — clusters of many small earthquakes — occur regularly in the Bay Area.
-                Here are some notable events from the past decade.
-              </p>
-              <div className="space-y-4">
-                {historicalData.sanRamonSwarms.slice(0, 5).map(swarm => (
-                  <div key={swarm.id} className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-xl hover:bg-white/[0.04] transition-colors">
-                    <div 
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-bold"
-                      style={{ backgroundColor: getMagnitudeColor(swarm.peakMagnitude) + '30' }}
-                    >
-                      {swarm.peakMagnitude.toFixed(1)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{format(swarm.startTime, 'MMMM d, yyyy')}</div>
-                      <div className="text-sm text-neutral-500">
-                        {swarm.totalCount} earthquakes over {Math.round((swarm.endTime.getTime() - swarm.startTime.getTime()) / (1000 * 60 * 60))} hours
-                      </div>
-                    </div>
-                    <div className="text-right text-sm text-neutral-400">
-                      Peak M{swarm.peakMagnitude.toFixed(1)}
-                    </div>
-                  </div>
-                ))}
               </div>
             </section>
           </>
@@ -564,6 +581,15 @@ export function Dashboard({ historicalData }: DashboardProps) {
           </p>
         </footer>
       </main>
+      
+      {/* Earthquake Detail Modal */}
+      {detailEarthquake && (
+        <EarthquakeDetailModal
+          earthquake={detailEarthquake}
+          onClose={() => setDetailEarthquake(null)}
+          breadcrumb="Recent Earthquakes"
+        />
+      )}
     </div>
   );
 }
@@ -598,21 +624,23 @@ function EarthquakeRow({
   earthquake, 
   isNew,
   isSelected,
-  onClick
+  onClick,
+  onMapSelect
 }: { 
   earthquake: Earthquake; 
   isNew?: boolean;
   isSelected?: boolean;
   onClick?: () => void;
+  onMapSelect?: () => void;
 }) {
   const region = getRegionById(earthquake.region);
   
   return (
-    <button 
-      onClick={onClick}
-      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all text-left
+    <div 
+      className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all text-left cursor-pointer group
         ${isNew ? 'bg-white/[0.06] border border-white/10' : 'hover:bg-white/[0.03]'}
         ${isSelected ? 'ring-2 ring-blue-500/50 bg-blue-500/5' : ''}`}
+      onClick={onClick}
     >
       {/* Magnitude */}
       <div className="w-14 text-center">
@@ -651,15 +679,19 @@ function EarthquakeRow({
 
       {/* Region indicator */}
       {region && (
-        <div 
-          className="w-2 h-8 rounded-full hidden sm:block"
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMapSelect?.();
+          }}
+          className="w-2 h-8 rounded-full hidden sm:block hover:scale-125 transition-transform"
           style={{ backgroundColor: region.color }}
-          title={region.name}
+          title={`Show ${region.name} on map`}
         />
       )}
 
       {/* Arrow */}
-      <ChevronRight className="w-4 h-4 text-neutral-600 flex-shrink-0" />
-    </button>
+      <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 flex-shrink-0 transition-colors" />
+    </div>
   );
 }

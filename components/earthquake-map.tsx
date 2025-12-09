@@ -158,7 +158,7 @@ export function EarthquakeMap({
           
           return (
             <g 
-              key={eq.id}
+              key={`${eq.id}-${index}`}
               className="cursor-pointer transition-all duration-200"
               onMouseEnter={() => setHoveredQuake(eq)}
               onMouseLeave={() => setHoveredQuake(null)}

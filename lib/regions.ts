@@ -80,6 +80,32 @@ export const REGIONS: Region[] = [
     color: '#ec4899',
     faultLine: 'Rodgers Creek Fault',
   },
+  {
+    id: 'richmond-hercules',
+    name: 'Richmond / Hercules / Pinole',
+    description: 'Northern Contra Costa along the Hayward Fault',
+    bounds: {
+      minLat: 37.88,
+      maxLat: 38.05,
+      minLon: -122.48,
+      maxLon: -122.25,
+    },
+    color: '#14b8a6',
+    faultLine: 'Hayward Fault',
+  },
+  {
+    id: 'vallejo-benicia',
+    name: 'Vallejo / Benicia / Martinez',
+    description: 'Carquinez Strait area along multiple fault systems',
+    bounds: {
+      minLat: 38.0,
+      maxLat: 38.25,
+      minLon: -122.45,
+      maxLon: -122.05,
+    },
+    color: '#a855f7',
+    faultLine: 'Concord/Green Valley Fault',
+  },
 ];
 
 // All of Northern California for broader context
