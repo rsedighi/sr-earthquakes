@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { format, formatDistanceToNow, subDays } from 'date-fns';
 import dynamic from 'next/dynamic';
 import { 
@@ -54,30 +54,49 @@ const LeafletMap = dynamic(
   }
 );
 
-interface HistoricalData {
-  earthquakes: Earthquake[];
-  summary: {
-    totalCount: number;
-    dateRange: { start: Date; end: Date };
-    magnitudeRange: { min: number; max: number; avg: number };
-    byRegion: Record<string, number>;
+// Lightweight summary from server - NO raw earthquake arrays!
+interface HistoricalSummary {
+  totalCount: number;
+  dateRange: {
+    start: string;
+    end: string;
   };
-  swarms: SwarmEvent[];
-  biggestQuake: Earthquake | null;
-  regionStats: {
+  magnitudeRange: {
+    min: number;
+    max: number;
+    avg: number;
+  };
+  byRegion: Record<string, number>;
+  biggestQuake: {
+    id: string;
+    magnitude: number;
+    place: string;
+    timestamp: number;
+    region: string;
+  } | null;
+  regionStats: Array<{
     regionId: string;
     totalCount: number;
     avgMagnitude: number;
     maxMagnitude: number;
-  }[];
-  sanRamonQuakes: Earthquake[];
-  sanRamonSwarms: SwarmEvent[];
-  santaClaraQuakes: Earthquake[];
-  santaClaraSwarms: SwarmEvent[];
+  }>;
+  swarmSummaries: Array<{
+    id: string;
+    startTime: string;
+    endTime: string;
+    peakMagnitude: number;
+    totalCount: number;
+    region: string;
+  }>;
+  sanRamonCount: number;
+  santaClaraCount: number;
+  sanRamonSwarmCount: number;
+  santaClaraSwarmCount: number;
+  avgWeeklyRate: number;
 }
 
 interface DashboardProps {
-  historicalData: HistoricalData;
+  historicalSummary: HistoricalSummary;
 }
 
 // Helper to deduplicate earthquakes by ID
@@ -93,7 +112,7 @@ function deduplicateEarthquakes(earthquakes: Earthquake[]): Earthquake[] {
   return result;
 }
 
-export function Dashboard({ historicalData }: DashboardProps) {
+export function Dashboard({ historicalSummary }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
@@ -102,8 +121,13 @@ export function Dashboard({ historicalData }: DashboardProps) {
   const [citySearch, setCitySearch] = useState('');
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isLoadingAiSummary, setIsLoadingAiSummary] = useState(false);
+  
+  // Historical earthquakes loaded on-demand (lazy loading)
+  const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalLoaded, setHistoricalLoaded] = useState(false); // Track if we've loaded ALL data
 
-  // Real-time data
+  // Real-time data (this week)
   const { 
     earthquakes: realtimeQuakes, 
     isLoading, 
@@ -115,7 +139,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
     refreshInterval: 60000,
   });
 
-  // Recent earthquake data (since Dec 8, 2025) - supplements the historical data from props
+  // Recent earthquake data (since Dec 8, 2025) - supplements the historical data
   const {
     earthquakes: recentQuakes,
     isLoading: isLoadingRecent,
@@ -127,8 +151,39 @@ export function Dashboard({ historicalData }: DashboardProps) {
   // User's selected city for personalized widget
   const { myCity, setCityByName, stats: myCityStats, isLoaded: myCityLoaded, availableCities } = useMyCity(realtimeQuakes);
   
-  // Merge historical data (from static files) with recent API data
-  // Historical data from props + any new data since Dec 8, 2025
+  // Load ALL historical earthquakes when needed (for neighborhood/compare/history tabs)
+  const loadHistoricalQuakes = useCallback(async () => {
+    if (historicalLoading || historicalLoaded) return;
+    setHistoricalLoading(true);
+    
+    try {
+      // Fetch ALL historical data at once for swarm detection
+      const res = await fetch(`/api/earthquakes/list?all=true`);
+      if (res.ok) {
+        const data = await res.json();
+        const quakes = data.earthquakes.map((eq: { id: string; magnitude: number; place: string; time: string; timestamp: number; latitude: number; longitude: number; depth: number; felt: number | null; significance: number; url: string; region: string; }) => ({
+          ...eq,
+          time: new Date(eq.time),
+        }));
+        
+        setHistoricalQuakes(quakes);
+        setHistoricalLoaded(true);
+      }
+    } catch (error) {
+      console.error('Failed to load historical earthquakes:', error);
+    } finally {
+      setHistoricalLoading(false);
+    }
+  }, [historicalLoading, historicalLoaded]);
+  
+  // Load historical data when switching to tabs that need it
+  useEffect(() => {
+    if ((activeTab === 'neighborhood' || activeTab === 'compare' || activeTab === 'history') && !historicalLoaded) {
+      loadHistoricalQuakes();
+    }
+  }, [activeTab, historicalLoaded, loadHistoricalQuakes]);
+  
+  // Merge recent API data with lazy-loaded historical data
   const allHistoricalQuakes = useMemo(() => {
     const seenIds = new Set<string>();
     const merged: Earthquake[] = [];
@@ -141,8 +196,8 @@ export function Dashboard({ historicalData }: DashboardProps) {
       }
     }
     
-    // Add historical data from props
-    for (const eq of historicalData.earthquakes) {
+    // Add historical data loaded on-demand
+    for (const eq of historicalQuakes) {
       if (!seenIds.has(eq.id)) {
         seenIds.add(eq.id);
         merged.push(eq);
@@ -151,7 +206,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
     
     // Sort by time descending
     return merged.sort((a, b) => b.timestamp - a.timestamp);
-  }, [recentQuakes, historicalData.earthquakes]);
+  }, [recentQuakes, historicalQuakes]);
 
   // Current swarm detection
   const currentSwarm = useMemo(() => {
@@ -171,8 +226,8 @@ export function Dashboard({ historicalData }: DashboardProps) {
     ? realtimeQuakes.reduce((max, eq) => eq.magnitude > max.magnitude ? eq : max)
     : null;
 
-  // Historical comparison
-  const avgWeeklyRate = Math.round(historicalData.sanRamonQuakes.length / (15 * 52));
+  // Historical comparison - use pre-computed summary data
+  const avgWeeklyRate = historicalSummary.avgWeeklyRate;
   const isElevated = sanRamonCount > avgWeeklyRate * 2;
   
   // Additional metrics for new widgets
@@ -206,7 +261,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
     
     const region = getRegionById(maxRegion);
     const avgForRegion = Math.round(
-      (historicalData.regionStats.find(r => r.regionId === maxRegion)?.totalCount || 0) / (15 * 52)
+      (historicalSummary.regionStats.find(r => r.regionId === maxRegion)?.totalCount || 0) / (15 * 52)
     );
     const multiplier = avgForRegion > 0 ? maxCount / avgForRegion : 1;
     
@@ -217,7 +272,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
       isElevated: multiplier > 2,
       multiplier,
     };
-  }, [realtimeQuakes, historicalData.regionStats]);
+  }, [realtimeQuakes, historicalSummary.regionStats]);
   
   // Calculate trend (comparing first half of week to second half)
   const activityTrend = useMemo(() => {
@@ -232,13 +287,13 @@ export function Dashboard({ historicalData }: DashboardProps) {
     return 'stable';
   }, [realtimeQuakes]);
 
-  // Find similar historical swarms
+  // Find similar historical swarms - use summary data
   const similarSwarms = useMemo(() => {
     if (!currentSwarm) return [];
-    return historicalData.sanRamonSwarms
-      .filter(s => s.peakMagnitude >= currentSwarm.peakMagnitude - 0.5)
+    return historicalSummary.swarmSummaries
+      .filter(s => s.region === 'san-ramon' && s.peakMagnitude >= currentSwarm.peakMagnitude - 0.5)
       .slice(0, 3);
-  }, [currentSwarm, historicalData.sanRamonSwarms]);
+  }, [currentSwarm, historicalSummary.swarmSummaries]);
 
   // Get 24-hour activity
   const last24Hours = useMemo(() => {
@@ -670,26 +725,34 @@ export function Dashboard({ historicalData }: DashboardProps) {
         {activeTab === 'history' && (
           <>
             {/* Historical Swarms by Region - New Feature */}
-            <HistoricalSwarms 
-              earthquakes={allHistoricalQuakes}
-            />
+            {historicalLoading && !historicalLoaded ? (
+              <div className="card p-12 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-neutral-500 mx-auto mb-4" />
+                <p className="text-neutral-500">Loading 15 years of earthquake data...</p>
+                <p className="text-xs text-neutral-600 mt-2">This may take a moment</p>
+              </div>
+            ) : (
+              <HistoricalSwarms 
+                earthquakes={allHistoricalQuakes}
+              />
+            )}
             
-            {/* Historical Context */}
+            {/* Historical Context - uses summary data (no loading needed) */}
             <section className="grid md:grid-cols-2 gap-6">
               <div className="card p-6">
                 <h3 className="font-semibold mb-4">15 Years of Data</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3 border-b border-white/5">
                     <span className="text-neutral-400">Total Earthquakes</span>
-                    <span className="text-2xl font-light">{historicalData.summary.totalCount.toLocaleString()}</span>
+                    <span className="text-2xl font-light">{historicalSummary.totalCount.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-white/5">
                     <span className="text-neutral-400">Swarm Events Detected</span>
-                    <span className="text-2xl font-light">{historicalData.swarms.length}</span>
+                    <span className="text-2xl font-light">{historicalSummary.swarmSummaries.length}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-white/5">
                     <span className="text-neutral-400">Largest Recorded</span>
-                    <span className="text-2xl font-light">M{historicalData.biggestQuake?.magnitude.toFixed(1)}</span>
+                    <span className="text-2xl font-light">M{historicalSummary.biggestQuake?.magnitude.toFixed(1)}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span className="text-neutral-400">Data Range</span>
@@ -704,13 +767,13 @@ export function Dashboard({ historicalData }: DashboardProps) {
                   How does earthquake activity compare across Northern California regions?
                 </p>
                 <div className="space-y-4">
-                  {historicalData.regionStats
+                  {historicalSummary.regionStats
                     .filter(r => r.totalCount > 0)
                     .sort((a, b) => b.totalCount - a.totalCount)
                     .slice(0, 4)
                     .map(stat => {
                       const region = getRegionById(stat.regionId);
-                      const maxCount = Math.max(...historicalData.regionStats.map(r => r.totalCount));
+                      const maxCount = Math.max(...historicalSummary.regionStats.map(r => r.totalCount));
                       return (
                         <div key={stat.regionId} className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
