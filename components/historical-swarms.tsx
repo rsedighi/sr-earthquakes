@@ -104,10 +104,10 @@ function getSwarmIntensity(swarm: SwarmEvent): 'low' | 'moderate' | 'high' | 'ex
 }
 
 const intensityColors = {
-  low: { bg: 'bg-green-500/20', border: 'border-green-500/30', text: 'text-green-400' },
-  moderate: { bg: 'bg-yellow-500/20', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-  high: { bg: 'bg-orange-500/20', border: 'border-orange-500/30', text: 'text-orange-400' },
-  extreme: { bg: 'bg-red-500/20', border: 'border-red-500/30', text: 'text-red-400' },
+  low: { bg: 'bg-white/5', border: 'border-white/10', text: 'text-neutral-500' },
+  moderate: { bg: 'bg-white/10', border: 'border-white/15', text: 'text-neutral-400' },
+  high: { bg: 'bg-white/15', border: 'border-white/20', text: 'text-neutral-300' },
+  extreme: { bg: 'bg-white/20', border: 'border-white/30', text: 'text-white' },
 };
 
 export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwarmsProps) {
@@ -184,7 +184,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
             <Flame className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -203,10 +203,9 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-white/20 transition-colors text-left"
           >
-            <div 
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: region?.color }}
-            />
+            <span className="px-2.5 py-1 text-sm font-mono font-bold bg-white/15 rounded-lg text-white tracking-wider">
+              {region?.areaCode}
+            </span>
             <span className="flex-1 truncate">{region?.name}</span>
             <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -221,13 +220,14 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                     setIsDropdownOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left ${
-                    selectedRegion === r.id ? 'bg-white/5' : ''
+                    selectedRegion === r.id ? 'bg-white/10' : ''
                   }`}
                 >
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: r.color }}
-                  />
+                  <span className={`px-2.5 py-1 text-sm font-mono font-bold rounded-lg tracking-wider flex-shrink-0 ${
+                    selectedRegion === r.id ? 'bg-white/20 text-white' : 'bg-white/10 text-neutral-300'
+                  }`}>
+                    {r.areaCode}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">{r.name}</div>
                     <div className="text-xs text-neutral-500">{r.faultLine}</div>
@@ -258,55 +258,55 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
       </div>
       
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-          <div className="flex items-center gap-2 text-neutral-500 mb-2">
-            <Activity className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider">Total Swarms</span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 text-neutral-500 mb-2">
+              <Activity className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">Total Swarms</span>
+            </div>
+            <div className="text-3xl font-light text-white">
+              {totals.totalSwarms}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">detected events</div>
           </div>
-          <div className="text-3xl font-light" style={{ color: region?.color }}>
-            {totals.totalSwarms}
+          
+          <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 text-neutral-500 mb-2">
+              <Gauge className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">M3+ Quakes</span>
+            </div>
+            <div className="text-3xl font-light text-white">{totals.totalM3Plus}</div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {totals.totalM4Plus > 0 ? `(${totals.totalM4Plus} were M4+)` : 'felt by many'}
+            </div>
           </div>
-          <div className="text-xs text-neutral-500 mt-1">detected events</div>
+          
+          <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 text-neutral-500 mb-2">
+              <Layers className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">Largest Swarm</span>
+            </div>
+            <div className="text-3xl font-light text-white">
+              {totals.biggestSwarm?.totalCount || '—'}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {totals.biggestSwarm ? format(totals.biggestSwarm.startTime, 'MMM yyyy') : 'No swarms'}
+            </div>
+          </div>
+          
+          <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 text-neutral-500 mb-2">
+              <Zap className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">Peak Magnitude</span>
+            </div>
+            <div className="text-3xl font-light text-white">
+              {totals.strongestSwarm ? `M${totals.strongestSwarm.peakMagnitude.toFixed(1)}` : '—'}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {totals.strongestSwarm ? format(totals.strongestSwarm.startTime, 'MMM yyyy') : 'In swarms'}
+            </div>
+          </div>
         </div>
-        
-        <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-          <div className="flex items-center gap-2 text-neutral-500 mb-2">
-            <Gauge className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider">M3+ Quakes</span>
-          </div>
-          <div className="text-3xl font-light text-yellow-400">{totals.totalM3Plus}</div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {totals.totalM4Plus > 0 ? `(${totals.totalM4Plus} were M4+)` : 'felt by many'}
-          </div>
-        </div>
-        
-        <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-          <div className="flex items-center gap-2 text-neutral-500 mb-2">
-            <Layers className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider">Largest Swarm</span>
-          </div>
-          <div className="text-3xl font-light">
-            {totals.biggestSwarm?.totalCount || '—'}
-          </div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {totals.biggestSwarm ? format(totals.biggestSwarm.startTime, 'MMM yyyy') : 'No swarms'}
-          </div>
-        </div>
-        
-        <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
-          <div className="flex items-center gap-2 text-neutral-500 mb-2">
-            <Zap className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-wider">Peak Magnitude</span>
-          </div>
-          <div className="text-3xl font-light" style={{ color: totals.strongestSwarm ? getMagnitudeColor(totals.strongestSwarm.peakMagnitude) : undefined }}>
-            {totals.strongestSwarm ? `M${totals.strongestSwarm.peakMagnitude.toFixed(1)}` : '—'}
-          </div>
-          <div className="text-xs text-neutral-500 mt-1">
-            {totals.strongestSwarm ? format(totals.strongestSwarm.startTime, 'MMM yyyy') : 'In swarms'}
-          </div>
-        </div>
-      </div>
       
       {/* Year-by-Year Comparison Chart */}
       <div className="card p-6">
@@ -324,31 +324,49 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
               >
                 <span className="text-sm font-mono text-neutral-400 w-12">{yd.year}</span>
                 
-                {/* Swarm count bar */}
-                <div className="flex-1 h-10 bg-white/5 rounded-lg overflow-hidden relative">
+                {/* Swarm count bar - hover=cyan, selected=purple */}
+                <div className={`flex-1 h-10 rounded-lg overflow-hidden relative transition-all duration-200 ${
+                  expandedYears.has(yd.year) 
+                    ? 'bg-violet-500/20 ring-2 ring-violet-500/40' 
+                    : 'bg-white/5 hover:bg-cyan-500/10 group-hover:ring-2 group-hover:ring-cyan-500/30'
+                }`}>
                   <div 
-                    className="h-full rounded-lg transition-all duration-500 flex items-center px-3 gap-3"
+                    className={`h-full rounded-lg transition-all duration-500 flex items-center px-3 gap-3 ${
+                      expandedYears.has(yd.year) ? '' : 'group-hover:brightness-125'
+                    }`}
                     style={{ 
                       width: `${Math.max((yd.swarms.length / maxSwarmCount) * 100, 5)}%`,
-                      backgroundColor: region?.color + '40'
+                      backgroundColor: expandedYears.has(yd.year) ? '#8b5cf6' + '50' : region?.color + '40'
                     }}
                   >
                     {yd.swarms.length > 0 && (
-                      <span className="text-xs font-medium whitespace-nowrap" style={{ color: region?.color }}>
+                      <span className={`text-xs font-medium whitespace-nowrap transition-colors ${
+                        expandedYears.has(yd.year) ? 'text-violet-300' : ''
+                      }`} style={{ color: expandedYears.has(yd.year) ? undefined : region?.color }}>
                         {yd.swarms.length} swarm{yd.swarms.length !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
                   
+                  {/* Hover indicator for expandable - cyan color */}
+                  {!expandedYears.has(yd.year) && yd.swarms.length > 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <span className="text-xs text-cyan-400 bg-black/70 px-2 py-1 rounded-full flex items-center gap-1">
+                        <ChevronDown className="w-3 h-3" />
+                        Click to expand
+                      </span>
+                    </div>
+                  )}
+                  
                   {/* Magnitude counts overlay */}
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     {yd.magnitudeCounts.m3plus > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 font-medium">
                         {yd.magnitudeCounts.m3plus} M3+
                       </span>
                     )}
                     {yd.magnitudeCounts.m4plus > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15 text-neutral-200 font-medium">
                         {yd.magnitudeCounts.m4plus} M4+
                       </span>
                     )}
@@ -367,15 +385,17 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                 </div>
                 
                 <ChevronDown 
-                  className={`w-4 h-4 text-neutral-600 transition-transform ${
-                    expandedYears.has(yd.year) ? 'rotate-180' : ''
+                  className={`w-4 h-4 transition-all duration-200 ${
+                    expandedYears.has(yd.year) 
+                      ? 'rotate-180 text-violet-400' 
+                      : 'text-neutral-600 group-hover:text-cyan-400'
                   }`}
                 />
               </button>
               
-              {/* Expanded swarm details */}
+              {/* Expanded swarm details - purple border for selected state */}
               {expandedYears.has(yd.year) && yd.swarms.length > 0 && (
-                <div className="ml-16 space-y-2 animate-fade-in">
+                <div className="ml-16 space-y-2 animate-fade-in pl-4 border-l-2 border-violet-500/40">
                   {yd.swarms.map((swarm) => {
                     const intensity = getSwarmIntensity(swarm);
                     const durationHours = differenceInHours(swarm.endTime, swarm.startTime);
@@ -391,16 +411,35 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                       <button
                         key={swarm.id}
                         onClick={() => openSwarmDetail(swarm)}
-                        className={`w-full p-4 rounded-xl border ${intensityColors[intensity].bg} ${intensityColors[intensity].border} text-left hover:ring-2 hover:ring-white/20 transition-all group`}
+                        className={`w-full p-4 rounded-xl border-2 border-dashed text-left hover:ring-2 hover:ring-cyan-500/40 transition-all group ${
+                          intensity === 'extreme' 
+                            ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/15' 
+                            : intensity === 'high' 
+                              ? 'bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/15' 
+                              : intensity === 'moderate' 
+                                ? 'bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15' 
+                                : 'bg-white/5 border-white/20 hover:bg-white/10'
+                        }`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
+                              <Flame className={`w-4 h-4 ${
+                                intensity === 'extreme' ? 'text-red-400' :
+                                intensity === 'high' ? 'text-orange-400' :
+                                intensity === 'moderate' ? 'text-yellow-400' :
+                                'text-neutral-500'
+                              }`} />
                               <span className="font-medium">{format(swarm.startTime, 'MMM d, yyyy')}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${intensityColors[intensity].bg} ${intensityColors[intensity].text}`}>
-                                {intensity}
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${
+                                intensity === 'extreme' ? 'bg-red-500/20 text-red-300' :
+                                intensity === 'high' ? 'bg-orange-500/20 text-orange-300' :
+                                intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
+                                'bg-white/10 text-neutral-400'
+                              }`}>
+                                {intensity} swarm
                               </span>
-                              <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-white transition-colors" />
+                              <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
                             </div>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-400">
                               <span className="flex items-center gap-1">
@@ -419,28 +458,27 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                             {/* Magnitude breakdown */}
                             <div className="flex items-center gap-2 mt-2 text-xs">
                               {swarmM2Plus > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-lime-500/20 text-lime-400">
+                                <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">
                                   {swarmM2Plus} M2+
                                 </span>
                               )}
                               {swarmM3Plus > 0 && (
-                                <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                                   {swarmM3Plus} M3+
                                 </span>
                               )}
                             </div>
                           </div>
                           
-                          {/* Mini timeline showing earthquake distribution */}
+                          {/* Mini timeline showing earthquake distribution with colors */}
                           <div className="hidden sm:flex items-center gap-0.5">
                             {swarm.earthquakes.slice(0, 20).map((eq, i) => (
                               <div
                                 key={i}
-                                className="w-1 rounded-full"
+                                className="w-1.5 rounded-full"
                                 style={{
-                                  height: `${Math.max(eq.magnitude * 6, 8)}px`,
+                                  height: `${Math.max(eq.magnitude * 8, 10)}px`,
                                   backgroundColor: getMagnitudeColor(eq.magnitude),
-                                  opacity: 0.8
                                 }}
                                 title={`M${eq.magnitude.toFixed(1)}`}
                               />
@@ -457,7 +495,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
               )}
               
               {expandedYears.has(yd.year) && yd.swarms.length === 0 && (
-                <div className="ml-16 p-4 text-sm text-neutral-500 bg-white/[0.02] rounded-xl">
+                <div className="ml-16 p-4 text-sm text-neutral-500 bg-white/[0.02] rounded-xl border-l-2 border-neutral-700">
                   No swarm events detected in {yd.year} • {yd.totalEarthquakes} total earthquakes ({yd.magnitudeCounts.m2plus} M2+)
                 </div>
               )}
@@ -504,56 +542,85 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                     onClick={() => openSwarmDetail(swarm)}
                     className="w-full text-left relative group"
                   >
-                    <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
+                    <div className={`flex items-center gap-4 p-3 rounded-xl transition-colors border-2 border-dashed hover:ring-2 hover:ring-cyan-500/40 ${
+                      intensity === 'extreme' 
+                        ? 'border-red-500/30 hover:bg-red-500/10' 
+                        : intensity === 'high' 
+                          ? 'border-orange-500/30 hover:bg-orange-500/10' 
+                          : intensity === 'moderate' 
+                            ? 'border-yellow-500/30 hover:bg-yellow-500/10' 
+                            : 'border-white/10 hover:bg-white/5'
+                    }`}>
                       {/* Rank */}
-                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-neutral-500">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        idx === 0 ? 'bg-amber-500/20 text-amber-400' :
+                        idx === 1 ? 'bg-neutral-400/20 text-neutral-300' :
+                        idx === 2 ? 'bg-orange-600/20 text-orange-400' :
+                        'bg-white/5 text-neutral-500'
+                      }`}>
                         #{idx + 1}
                       </div>
                       
                       {/* Swarm info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          <Flame className={`w-4 h-4 ${
+                            intensity === 'extreme' ? 'text-red-400' :
+                            intensity === 'high' ? 'text-orange-400' :
+                            intensity === 'moderate' ? 'text-yellow-400' :
+                            'text-neutral-500'
+                          }`} />
                           <span className="font-medium">{format(swarm.startTime, 'MMMM d, yyyy')}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${intensityColors[intensity].bg} ${intensityColors[intensity].text}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            intensity === 'extreme' ? 'bg-red-500/20 text-red-300' :
+                            intensity === 'high' ? 'bg-orange-500/20 text-orange-300' :
+                            intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
+                            'bg-white/10 text-neutral-400'
+                          }`}>
                             {swarm.totalCount} quakes
                           </span>
                           {swarmM3Plus > 0 && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
                               {swarmM3Plus} M3+
                             </span>
                           )}
                         </div>
                         
-                        {/* Progress bar showing relative size */}
+                        {/* Progress bar showing relative size with color */}
                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                           <div 
-                            className="h-full rounded-full transition-all duration-500"
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              intensity === 'extreme' ? 'bg-red-500/60' :
+                              intensity === 'high' ? 'bg-orange-500/60' :
+                              intensity === 'moderate' ? 'bg-yellow-500/60' :
+                              'bg-white/30'
+                            }`}
                             style={{ 
-                              width: `${(swarm.totalCount / maxSwarmSize) * 100}%`,
-                              backgroundColor: getMagnitudeColor(swarm.peakMagnitude)
+                              width: `${(swarm.totalCount / maxSwarmSize) * 100}%`
                             }}
                           />
                         </div>
                         
                         <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500">
-                          <span>Peak M{swarm.peakMagnitude.toFixed(1)}</span>
+                          <span style={{ color: getMagnitudeColor(swarm.peakMagnitude) }}>Peak M{swarm.peakMagnitude.toFixed(1)}</span>
                           <span>•</span>
                           <span>{durationHours < 24 ? `${durationHours} hours` : `${Math.round(durationHours / 24)} days`}</span>
                         </div>
                       </div>
                       
-                      {/* Peak magnitude badge */}
+                      {/* Peak magnitude badge with color */}
                       <div 
                         className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold"
-                        style={{ 
+                        style={{
                           backgroundColor: getMagnitudeColor(swarm.peakMagnitude) + '20',
-                          color: getMagnitudeColor(swarm.peakMagnitude)
+                          color: getMagnitudeColor(swarm.peakMagnitude),
+                          border: `2px solid ${getMagnitudeColor(swarm.peakMagnitude)}40`
                         }}
                       >
                         {swarm.peakMagnitude.toFixed(1)}
                       </div>
                       
-                      <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors" />
+                      <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
                     </div>
                   </button>
                 );
@@ -571,12 +638,12 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
       
       {/* Insight Section */}
       {totals.totalSwarms > 0 && (
-        <div className="p-5 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl border border-orange-500/20">
-          <h4 className="font-medium text-orange-100 mb-2 flex items-center gap-2">
+        <div className="p-5 bg-white/[0.02] rounded-xl border border-white/10">
+          <h4 className="font-medium text-neutral-200 mb-2 flex items-center gap-2">
             <Flame className="w-4 h-4" />
             Swarm Activity Insight
           </h4>
-          <p className="text-sm text-orange-200/80 leading-relaxed">
+          <p className="text-sm text-neutral-400 leading-relaxed">
             {generateSwarmInsight(yearlyData, region?.name || 'This region')}
           </p>
         </div>
@@ -794,14 +861,14 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
           {/* Magnitude Distribution */}
           <div className="mt-4 flex items-center gap-4 text-sm">
             <span className="text-neutral-500">Magnitude Distribution:</span>
-            <span className="px-2 py-1 rounded bg-lime-500/20 text-lime-400 text-xs font-medium">
+            <span className="px-2 py-1 rounded bg-white/10 text-neutral-400 text-xs font-medium">
               {stats.m2Plus} M2+
             </span>
-            <span className="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 text-xs font-medium">
+            <span className="px-2 py-1 rounded bg-white/15 text-neutral-300 text-xs font-medium">
               {stats.m3Plus} M3+
             </span>
             {stats.m4Plus > 0 && (
-              <span className="px-2 py-1 rounded bg-orange-500/20 text-orange-400 text-xs font-medium">
+              <span className="px-2 py-1 rounded bg-white/20 text-neutral-200 text-xs font-medium">
                 {stats.m4Plus} M4+
               </span>
             )}
@@ -876,8 +943,8 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
                 key={`${eq.id}-${idx}`}
                 onClick={() => onEarthquakeClick?.(eq)}
                 className={`grid grid-cols-[80px_1fr_100px_80px_80px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer group ${
-                  eq.magnitude >= 3 ? 'bg-yellow-500/5' : ''
-                } ${eq.magnitude >= 4 ? 'bg-orange-500/5' : ''}`}
+                  eq.magnitude >= 3 ? 'bg-white/[0.02]' : ''
+                } ${eq.magnitude >= 4 ? 'bg-white/[0.03]' : ''}`}
               >
                 {/* Time */}
                 <div className="text-xs">
@@ -893,7 +960,7 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
                   />
                   <span className="text-sm truncate group-hover:text-white transition-colors">{eq.place}</span>
                   {eq.felt && eq.felt > 0 && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 flex-shrink-0">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 flex-shrink-0">
                       {eq.felt} felt
                     </span>
                   )}
@@ -927,7 +994,7 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
                     className="p-1.5 hover:bg-white/10 rounded transition-colors"
                     title="View details"
                   >
-                    <Eye className="w-4 h-4 text-neutral-500 group-hover:text-blue-400" />
+                    <Eye className="w-4 h-4 text-neutral-500 group-hover:text-white" />
                   </button>
                   <a
                     href={eq.url}

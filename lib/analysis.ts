@@ -227,13 +227,14 @@ export function getRecentActivity(
 }
 
 // Get magnitude color for visual representation
+// Using distinct colors for better visibility: red (critical) -> orange (high) -> yellow (moderate) -> green (minor)
 export function getMagnitudeColor(magnitude: number): string {
-  if (magnitude >= 5) return '#dc2626'; // red-600
-  if (magnitude >= 4) return '#ea580c'; // orange-600
-  if (magnitude >= 3) return '#d97706'; // amber-600
-  if (magnitude >= 2) return '#ca8a04'; // yellow-600
-  if (magnitude >= 1) return '#65a30d'; // lime-600
-  return '#16a34a'; // green-600
+  if (magnitude >= 5) return '#ef4444'; // red-500 - critical/major
+  if (magnitude >= 4) return '#f97316'; // orange-500 - strong
+  if (magnitude >= 3) return '#eab308'; // yellow-500 - moderate
+  if (magnitude >= 2) return '#22c55e'; // green-500 - minor
+  if (magnitude >= 1) return '#10b981'; // emerald-500 - micro
+  return '#6b7280'; // gray-500 - trace
 }
 
 // Get magnitude severity label

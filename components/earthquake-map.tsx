@@ -31,9 +31,15 @@ function latLonToSvg(lat: number, lon: number, width: number, height: number) {
   return { x, y };
 }
 
-// Get magnitude size
+// Get magnitude size - exponential scaling for better visual distinction
 function getMagnitudeSize(magnitude: number): number {
-  return Math.max(6, Math.min(30, Math.pow(2, magnitude) * 1.5));
+  // More aggressive scaling: M5+ are much larger than M1-2
+  if (magnitude >= 5) return 30;
+  if (magnitude >= 4) return 22;
+  if (magnitude >= 3) return 16;
+  if (magnitude >= 2) return 11;
+  if (magnitude >= 1) return 7;
+  return 5;
 }
 
 export function EarthquakeMap({ 
@@ -219,18 +225,23 @@ export function EarthquakeMap({
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 text-xs">
         <div className="text-neutral-400 mb-2 font-medium">Magnitude</div>
-        <div className="flex items-center gap-3">
-          {[1, 2, 3, 4, 5].map(mag => (
-            <div key={mag} className="flex items-center gap-1">
+        <div className="flex items-center gap-4">
+          {[
+            { mag: 2, label: 'Minor' },
+            { mag: 3, label: 'Moderate' },
+            { mag: 4, label: 'Strong' },
+            { mag: 5, label: 'Major' },
+          ].map(({ mag }) => (
+            <div key={mag} className="flex flex-col items-center gap-1">
               <div 
                 className="rounded-full"
                 style={{
-                  width: getMagnitudeSize(mag) / 2,
-                  height: getMagnitudeSize(mag) / 2,
+                  width: getMagnitudeSize(mag) * 0.7,
+                  height: getMagnitudeSize(mag) * 0.7,
                   backgroundColor: getMagnitudeColor(mag),
                 }}
               />
-              <span className="text-neutral-500">{mag}</span>
+              <span className="text-neutral-500 text-[10px]">{mag}+</span>
             </div>
           ))}
         </div>

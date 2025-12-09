@@ -114,9 +114,15 @@ function LeafletMapInner({
     return filtered;
   }, [earthquakes, showOnlyFelt, userLocation, searchRadius]);
 
-  // Get size based on magnitude
+  // Get size based on magnitude - exponential scaling for better visual distinction
   const getMagnitudeSize = (magnitude: number): number => {
-    return Math.max(5, Math.min(25, Math.pow(2, magnitude) * 1.2));
+    // More aggressive scaling: M5+ are much larger than M1-2
+    if (magnitude >= 5) return 30;
+    if (magnitude >= 4) return 22;
+    if (magnitude >= 3) return 16;
+    if (magnitude >= 2) return 11;
+    if (magnitude >= 1) return 7;
+    return 5;
   };
 
   if (!mapReady || !leaflet) {
@@ -248,30 +254,37 @@ function LeafletMapInner({
         })}
       </MapContainer>
       
-      {/* Stats overlay */}
-      <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
-        <div className="text-xs text-neutral-400">
-          <span className="text-white font-medium">{displayedQuakes.length}</span> earthquakes
-          {showOnlyFelt && <span className="text-amber-400 ml-1">felt</span>}
-          {userLocation && <span className="text-blue-400 ml-1">within {searchRadius}km</span>}
+      {/* Stats overlay - only show when user has selected a location */}
+      {userLocation && (
+        <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
+          <div className="text-xs text-neutral-400">
+            <span className="text-white font-medium">{displayedQuakes.length}</span> earthquakes
+            {showOnlyFelt && <span className="text-amber-400 ml-1">felt</span>}
+            <span className="text-blue-400 ml-1">within {searchRadius}km</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 text-xs z-[1000]">
         <div className="text-neutral-400 mb-2 font-medium">Magnitude</div>
-        <div className="flex items-center gap-3">
-          {[1, 2, 3, 4, 5].map(mag => (
-            <div key={mag} className="flex items-center gap-1">
+        <div className="flex items-center gap-4">
+          {[
+            { mag: 2, label: 'Minor' },
+            { mag: 3, label: 'Moderate' },
+            { mag: 4, label: 'Strong' },
+            { mag: 5, label: 'Major' },
+          ].map(({ mag, label }) => (
+            <div key={mag} className="flex flex-col items-center gap-1">
               <div 
                 className="rounded-full"
                 style={{
-                  width: getMagnitudeSize(mag) / 2,
-                  height: getMagnitudeSize(mag) / 2,
+                  width: getMagnitudeSize(mag) * 0.7,
+                  height: getMagnitudeSize(mag) * 0.7,
                   backgroundColor: getMagnitudeColor(mag),
                 }}
               />
-              <span className="text-neutral-500">{mag}</span>
+              <span className="text-neutral-500 text-[10px]">{mag}+</span>
             </div>
           ))}
         </div>
@@ -292,6 +305,14 @@ interface AddressSearchProps {
   currentLocation: { lat: number; lon: number; address: string } | null;
 }
 
+// Bay Area bounding box coordinates
+const BAY_AREA_BOUNDS = {
+  minLat: 36.8,
+  maxLat: 38.5,
+  minLon: -123.0,
+  maxLon: -121.0,
+};
+
 export function AddressSearch({ onLocationSelect, onClear, currentLocation }: AddressSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
@@ -299,7 +320,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Geocode using free Nominatim API (OpenStreetMap)
+  // Geocode using free Nominatim API (OpenStreetMap) - restricted to Bay Area
   const searchAddress = async (searchQuery: string) => {
     if (searchQuery.length < 3) {
       setResults([]);
@@ -308,12 +329,27 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
     
     setIsSearching(true);
     try {
+      // Use viewbox to restrict results to Bay Area and bounded=1 to strictly enforce it
+      const viewbox = `${BAY_AREA_BOUNDS.minLon},${BAY_AREA_BOUNDS.maxLat},${BAY_AREA_BOUNDS.maxLon},${BAY_AREA_BOUNDS.minLat}`;
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=us&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ', California')}&viewbox=${viewbox}&bounded=1&limit=8`,
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await response.json();
-      setResults(data);
+      
+      // Filter results to ensure they're within Bay Area bounds
+      const filteredResults = data.filter((result: { lat: string; lon: string }) => {
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+        return (
+          lat >= BAY_AREA_BOUNDS.minLat &&
+          lat <= BAY_AREA_BOUNDS.maxLat &&
+          lon >= BAY_AREA_BOUNDS.minLon &&
+          lon <= BAY_AREA_BOUNDS.maxLon
+        );
+      });
+      
+      setResults(filteredResults);
       setShowResults(true);
     } catch (error) {
       console.error('Geocoding error:', error);
@@ -383,7 +419,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setShowResults(true)}
-          placeholder="Enter your address..."
+          placeholder="Enter your Bay Area address..."
           className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
         />
         {isSearching && (
@@ -393,8 +429,18 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
         )}
       </div>
       
+      {/* Helper text */}
+      {query.length > 0 && query.length < 3 && (
+        <div className="mt-2 text-xs text-neutral-500">
+          Type at least 3 characters to search...
+        </div>
+      )}
+      
       {showResults && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 max-h-[300px] overflow-y-auto">
+          <div className="px-3 py-2 text-xs text-neutral-500 bg-white/5 border-b border-white/10">
+            Bay Area Results
+          </div>
           {results.map((result, i) => (
             <button
               key={i}
@@ -402,13 +448,23 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
               className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
             >
               <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-neutral-500 mt-0.5 flex-shrink-0" />
+                <MapPin className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-neutral-300 line-clamp-2">
                   {result.display_name}
                 </div>
               </div>
             </button>
           ))}
+        </div>
+      )}
+      
+      {showResults && results.length === 0 && query.length >= 3 && !isSearching && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50">
+          <div className="px-4 py-6 text-center text-neutral-500">
+            <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No Bay Area addresses found</p>
+            <p className="text-xs mt-1">Try a street name or city in the SF Bay Area</p>
+          </div>
         </div>
       )}
     </div>

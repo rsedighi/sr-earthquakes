@@ -170,16 +170,16 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
   const regionB = getRegionById(regionBId);
   
   const ComparisonIcon = ({ type }: { type: 'more' | 'less' | 'equal' }) => {
-    if (type === 'more') return <ArrowUp className="w-4 h-4 text-red-400" />;
-    if (type === 'less') return <ArrowDown className="w-4 h-4 text-green-400" />;
-    return <Equal className="w-4 h-4 text-neutral-400" />;
+    if (type === 'more') return <ArrowUp className="w-4 h-4 text-white" />;
+    if (type === 'less') return <ArrowDown className="w-4 h-4 text-neutral-400" />;
+    return <Equal className="w-4 h-4 text-neutral-500" />;
   };
   
   return (
     <div className={`card ${className}`}>
       <div className="p-6 border-b border-white/5">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" />
+          <TrendingUp className="w-5 h-5 text-white" />
           Region Comparison
         </h3>
         <p className="text-sm text-neutral-500 mt-1">
@@ -209,41 +209,29 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
       </div>
       
       {/* Story Summary */}
-      <div className="p-6 bg-gradient-to-br from-purple-500/5 to-blue-500/5 border-b border-white/5">
+      <div className="p-6 bg-white/[0.02] border-b border-white/5">
         <p className="text-neutral-300 leading-relaxed">{story}</p>
       </div>
       
       {/* Quick Stats */}
       <div className="p-6 grid grid-cols-2 gap-4 border-b border-white/5">
-        <div 
-          className="p-4 rounded-xl border-2 transition-colors"
-          style={{ borderColor: regionA?.color + '40', backgroundColor: regionA?.color + '10' }}
-        >
+        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
           <div className="flex items-center gap-2 mb-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: regionA?.color }}
-            />
+            <div className="w-3 h-3 rounded-full bg-white" />
             <span className="text-sm font-medium">{regionA?.name.split(' / ')[0]}</span>
           </div>
-          <div className="text-3xl font-light">
+          <div className="text-3xl font-light text-white">
             {earthquakes.filter(eq => eq.region === regionAId).length.toLocaleString()}
           </div>
           <div className="text-xs text-neutral-500">earthquakes</div>
         </div>
         
-        <div 
-          className="p-4 rounded-xl border-2 transition-colors"
-          style={{ borderColor: regionB?.color + '40', backgroundColor: regionB?.color + '10' }}
-        >
+        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
           <div className="flex items-center gap-2 mb-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: regionB?.color }}
-            />
+            <div className="w-3 h-3 rounded-full bg-neutral-500" />
             <span className="text-sm font-medium">{regionB?.name.split(' / ')[0]}</span>
           </div>
-          <div className="text-3xl font-light">
+          <div className="text-3xl font-light text-white">
             {earthquakes.filter(eq => eq.region === regionBId).length.toLocaleString()}
           </div>
           <div className="text-xs text-neutral-500">earthquakes</div>
@@ -270,10 +258,7 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div 
-                      className="text-xl font-light"
-                      style={{ color: regionA?.color }}
-                    >
+                    <div className="text-xl font-light text-white">
                       {item.regionA.label}
                     </div>
                     <div className="text-xs text-neutral-500 truncate">
@@ -282,20 +267,17 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
                   </div>
                   <div className="flex items-center justify-center">
                     {item.comparison === 'more' && (
-                      <span className="text-xs text-red-400">+{Math.abs(item.percentDiff)}%</span>
+                      <span className="text-xs text-white">+{Math.abs(item.percentDiff)}%</span>
                     )}
                     {item.comparison === 'less' && (
-                      <span className="text-xs text-green-400">-{Math.abs(item.percentDiff)}%</span>
+                      <span className="text-xs text-neutral-400">-{Math.abs(item.percentDiff)}%</span>
                     )}
                     {item.comparison === 'equal' && (
                       <span className="text-xs text-neutral-500">≈</span>
                     )}
                   </div>
                   <div>
-                    <div 
-                      className="text-xl font-light"
-                      style={{ color: regionB?.color }}
-                    >
+                    <div className="text-xl font-light text-neutral-300">
                       {item.regionB.label}
                     </div>
                     <div className="text-xs text-neutral-500 truncate">
@@ -313,7 +295,7 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
   );
 }
 
-// Region Selector Component - Now with Area Codes
+// Region Selector Component - Area Codes Prominently Displayed
 function RegionSelector({ 
   value, 
   onChange, 
@@ -335,11 +317,7 @@ function RegionSelector({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-white/20 transition-colors text-left"
       >
-        <div 
-          className="w-3 h-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: selectedRegion?.color }}
-        />
-        <span className="px-1.5 py-0.5 text-xs font-mono bg-white/10 rounded text-neutral-300">
+        <span className="px-2.5 py-1 text-sm font-mono font-bold bg-white/15 rounded-lg text-white tracking-wider">
           {selectedRegion?.areaCode}
         </span>
         <span className="flex-1 truncate text-sm">{selectedRegion?.name.split(' / ')[0]}</span>
@@ -358,14 +336,12 @@ function RegionSelector({
                   setIsOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left ${
-                  value === region.id ? 'bg-white/5' : ''
+                  value === region.id ? 'bg-white/10' : ''
                 }`}
               >
-                <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: region.color }}
-                />
-                <span className="px-1.5 py-0.5 text-xs font-mono bg-white/10 rounded text-neutral-400 flex-shrink-0">
+                <span className={`px-2.5 py-1 text-sm font-mono font-bold rounded-lg tracking-wider flex-shrink-0 ${
+                  value === region.id ? 'bg-white/20 text-white' : 'bg-white/10 text-neutral-300'
+                }`}>
                   {region.areaCode}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -414,9 +390,9 @@ export function QuickComparison({
         </div>
         
         <div className="flex-1 flex items-center justify-center">
-          {comparison === 'more' && <ArrowUp className="w-5 h-5 text-red-400" />}
-          {comparison === 'less' && <ArrowDown className="w-5 h-5 text-green-400" />}
-          {comparison === 'similar' && <Equal className="w-5 h-5 text-neutral-400" />}
+          {comparison === 'more' && <ArrowUp className="w-5 h-5 text-white" />}
+          {comparison === 'less' && <ArrowDown className="w-5 h-5 text-neutral-400" />}
+          {comparison === 'similar' && <Equal className="w-5 h-5 text-neutral-500" />}
         </div>
         
         <div className="flex items-center gap-2">
