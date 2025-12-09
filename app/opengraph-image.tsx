@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
-
+export const runtime = 'nodejs';
 export const alt = 'Bay Tremor - Live Bay Area Earthquake Tracking';
 export const size = {
   width: 1200,
@@ -24,30 +23,6 @@ export default async function Image() {
           backgroundImage: 'radial-gradient(circle at 25% 25%, #1a1a2e 0%, transparent 50%), radial-gradient(circle at 75% 75%, #16213e 0%, transparent 50%)',
         }}
       >
-        {/* Seismic wave decoration */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0.1,
-          }}
-        >
-          <svg width="800" height="200" viewBox="0 0 800 200">
-            <path
-              d="M0,100 Q50,50 100,100 T200,100 T300,100 T400,100 T500,100 T600,100 T700,100 T800,100"
-              stroke="#ffffff"
-              strokeWidth="2"
-              fill="none"
-            />
-          </svg>
-        </div>
-
         {/* Main content */}
         <div
           style={{
@@ -67,37 +42,46 @@ export default async function Image() {
               width: '100px',
               height: '100px',
               borderRadius: '24px',
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: '#10b981',
               marginBottom: '30px',
             }}
           >
-            <span style={{ fontSize: '60px' }}>🌊</span>
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M2 12h4l3-9 6 18 3-9h4"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
 
           {/* Title */}
-          <h1
+          <div
             style={{
               fontSize: '72px',
               fontWeight: 'bold',
               color: '#ffffff',
-              margin: 0,
               letterSpacing: '-2px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
             Bay Tremor
-          </h1>
+          </div>
 
           {/* Subtitle */}
-          <p
+          <div
             style={{
               fontSize: '28px',
               color: '#a3a3a3',
-              margin: '20px 0 0 0',
+              marginTop: '20px',
               textAlign: 'center',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
             Live Bay Area Earthquake Tracking
-          </p>
+          </div>
 
           {/* Stats/Features */}
           <div
@@ -117,8 +101,8 @@ export default async function Image() {
                 borderRadius: '12px',
               }}
             >
-              <span style={{ fontSize: '24px', color: '#22c55e' }}>Real-Time</span>
-              <span style={{ fontSize: '16px', color: '#737373' }}>USGS Data</span>
+              <span style={{ fontSize: '24px', color: '#22c55e', fontFamily: 'system-ui' }}>Real-Time</span>
+              <span style={{ fontSize: '16px', color: '#737373', fontFamily: 'system-ui' }}>USGS Data</span>
             </div>
             <div
               style={{
@@ -130,8 +114,8 @@ export default async function Image() {
                 borderRadius: '12px',
               }}
             >
-              <span style={{ fontSize: '24px', color: '#f59e0b' }}>8 Regions</span>
-              <span style={{ fontSize: '16px', color: '#737373' }}>Bay Area</span>
+              <span style={{ fontSize: '24px', color: '#f59e0b', fontFamily: 'system-ui' }}>8 Regions</span>
+              <span style={{ fontSize: '16px', color: '#737373', fontFamily: 'system-ui' }}>Bay Area</span>
             </div>
             <div
               style={{
@@ -143,8 +127,8 @@ export default async function Image() {
                 borderRadius: '12px',
               }}
             >
-              <span style={{ fontSize: '24px', color: '#3b82f6' }}>Swarm</span>
-              <span style={{ fontSize: '16px', color: '#737373' }}>Detection</span>
+              <span style={{ fontSize: '24px', color: '#3b82f6', fontFamily: 'system-ui' }}>Swarm</span>
+              <span style={{ fontSize: '16px', color: '#737373', fontFamily: 'system-ui' }}>Detection</span>
             </div>
           </div>
         </div>
@@ -156,6 +140,7 @@ export default async function Image() {
             bottom: '30px',
             fontSize: '20px',
             color: '#525252',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
           baytremor.com
@@ -167,4 +152,3 @@ export default async function Image() {
     }
   );
 }
-

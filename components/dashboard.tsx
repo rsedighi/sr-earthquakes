@@ -27,7 +27,11 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowDownRight,
+  HelpCircle,
+  FileText,
+  Globe,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import { Earthquake, SwarmEvent } from '@/lib/types';
 import { REGIONS, getRegionById, getLocationContext } from '@/lib/regions';
@@ -399,32 +403,74 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         {/* Navigation Tabs - More Prominent */}
         <div className="bg-neutral-900/50 border-t border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <nav className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
-              {[
-                { id: 'live', label: 'Live Map', icon: Map, badge: realtimeQuakes.length },
-                { id: 'neighborhood', label: 'My Neighborhood', icon: Home },
-                { id: 'compare', label: 'Compare Regions', icon: BarChart3 },
-                { id: 'history', label: 'History', icon: TrendingUp },
-                { id: 'learn', label: 'Learn', icon: Info },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all rounded-lg whitespace-nowrap
-                    ${activeTab === tab.id 
-                      ? 'bg-white text-black shadow-lg' 
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}
+            <div className="flex items-center justify-between">
+              <nav className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
+                {[
+                  { id: 'live', label: 'Live Map', icon: Map, badge: realtimeQuakes.length },
+                  { id: 'neighborhood', label: 'My Neighborhood', icon: Home },
+                  { id: 'compare', label: 'Compare Regions', icon: BarChart3 },
+                  { id: 'history', label: 'Historical Analysis', icon: TrendingUp },
+                  { id: 'learn', label: 'Learn', icon: Info },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all rounded-lg whitespace-nowrap
+                      ${activeTab === tab.id 
+                        ? 'bg-white text-black shadow-lg' 
+                        : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    {tab.label}
+                    {tab.badge !== undefined && activeTab !== tab.id && (
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-white/10 rounded-full">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+              
+              {/* Secondary Navigation Links */}
+              <div className="hidden md:flex items-center gap-1 pl-4 border-l border-white/10">
+                <Link
+                  href="/about"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                 >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                  {tab.badge !== undefined && activeTab !== tab.id && (
-                    <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-white/10 rounded-full">
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
+                  <FileText className="w-3.5 h-3.5" />
+                  About
+                </Link>
+                <Link
+                  href="/faq"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  FAQ
+                </Link>
+                <div className="relative group">
+                  <button className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                    <Globe className="w-3.5 h-3.5" />
+                    Regions
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 w-56 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-2">
+                    {REGIONS.map(region => (
+                      <Link
+                        key={region.id}
+                        href={`/region/${region.id}`}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <div 
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: region.color }}
+                        />
+                        {region.name.split(' / ')[0]}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -822,17 +868,137 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         )}
 
         {/* Footer */}
-        <footer className="text-center py-8 border-t border-white/5 mt-12">
-          <p className="text-sm text-neutral-500">
-            Data from{' '}
-            <a href="https://earthquake.usgs.gov/" className="text-neutral-400 hover:text-white transition-colors">
-              USGS Earthquake Hazards Program
-            </a>
-          </p>
-          <p className="text-xs text-neutral-600 mt-2">
-            This site provides real-time earthquake information for educational purposes.
-            For emergencies, dial 911.
-          </p>
+        <footer className="border-t border-white/5 mt-12 pt-8 pb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            {/* About */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">About</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/about" className="text-neutral-500 hover:text-white transition-colors">
+                    About Bay Tremor
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/faq" className="text-neutral-500 hover:text-white transition-colors">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <a 
+                    href="https://earthquake.usgs.gov/" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    USGS Data <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Regions */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Popular Regions</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/region/san-ramon" className="text-neutral-500 hover:text-white transition-colors">
+                    San Ramon / Dublin
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/berkeley-oakland" className="text-neutral-500 hover:text-white transition-colors">
+                    Berkeley / Oakland
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/sf-peninsula" className="text-neutral-500 hover:text-white transition-colors">
+                    SF Peninsula
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/santa-clara" className="text-neutral-500 hover:text-white transition-colors">
+                    Santa Clara / San Jose
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Cities */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Popular Cities</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/city/san-francisco" className="text-neutral-500 hover:text-white transition-colors">
+                    San Francisco
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/city/oakland" className="text-neutral-500 hover:text-white transition-colors">
+                    Oakland
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/city/san-jose" className="text-neutral-500 hover:text-white transition-colors">
+                    San Jose
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/city/berkeley" className="text-neutral-500 hover:text-white transition-colors">
+                    Berkeley
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Resources */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Resources</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a 
+                    href="https://www.shakealert.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    ShakeAlert <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="https://www.ready.gov/earthquakes"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    Emergency Prep <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <Link href="/feed.xml" className="text-neutral-500 hover:text-white transition-colors">
+                    RSS Feed
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="text-center pt-8 border-t border-white/5">
+            <p className="text-sm text-neutral-500">
+              Data from{' '}
+              <a href="https://earthquake.usgs.gov/" className="text-neutral-400 hover:text-white transition-colors">
+                USGS Earthquake Hazards Program
+              </a>
+            </p>
+            <p className="text-xs text-neutral-600 mt-2">
+              This site provides real-time earthquake information for educational purposes.
+              For emergencies, dial 911.
+            </p>
+            <p className="text-xs text-neutral-700 mt-4">
+              © {new Date().getFullYear()} Bay Tremor. Built for the Bay Area community.
+            </p>
+          </div>
         </footer>
       </main>
       
