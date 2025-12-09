@@ -42,6 +42,36 @@ export interface SwarmEvent {
   centerLon: number;
 }
 
+// Daily activity breakdown within a swarm episode
+export interface DailyActivityCluster {
+  date: Date;
+  dateString: string; // e.g., "2024-12-08"
+  earthquakes: Earthquake[];
+  count: number;
+  peakMagnitude: number;
+  avgMagnitude: number;
+  intensity: 'quiet' | 'low' | 'moderate' | 'high' | 'extreme';
+}
+
+// A swarm episode spans multiple weeks with daily breakdown
+export interface SwarmEpisode {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  earthquakes: Earthquake[];
+  dailyBreakdown: DailyActivityCluster[];
+  totalCount: number;
+  peakMagnitude: number;
+  avgMagnitude: number;
+  region: string;
+  centerLat: number;
+  centerLon: number;
+  durationDays: number;
+  activeDays: number; // days with at least some activity
+  peakDay: DailyActivityCluster | null; // the busiest day
+  intensity: 'minor' | 'moderate' | 'significant' | 'major';
+}
+
 export interface TimeSeriesPoint {
   date: Date;
   timestamp: number;

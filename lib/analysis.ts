@@ -1,16 +1,24 @@
 import { 
   Earthquake, 
   SwarmEvent, 
+  SwarmEpisode,
+  DailyActivityCluster,
   TimeSeriesPoint, 
   MagnitudeBucket,
   RegionStats 
 } from './types';
 import { REGIONS } from './regions';
 
-// Constants for swarm detection
+// Constants for swarm detection (legacy - short-term bursts)
 const SWARM_TIME_WINDOW_HOURS = 72; // 3 days
 const SWARM_MIN_EARTHQUAKES = 5;
 const SWARM_DISTANCE_KM = 10;
+
+// Constants for swarm episode detection (multi-week episodes)
+const EPISODE_GAP_DAYS = 14; // If no activity for 14 days, start new episode
+const EPISODE_MIN_EARTHQUAKES = 5; // Minimum earthquakes to qualify as an episode (same as legacy)
+const EPISODE_MIN_DAYS = 1; // Must have activity on at least 1 day (allows single-day bursts too)
+const DAILY_MIN_QUAKES_FOR_ACTIVE = 1; // At least 1 quake to count as active day
 
 // Calculate distance between two points (Haversine formula)
 function haversineDistance(
@@ -84,6 +92,214 @@ export function detectSwarms(earthquakes: Earthquake[]): SwarmEvent[] {
   }
   
   return swarms.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+}
+
+// Helper to get date string in local timezone
+function getDateString(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+// Helper to get start of day
+function getStartOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Calculate daily activity intensity based on count and magnitudes
+function calculateDailyIntensity(
+  count: number, 
+  peakMag: number
+): 'quiet' | 'low' | 'moderate' | 'high' | 'extreme' {
+  // Extreme: lots of quakes OR M4+ peak
+  if (count >= 20 || peakMag >= 4) return 'extreme';
+  // High: significant activity OR M3.5+ peak
+  if (count >= 10 || peakMag >= 3.5) return 'high';
+  // Moderate: notable activity OR M3+ peak
+  if (count >= 5 || peakMag >= 3) return 'moderate';
+  // Low: some activity
+  if (count >= 2) return 'low';
+  // Quiet: minimal activity
+  return 'quiet';
+}
+
+// Calculate episode intensity based on overall metrics
+function calculateEpisodeIntensity(
+  totalCount: number,
+  peakMag: number,
+  activeDays: number,
+  durationDays: number
+): 'minor' | 'moderate' | 'significant' | 'major' {
+  // Major: very high activity sustained over time
+  if (totalCount >= 50 || peakMag >= 4.5 || (activeDays >= 10 && totalCount >= 30)) return 'major';
+  // Significant: high activity or strong peak
+  if (totalCount >= 25 || peakMag >= 4 || (activeDays >= 7 && totalCount >= 15)) return 'significant';
+  // Moderate: notable activity
+  if (totalCount >= 12 || peakMag >= 3.5 || activeDays >= 5) return 'moderate';
+  // Minor: low level activity
+  return 'minor';
+}
+
+// Detect swarm episodes - longer-term seismic sequences with daily breakdown
+export function detectSwarmEpisodes(earthquakes: Earthquake[]): SwarmEpisode[] {
+  if (earthquakes.length === 0) return [];
+  
+  const episodes: SwarmEpisode[] = [];
+  
+  // Sort by time
+  const sorted = [...earthquakes].sort((a, b) => a.timestamp - b.timestamp);
+  
+  // Group earthquakes by date
+  const byDate = new Map<string, Earthquake[]>();
+  for (const eq of sorted) {
+    const dateStr = getDateString(eq.time);
+    if (!byDate.has(dateStr)) {
+      byDate.set(dateStr, []);
+    }
+    byDate.get(dateStr)!.push(eq);
+  }
+  
+  // Get sorted date keys
+  const sortedDates = Array.from(byDate.keys()).sort();
+  
+  // Group consecutive/nearby dates into episodes
+  let currentEpisodeQuakes: Earthquake[] = [];
+  let currentEpisodeDates: string[] = [];
+  let lastActiveDate: Date | null = null;
+  
+  for (const dateStr of sortedDates) {
+    const dateQuakes = byDate.get(dateStr)!;
+    const currentDate = new Date(dateStr);
+    
+    // Check if this date should be part of the current episode or start a new one
+    if (lastActiveDate) {
+      const daysSinceLastActive = Math.floor(
+        (currentDate.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      // If gap is too large, finalize current episode and start new one
+      if (daysSinceLastActive > EPISODE_GAP_DAYS) {
+        // Finalize current episode if it meets criteria
+        if (currentEpisodeQuakes.length >= EPISODE_MIN_EARTHQUAKES && 
+            currentEpisodeDates.length >= EPISODE_MIN_DAYS) {
+          const episode = createSwarmEpisode(currentEpisodeQuakes, currentEpisodeDates);
+          if (episode) episodes.push(episode);
+        }
+        
+        // Start new episode
+        currentEpisodeQuakes = [];
+        currentEpisodeDates = [];
+      }
+    }
+    
+    // Add to current episode
+    currentEpisodeQuakes.push(...dateQuakes);
+    currentEpisodeDates.push(dateStr);
+    lastActiveDate = currentDate;
+  }
+  
+  // Don't forget the last episode
+  if (currentEpisodeQuakes.length >= EPISODE_MIN_EARTHQUAKES && 
+      currentEpisodeDates.length >= EPISODE_MIN_DAYS) {
+    const episode = createSwarmEpisode(currentEpisodeQuakes, currentEpisodeDates);
+    if (episode) episodes.push(episode);
+  }
+  
+  return episodes.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+}
+
+// Create a swarm episode from earthquakes and dates
+function createSwarmEpisode(
+  earthquakes: Earthquake[],
+  dates: string[]
+): SwarmEpisode | null {
+  if (earthquakes.length === 0 || dates.length === 0) return null;
+  
+  const sorted = [...earthquakes].sort((a, b) => a.timestamp - b.timestamp);
+  const region = sorted[0].region;
+  
+  // Calculate center
+  const centerLat = earthquakes.reduce((sum, eq) => sum + eq.latitude, 0) / earthquakes.length;
+  const centerLon = earthquakes.reduce((sum, eq) => sum + eq.longitude, 0) / earthquakes.length;
+  
+  // Calculate magnitudes
+  const magnitudes = earthquakes.map(eq => eq.magnitude);
+  const peakMagnitude = Math.max(...magnitudes);
+  const avgMagnitude = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+  
+  // Build daily breakdown
+  const dailyBreakdown: DailyActivityCluster[] = [];
+  const byDate = new Map<string, Earthquake[]>();
+  
+  for (const eq of earthquakes) {
+    const dateStr = getDateString(eq.time);
+    if (!byDate.has(dateStr)) {
+      byDate.set(dateStr, []);
+    }
+    byDate.get(dateStr)!.push(eq);
+  }
+  
+  // Create daily clusters for each date (including quiet days in between)
+  const startDate = new Date(dates[0]);
+  const endDate = new Date(dates[dates.length - 1]);
+  const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Fill in all days (including quiet days)
+  for (let d = 0; d < durationDays; d++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + d);
+    const dateStr = getDateString(currentDate);
+    
+    const dayQuakes = byDate.get(dateStr) || [];
+    const dayMags = dayQuakes.map(eq => eq.magnitude);
+    const dayPeakMag = dayMags.length > 0 ? Math.max(...dayMags) : 0;
+    const dayAvgMag = dayMags.length > 0 ? dayMags.reduce((a, b) => a + b, 0) / dayMags.length : 0;
+    
+    dailyBreakdown.push({
+      date: currentDate,
+      dateString: dateStr,
+      earthquakes: dayQuakes.sort((a, b) => a.timestamp - b.timestamp),
+      count: dayQuakes.length,
+      peakMagnitude: dayPeakMag,
+      avgMagnitude: dayAvgMag,
+      intensity: calculateDailyIntensity(dayQuakes.length, dayPeakMag),
+    });
+  }
+  
+  // Find peak day
+  const peakDay = dailyBreakdown.reduce((max, day) => 
+    day.count > max.count ? day : max,
+    dailyBreakdown[0]
+  );
+  
+  // Count active days
+  const activeDays = dailyBreakdown.filter(d => d.count >= DAILY_MIN_QUAKES_FOR_ACTIVE).length;
+  
+  // Calculate episode intensity
+  const intensity = calculateEpisodeIntensity(
+    earthquakes.length,
+    peakMagnitude,
+    activeDays,
+    durationDays
+  );
+  
+  return {
+    id: `episode-${sorted[0].id}-${sorted[sorted.length - 1].id}`,
+    startTime: sorted[0].time,
+    endTime: sorted[sorted.length - 1].time,
+    earthquakes: sorted,
+    dailyBreakdown,
+    totalCount: earthquakes.length,
+    peakMagnitude,
+    avgMagnitude,
+    region,
+    centerLat,
+    centerLon,
+    durationDays,
+    activeDays,
+    peakDay: peakDay.count > 0 ? peakDay : null,
+    intensity,
+  };
 }
 
 // Generate time series data

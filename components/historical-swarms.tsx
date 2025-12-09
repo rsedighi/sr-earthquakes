@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, getYear, differenceInHours, differenceInDays, formatDistanceToNow } from 'date-fns';
-import { Earthquake, SwarmEvent } from '@/lib/types';
+import { Earthquake, SwarmEvent, SwarmEpisode, DailyActivityCluster } from '@/lib/types';
 import { REGIONS, getRegionById } from '@/lib/regions';
-import { detectSwarms, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { detectSwarms, detectSwarmEpisodes, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import {
   Activity,
   Calendar,
@@ -41,12 +41,12 @@ interface HistoricalSwarmsProps {
 
 interface YearlySwarmData {
   year: number;
-  swarms: SwarmEvent[];
+  episodes: SwarmEpisode[];
   totalEarthquakes: number;
   peakMagnitude: number;
-  totalSwarmQuakes: number;
-  avgSwarmSize: number;
-  longestSwarmHours: number;
+  totalEpisodeQuakes: number;
+  avgEpisodeSize: number;
+  longestEpisodeDays: number;
   magnitudeCounts: {
     m2plus: number;
     m3plus: number;
@@ -55,10 +55,10 @@ interface YearlySwarmData {
   };
 }
 
-// Group swarms by year for a specific region
+// Group swarm episodes by year for a specific region
 function groupSwarmsByYear(earthquakes: Earthquake[], regionId: string): YearlySwarmData[] {
   const regionQuakes = earthquakes.filter(eq => eq.region === regionId);
-  const swarms = detectSwarms(regionQuakes);
+  const episodes = detectSwarmEpisodes(regionQuakes);
   
   // Get all years with data
   const years = new Set<number>();
@@ -68,21 +68,21 @@ function groupSwarmsByYear(earthquakes: Earthquake[], regionId: string): YearlyS
   
   Array.from(years).sort((a, b) => b - a).forEach(year => {
     const yearQuakes = regionQuakes.filter(eq => getYear(eq.time) === year);
-    const yearSwarms = swarms.filter(s => getYear(s.startTime) === year);
+    const yearEpisodes = episodes.filter(e => getYear(e.startTime) === year);
     
-    const totalSwarmQuakes = yearSwarms.reduce((sum, s) => sum + s.totalCount, 0);
-    const longestSwarm = yearSwarms.length > 0 
-      ? Math.max(...yearSwarms.map(s => differenceInHours(s.endTime, s.startTime)))
+    const totalEpisodeQuakes = yearEpisodes.reduce((sum, e) => sum + e.totalCount, 0);
+    const longestEpisode = yearEpisodes.length > 0 
+      ? Math.max(...yearEpisodes.map(e => e.durationDays))
       : 0;
     
     yearlyData.push({
       year,
-      swarms: yearSwarms,
+      episodes: yearEpisodes,
       totalEarthquakes: yearQuakes.length,
       peakMagnitude: yearQuakes.length > 0 ? Math.max(...yearQuakes.map(eq => eq.magnitude)) : 0,
-      totalSwarmQuakes,
-      avgSwarmSize: yearSwarms.length > 0 ? totalSwarmQuakes / yearSwarms.length : 0,
-      longestSwarmHours: longestSwarm,
+      totalEpisodeQuakes,
+      avgEpisodeSize: yearEpisodes.length > 0 ? totalEpisodeQuakes / yearEpisodes.length : 0,
+      longestEpisodeDays: longestEpisode,
       magnitudeCounts: {
         m2plus: yearQuakes.filter(eq => eq.magnitude >= 2).length,
         m3plus: yearQuakes.filter(eq => eq.magnitude >= 3).length,
@@ -95,13 +95,22 @@ function groupSwarmsByYear(earthquakes: Earthquake[], regionId: string): YearlyS
   return yearlyData;
 }
 
-// Get swarm intensity level
-function getSwarmIntensity(swarm: SwarmEvent): 'low' | 'moderate' | 'high' | 'extreme' {
-  if (swarm.peakMagnitude >= 4 || swarm.totalCount >= 50) return 'extreme';
-  if (swarm.peakMagnitude >= 3.5 || swarm.totalCount >= 30) return 'high';
-  if (swarm.peakMagnitude >= 3 || swarm.totalCount >= 15) return 'moderate';
-  return 'low';
-}
+// Get episode intensity colors
+const episodeIntensityColors = {
+  minor: { bg: 'bg-white/5', border: 'border-white/10', text: 'text-neutral-500', color: '#6b7280' },
+  moderate: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400', color: '#eab308' },
+  significant: { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400', color: '#f97316' },
+  major: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', color: '#ef4444' },
+};
+
+// Get daily activity intensity colors
+const dailyIntensityColors = {
+  quiet: { bg: 'bg-neutral-800', text: 'text-neutral-600', dot: '#3f3f46' },
+  low: { bg: 'bg-green-500/20', text: 'text-green-400', dot: '#22c55e' },
+  moderate: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: '#eab308' },
+  high: { bg: 'bg-orange-500/20', text: 'text-orange-400', dot: '#f97316' },
+  extreme: { bg: 'bg-red-500/20', text: 'text-red-400', dot: '#ef4444' },
+};
 
 const intensityColors = {
   low: { bg: 'bg-white/5', border: 'border-white/10', text: 'text-neutral-500' },
@@ -118,7 +127,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
   const [minMagnitude, setMinMagnitude] = useState(0);
   
   // Drill-down state
-  const [selectedSwarm, setSelectedSwarm] = useState<SwarmEvent | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<SwarmEpisode | null>(null);
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   
   const region = getRegionById(selectedRegion);
@@ -134,21 +143,24 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
     if (minMagnitude === 0) return yearlyData;
     return yearlyData.map(yd => ({
       ...yd,
-      swarms: yd.swarms.filter(s => s.peakMagnitude >= minMagnitude)
-    })).filter(yd => yd.swarms.length > 0 || yd.peakMagnitude >= minMagnitude);
+      episodes: yd.episodes.filter(e => e.peakMagnitude >= minMagnitude)
+    })).filter(yd => yd.episodes.length > 0 || yd.peakMagnitude >= minMagnitude);
   }, [yearlyData, minMagnitude]);
   
   // Calculate totals
   const totals = useMemo(() => {
-    const allSwarms = yearlyData.flatMap(yd => yd.swarms);
+    const allEpisodes = yearlyData.flatMap(yd => yd.episodes);
     return {
-      totalSwarms: allSwarms.length,
+      totalEpisodes: allEpisodes.length,
       totalYears: yearlyData.length,
-      biggestSwarm: allSwarms.length > 0 
-        ? allSwarms.reduce((max, s) => s.totalCount > max.totalCount ? s : max)
+      biggestEpisode: allEpisodes.length > 0 
+        ? allEpisodes.reduce((max, e) => e.totalCount > max.totalCount ? e : max)
         : null,
-      strongestSwarm: allSwarms.length > 0
-        ? allSwarms.reduce((max, s) => s.peakMagnitude > max.peakMagnitude ? s : max)
+      strongestEpisode: allEpisodes.length > 0
+        ? allEpisodes.reduce((max, e) => e.peakMagnitude > max.peakMagnitude ? e : max)
+        : null,
+      longestEpisode: allEpisodes.length > 0
+        ? allEpisodes.reduce((max, e) => e.durationDays > max.durationDays ? e : max)
         : null,
       totalM2Plus: yearlyData.reduce((sum, yd) => sum + yd.magnitudeCounts.m2plus, 0),
       totalM3Plus: yearlyData.reduce((sum, yd) => sum + yd.magnitudeCounts.m3plus, 0),
@@ -168,15 +180,15 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
   };
   
   // Get the max values for scaling bars
-  const maxSwarmCount = Math.max(...yearlyData.map(yd => yd.swarms.length), 1);
+  const maxEpisodeCount = Math.max(...yearlyData.map(yd => yd.episodes.length), 1);
   
-  // Handle drill-down into swarm
-  const openSwarmDetail = useCallback((swarm: SwarmEvent) => {
-    setSelectedSwarm(swarm);
+  // Handle drill-down into episode
+  const openEpisodeDetail = useCallback((episode: SwarmEpisode) => {
+    setSelectedEpisode(episode);
   }, []);
   
-  const closeSwarmDetail = useCallback(() => {
-    setSelectedSwarm(null);
+  const closeEpisodeDetail = useCallback(() => {
+    setSelectedEpisode(null);
   }, []);
   
   return (
@@ -258,16 +270,16 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
       </div>
       
       {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
             <div className="flex items-center gap-2 text-neutral-500 mb-2">
               <Activity className="w-4 h-4" />
-              <span className="text-xs uppercase tracking-wider">Total Swarms</span>
+              <span className="text-xs uppercase tracking-wider">Swarm Episodes</span>
             </div>
             <div className="text-3xl font-light text-white">
-              {totals.totalSwarms}
+              {totals.totalEpisodes}
             </div>
-            <div className="text-xs text-neutral-500 mt-1">detected events</div>
+            <div className="text-xs text-neutral-500 mt-1">multi-week events</div>
           </div>
           
           <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
@@ -284,13 +296,26 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
           <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
             <div className="flex items-center gap-2 text-neutral-500 mb-2">
               <Layers className="w-4 h-4" />
-              <span className="text-xs uppercase tracking-wider">Largest Swarm</span>
+              <span className="text-xs uppercase tracking-wider">Largest Episode</span>
             </div>
             <div className="text-3xl font-light text-white">
-              {totals.biggestSwarm?.totalCount || '—'}
+              {totals.biggestEpisode?.totalCount || '—'}
             </div>
             <div className="text-xs text-neutral-500 mt-1">
-              {totals.biggestSwarm ? format(totals.biggestSwarm.startTime, 'MMM yyyy') : 'No swarms'}
+              {totals.biggestEpisode ? format(totals.biggestEpisode.startTime, 'MMM yyyy') : 'earthquakes'}
+            </div>
+          </div>
+          
+          <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 text-neutral-500 mb-2">
+              <Calendar className="w-4 h-4" />
+              <span className="text-xs uppercase tracking-wider">Longest Episode</span>
+            </div>
+            <div className="text-3xl font-light text-white">
+              {totals.longestEpisode ? `${totals.longestEpisode.durationDays}d` : '—'}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {totals.longestEpisode ? format(totals.longestEpisode.startTime, 'MMM yyyy') : 'duration'}
             </div>
           </div>
           
@@ -300,10 +325,10 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
               <span className="text-xs uppercase tracking-wider">Peak Magnitude</span>
             </div>
             <div className="text-3xl font-light text-white">
-              {totals.strongestSwarm ? `M${totals.strongestSwarm.peakMagnitude.toFixed(1)}` : '—'}
+              {totals.strongestEpisode ? `M${totals.strongestEpisode.peakMagnitude.toFixed(1)}` : '—'}
             </div>
             <div className="text-xs text-neutral-500 mt-1">
-              {totals.strongestSwarm ? format(totals.strongestSwarm.startTime, 'MMM yyyy') : 'In swarms'}
+              {totals.strongestEpisode ? format(totals.strongestEpisode.startTime, 'MMM yyyy') : 'in episodes'}
             </div>
           </div>
         </div>
@@ -312,8 +337,11 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
       <div className="card p-6">
         <h3 className="font-semibold mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-neutral-500" />
-          Swarm Activity by Year
+          Swarm Episodes by Year
         </h3>
+        <p className="text-sm text-neutral-500 mb-4">
+          Episodes are multi-week periods of sustained seismic activity • Click to see daily breakdown
+        </p>
         
         <div className="space-y-3">
           {filteredYearlyData.slice(0, showAllSwarms ? undefined : 8).map((yd) => (
@@ -324,7 +352,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
               >
                 <span className="text-sm font-mono text-neutral-400 w-12">{yd.year}</span>
                 
-                {/* Swarm count bar - hover=cyan, selected=purple */}
+                {/* Episode count bar - hover=cyan, selected=purple */}
                 <div className={`flex-1 h-10 rounded-lg overflow-hidden relative transition-all duration-200 ${
                   expandedYears.has(yd.year) 
                     ? 'bg-violet-500/20 ring-2 ring-violet-500/40' 
@@ -335,21 +363,21 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                       expandedYears.has(yd.year) ? '' : 'group-hover:brightness-125'
                     }`}
                     style={{ 
-                      width: `${Math.max((yd.swarms.length / maxSwarmCount) * 100, 5)}%`,
+                      width: `${Math.max((yd.episodes.length / maxEpisodeCount) * 100, 5)}%`,
                       backgroundColor: expandedYears.has(yd.year) ? '#8b5cf6' + '50' : region?.color + '40'
                     }}
                   >
-                    {yd.swarms.length > 0 && (
+                    {yd.episodes.length > 0 && (
                       <span className={`text-xs font-medium whitespace-nowrap transition-colors ${
                         expandedYears.has(yd.year) ? 'text-violet-300' : ''
                       }`} style={{ color: expandedYears.has(yd.year) ? undefined : region?.color }}>
-                        {yd.swarms.length} swarm{yd.swarms.length !== 1 ? 's' : ''}
+                        {yd.episodes.length} episode{yd.episodes.length !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
                   
                   {/* Hover indicator for expandable - cyan color */}
-                  {!expandedYears.has(yd.year) && yd.swarms.length > 0 && (
+                  {!expandedYears.has(yd.year) && yd.episodes.length > 0 && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <span className="text-xs text-cyan-400 bg-black/70 px-2 py-1 rounded-full flex items-center gap-1">
                         <ChevronDown className="w-3 h-3" />
@@ -393,100 +421,90 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                 />
               </button>
               
-              {/* Expanded swarm details - purple border for selected state */}
-              {expandedYears.has(yd.year) && yd.swarms.length > 0 && (
-                <div className="ml-16 space-y-2 animate-fade-in pl-4 border-l-2 border-violet-500/40">
-                  {yd.swarms.map((swarm) => {
-                    const intensity = getSwarmIntensity(swarm);
-                    const durationHours = differenceInHours(swarm.endTime, swarm.startTime);
-                    const durationText = durationHours < 24 
-                      ? `${durationHours}h` 
-                      : `${differenceInDays(swarm.endTime, swarm.startTime)}d`;
+              {/* Expanded episode details - purple border for selected state */}
+              {expandedYears.has(yd.year) && yd.episodes.length > 0 && (
+                <div className="ml-16 space-y-3 animate-fade-in pl-4 border-l-2 border-violet-500/40">
+                  {yd.episodes.map((episode) => {
+                    const intensityColors = episodeIntensityColors[episode.intensity];
                     
-                    // Calculate magnitude breakdown for this swarm
-                    const swarmM2Plus = swarm.earthquakes.filter(eq => eq.magnitude >= 2).length;
-                    const swarmM3Plus = swarm.earthquakes.filter(eq => eq.magnitude >= 3).length;
+                    // Calculate magnitude breakdown for this episode
+                    const episodeM2Plus = episode.earthquakes.filter(eq => eq.magnitude >= 2).length;
+                    const episodeM3Plus = episode.earthquakes.filter(eq => eq.magnitude >= 3).length;
                     
                     return (
                       <button
-                        key={swarm.id}
-                        onClick={() => openSwarmDetail(swarm)}
-                        className={`w-full p-4 rounded-xl border-2 border-dashed text-left hover:ring-2 hover:ring-cyan-500/40 transition-all group ${
-                          intensity === 'extreme' 
-                            ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/15' 
-                            : intensity === 'high' 
-                              ? 'bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/15' 
-                              : intensity === 'moderate' 
-                                ? 'bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15' 
-                                : 'bg-white/5 border-white/20 hover:bg-white/10'
-                        }`}
+                        key={episode.id}
+                        onClick={() => openEpisodeDetail(episode)}
+                        className={`w-full p-4 rounded-xl border-2 border-dashed text-left hover:ring-2 hover:ring-cyan-500/40 transition-all group ${intensityColors.bg} ${intensityColors.border} hover:brightness-110`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <Flame className={`w-4 h-4 ${
-                                intensity === 'extreme' ? 'text-red-400' :
-                                intensity === 'high' ? 'text-orange-400' :
-                                intensity === 'moderate' ? 'text-yellow-400' :
-                                'text-neutral-500'
-                              }`} />
-                              <span className="font-medium">{format(swarm.startTime, 'MMM d, yyyy')}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${
-                                intensity === 'extreme' ? 'bg-red-500/20 text-red-300' :
-                                intensity === 'high' ? 'bg-orange-500/20 text-orange-300' :
-                                intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
-                                'bg-white/10 text-neutral-400'
-                              }`}>
-                                {intensity} swarm
+                              <Flame className={`w-4 h-4 ${intensityColors.text}`} />
+                              <span className="font-medium">
+                                {format(episode.startTime, 'MMM d')} – {format(episode.endTime, 'MMM d, yyyy')}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${intensityColors.bg} ${intensityColors.text} border ${intensityColors.border}`}>
+                                {episode.intensity} episode
                               </span>
                               <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
                             </div>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-400">
                               <span className="flex items-center gap-1">
                                 <Activity className="w-3 h-3" />
-                                {swarm.totalCount} earthquakes
+                                {episode.totalCount} earthquakes
                               </span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {durationText} duration
+                                <Calendar className="w-3 h-3" />
+                                {episode.durationDays} days ({episode.activeDays} active)
                               </span>
-                              <span className="flex items-center gap-1" style={{ color: getMagnitudeColor(swarm.peakMagnitude) }}>
+                              <span className="flex items-center gap-1" style={{ color: getMagnitudeColor(episode.peakMagnitude) }}>
                                 <Zap className="w-3 h-3" />
-                                Peak M{swarm.peakMagnitude.toFixed(1)}
+                                Peak M{episode.peakMagnitude.toFixed(1)}
                               </span>
                             </div>
+                            
                             {/* Magnitude breakdown */}
                             <div className="flex items-center gap-2 mt-2 text-xs">
-                              {swarmM2Plus > 0 && (
+                              {episodeM2Plus > 0 && (
                                 <span className="px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">
-                                  {swarmM2Plus} M2+
+                                  {episodeM2Plus} M2+
                                 </span>
                               )}
-                              {swarmM3Plus > 0 && (
+                              {episodeM3Plus > 0 && (
                                 <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                                  {swarmM3Plus} M3+
+                                  {episodeM3Plus} M3+
                                 </span>
+                              )}
+                            </div>
+                            
+                            {/* Daily activity heatmap - shows each day's intensity */}
+                            <div className="mt-3 flex flex-wrap items-center gap-1">
+                              <span className="text-xs text-neutral-500 mr-2">Daily activity:</span>
+                              {episode.dailyBreakdown.slice(0, 21).map((day, i) => (
+                                <div
+                                  key={i}
+                                  className="w-3 h-3 rounded-sm"
+                                  style={{ backgroundColor: dailyIntensityColors[day.intensity].dot }}
+                                  title={`${format(day.date, 'MMM d')}: ${day.count} quakes${day.count > 0 ? `, Peak M${day.peakMagnitude.toFixed(1)}` : ''}`}
+                                />
+                              ))}
+                              {episode.dailyBreakdown.length > 21 && (
+                                <span className="text-xs text-neutral-500 ml-1">+{episode.dailyBreakdown.length - 21}d</span>
                               )}
                             </div>
                           </div>
                           
-                          {/* Mini timeline showing earthquake distribution with colors */}
-                          <div className="hidden sm:flex items-center gap-0.5">
-                            {swarm.earthquakes.slice(0, 20).map((eq, i) => (
-                              <div
-                                key={i}
-                                className="w-1.5 rounded-full"
-                                style={{
-                                  height: `${Math.max(eq.magnitude * 8, 10)}px`,
-                                  backgroundColor: getMagnitudeColor(eq.magnitude),
-                                }}
-                                title={`M${eq.magnitude.toFixed(1)}`}
-                              />
-                            ))}
-                            {swarm.earthquakes.length > 20 && (
-                              <span className="text-xs text-neutral-500 ml-1">+{swarm.earthquakes.length - 20}</span>
-                            )}
-                          </div>
+                          {/* Peak day highlight */}
+                          {episode.peakDay && (
+                            <div className="hidden sm:block p-2 rounded-lg bg-white/5 text-center">
+                              <div className="text-xs text-neutral-500">Peak Day</div>
+                              <div className="text-lg font-bold" style={{ color: dailyIntensityColors[episode.peakDay.intensity].dot }}>
+                                {episode.peakDay.count}
+                              </div>
+                              <div className="text-xs text-neutral-400">{format(episode.peakDay.date, 'MMM d')}</div>
+                            </div>
+                          )}
                         </div>
                       </button>
                     );
@@ -494,9 +512,9 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                 </div>
               )}
               
-              {expandedYears.has(yd.year) && yd.swarms.length === 0 && (
+              {expandedYears.has(yd.year) && yd.episodes.length === 0 && (
                 <div className="ml-16 p-4 text-sm text-neutral-500 bg-white/[0.02] rounded-xl border-l-2 border-neutral-700">
-                  No swarm events detected in {yd.year} • {yd.totalEarthquakes} total earthquakes ({yd.magnitudeCounts.m2plus} M2+)
+                  No swarm episodes detected in {yd.year} • {yd.totalEarthquakes} total earthquakes ({yd.magnitudeCounts.m2plus} M2+)
                 </div>
               )}
             </div>
@@ -514,43 +532,34 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
         )}
       </div>
       
-      {/* Notable Swarms Comparison */}
-      {totals.totalSwarms > 0 && (
+      {/* Notable Episodes Comparison */}
+      {totals.totalEpisodes > 0 && (
         <div className="card p-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-neutral-500" />
-            Notable Swarms Comparison
+            Notable Swarm Episodes
           </h3>
           <p className="text-sm text-neutral-500 mb-6">
-            Comparing the most significant swarm events in {region?.name} • Click to explore
+            Comparing the most significant multi-week swarm episodes in {region?.name} • Click to explore daily breakdown
           </p>
           
           <div className="space-y-4">
             {yearlyData
-              .flatMap(yd => yd.swarms)
+              .flatMap(yd => yd.episodes)
               .sort((a, b) => b.totalCount - a.totalCount)
               .slice(0, 5)
-              .map((swarm, idx) => {
-                const intensity = getSwarmIntensity(swarm);
-                const durationHours = differenceInHours(swarm.endTime, swarm.startTime);
-                const maxSwarmSize = Math.max(...yearlyData.flatMap(yd => yd.swarms).map(s => s.totalCount), 1);
-                const swarmM3Plus = swarm.earthquakes.filter(eq => eq.magnitude >= 3).length;
+              .map((episode, idx) => {
+                const colors = episodeIntensityColors[episode.intensity];
+                const maxEpisodeSize = Math.max(...yearlyData.flatMap(yd => yd.episodes).map(e => e.totalCount), 1);
+                const episodeM3Plus = episode.earthquakes.filter(eq => eq.magnitude >= 3).length;
                 
                 return (
                   <button
-                    key={swarm.id}
-                    onClick={() => openSwarmDetail(swarm)}
+                    key={episode.id}
+                    onClick={() => openEpisodeDetail(episode)}
                     className="w-full text-left relative group"
                   >
-                    <div className={`flex items-center gap-4 p-3 rounded-xl transition-colors border-2 border-dashed hover:ring-2 hover:ring-cyan-500/40 ${
-                      intensity === 'extreme' 
-                        ? 'border-red-500/30 hover:bg-red-500/10' 
-                        : intensity === 'high' 
-                          ? 'border-orange-500/30 hover:bg-orange-500/10' 
-                          : intensity === 'moderate' 
-                            ? 'border-yellow-500/30 hover:bg-yellow-500/10' 
-                            : 'border-white/10 hover:bg-white/5'
-                    }`}>
+                    <div className={`flex items-center gap-4 p-3 rounded-xl transition-colors border-2 border-dashed hover:ring-2 hover:ring-cyan-500/40 ${colors.bg} ${colors.border} hover:brightness-110`}>
                       {/* Rank */}
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                         idx === 0 ? 'bg-amber-500/20 text-amber-400' :
@@ -561,27 +570,19 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                         #{idx + 1}
                       </div>
                       
-                      {/* Swarm info */}
+                      {/* Episode info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Flame className={`w-4 h-4 ${
-                            intensity === 'extreme' ? 'text-red-400' :
-                            intensity === 'high' ? 'text-orange-400' :
-                            intensity === 'moderate' ? 'text-yellow-400' :
-                            'text-neutral-500'
-                          }`} />
-                          <span className="font-medium">{format(swarm.startTime, 'MMMM d, yyyy')}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            intensity === 'extreme' ? 'bg-red-500/20 text-red-300' :
-                            intensity === 'high' ? 'bg-orange-500/20 text-orange-300' :
-                            intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
-                            'bg-white/10 text-neutral-400'
-                          }`}>
-                            {swarm.totalCount} quakes
+                          <Flame className={`w-4 h-4 ${colors.text}`} />
+                          <span className="font-medium">
+                            {format(episode.startTime, 'MMM d')} – {format(episode.endTime, 'MMM d, yyyy')}
                           </span>
-                          {swarmM3Plus > 0 && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
+                            {episode.totalCount} quakes
+                          </span>
+                          {episodeM3Plus > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
-                              {swarmM3Plus} M3+
+                              {episodeM3Plus} M3+
                             </span>
                           )}
                         </div>
@@ -589,22 +590,20 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                         {/* Progress bar showing relative size with color */}
                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              intensity === 'extreme' ? 'bg-red-500/60' :
-                              intensity === 'high' ? 'bg-orange-500/60' :
-                              intensity === 'moderate' ? 'bg-yellow-500/60' :
-                              'bg-white/30'
-                            }`}
+                            className="h-full rounded-full transition-all duration-500"
                             style={{ 
-                              width: `${(swarm.totalCount / maxSwarmSize) * 100}%`
+                              width: `${(episode.totalCount / maxEpisodeSize) * 100}%`,
+                              backgroundColor: colors.color + '99'
                             }}
                           />
                         </div>
                         
                         <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500">
-                          <span style={{ color: getMagnitudeColor(swarm.peakMagnitude) }}>Peak M{swarm.peakMagnitude.toFixed(1)}</span>
+                          <span style={{ color: getMagnitudeColor(episode.peakMagnitude) }}>Peak M{episode.peakMagnitude.toFixed(1)}</span>
                           <span>•</span>
-                          <span>{durationHours < 24 ? `${durationHours} hours` : `${Math.round(durationHours / 24)} days`}</span>
+                          <span>{episode.durationDays} days</span>
+                          <span>•</span>
+                          <span>{episode.activeDays} active days</span>
                         </div>
                       </div>
                       
@@ -612,12 +611,12 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
                       <div 
                         className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold"
                         style={{
-                          backgroundColor: getMagnitudeColor(swarm.peakMagnitude) + '20',
-                          color: getMagnitudeColor(swarm.peakMagnitude),
-                          border: `2px solid ${getMagnitudeColor(swarm.peakMagnitude)}40`
+                          backgroundColor: getMagnitudeColor(episode.peakMagnitude) + '20',
+                          color: getMagnitudeColor(episode.peakMagnitude),
+                          border: `2px solid ${getMagnitudeColor(episode.peakMagnitude)}40`
                         }}
                       >
-                        {swarm.peakMagnitude.toFixed(1)}
+                        {episode.peakMagnitude.toFixed(1)}
                       </div>
                       
                       <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
@@ -627,34 +626,34 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
               })}
           </div>
           
-          {totals.totalSwarms === 0 && (
+          {totals.totalEpisodes === 0 && (
             <div className="text-center py-8 text-neutral-500">
               <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No swarm events detected for this region</p>
+              <p>No swarm episodes detected for this region</p>
             </div>
           )}
         </div>
       )}
       
       {/* Insight Section */}
-      {totals.totalSwarms > 0 && (
+      {totals.totalEpisodes > 0 && (
         <div className="p-5 bg-white/[0.02] rounded-xl border border-white/10">
           <h4 className="font-medium text-neutral-200 mb-2 flex items-center gap-2">
             <Flame className="w-4 h-4" />
-            Swarm Activity Insight
+            Swarm Episode Insight
           </h4>
           <p className="text-sm text-neutral-400 leading-relaxed">
-            {generateSwarmInsight(yearlyData, region?.name || 'This region')}
+            {generateEpisodeInsight(yearlyData, region?.name || 'This region')}
           </p>
         </div>
       )}
       
-      {/* Swarm Drill-Down Modal - Datadog Style */}
-      {selectedSwarm && (
-        <SwarmDrillDown 
-          swarm={selectedSwarm} 
+      {/* Episode Drill-Down Modal - Datadog Style */}
+      {selectedEpisode && (
+        <EpisodeDrillDown 
+          episode={selectedEpisode} 
           region={region}
-          onClose={closeSwarmDetail}
+          onClose={closeEpisodeDetail}
           onEarthquakeClick={(eq) => setSelectedEarthquake(eq)}
         />
       )}
@@ -664,7 +663,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
         <EarthquakeDetailModal
           earthquake={selectedEarthquake}
           onClose={() => setSelectedEarthquake(null)}
-          breadcrumb={selectedSwarm ? `${format(selectedSwarm.startTime, 'MMM d, yyyy')} Swarm` : 'Historical Swarms'}
+          breadcrumb={selectedEpisode ? `${format(selectedEpisode.startTime, 'MMM d')} – ${format(selectedEpisode.endTime, 'MMM d')} Episode` : 'Historical Swarms'}
           allEarthquakes={earthquakes}
         />
       )}
@@ -672,31 +671,37 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
   );
 }
 
-// Datadog-style Drill-Down Component
-interface SwarmDrillDownProps {
-  swarm: SwarmEvent;
+// Datadog-style Drill-Down Component for Episodes
+interface EpisodeDrillDownProps {
+  episode: SwarmEpisode;
   region: ReturnType<typeof getRegionById>;
   onClose: () => void;
   onEarthquakeClick?: (earthquake: Earthquake) => void;
 }
 
-function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDrillDownProps) {
+function EpisodeDrillDown({ episode, region, onClose, onEarthquakeClick }: EpisodeDrillDownProps) {
   const [sortBy, setSortBy] = useState<'time' | 'magnitude' | 'depth'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [minMagFilter, setMinMagFilter] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<DailyActivityCluster | null>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'all'>('daily');
   
   // Handle ESC key press
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (selectedDay) {
+          setSelectedDay(null);
+        } else {
+          onClose();
+        }
       }
     };
     
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [onClose, selectedDay]);
   
   // Handle click outside
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
@@ -705,12 +710,12 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
     }
   }, [onClose]);
   
-  const intensity = getSwarmIntensity(swarm);
-  const durationHours = differenceInHours(swarm.endTime, swarm.startTime);
+  const colors = episodeIntensityColors[episode.intensity];
   
-  // Sort and filter earthquakes
-  const filteredEarthquakes = useMemo(() => {
-    let result = [...swarm.earthquakes];
+  // Get earthquakes to display (either all or from selected day)
+  const displayEarthquakes = useMemo(() => {
+    const source = selectedDay ? selectedDay.earthquakes : episode.earthquakes;
+    let result = [...source];
     
     // Apply search filter
     if (searchQuery) {
@@ -744,13 +749,13 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
     });
     
     return result;
-  }, [swarm.earthquakes, sortBy, sortOrder, searchQuery, minMagFilter]);
+  }, [episode.earthquakes, selectedDay, sortBy, sortOrder, searchQuery, minMagFilter]);
   
-  // Calculate swarm statistics
+  // Calculate episode statistics
   const stats = useMemo(() => {
-    const mags = swarm.earthquakes.map(eq => eq.magnitude);
-    const depths = swarm.earthquakes.map(eq => eq.depth);
-    const feltQuakes = swarm.earthquakes.filter(eq => eq.felt && eq.felt > 0);
+    const mags = episode.earthquakes.map(eq => eq.magnitude);
+    const depths = episode.earthquakes.map(eq => eq.depth);
+    const feltQuakes = episode.earthquakes.filter(eq => eq.felt && eq.felt > 0);
     
     return {
       avgMagnitude: mags.reduce((a, b) => a + b, 0) / mags.length,
@@ -759,11 +764,11 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
       maxDepth: Math.max(...depths),
       feltCount: feltQuakes.length,
       totalFeltReports: feltQuakes.reduce((sum, eq) => sum + (eq.felt || 0), 0),
-      m2Plus: swarm.earthquakes.filter(eq => eq.magnitude >= 2).length,
-      m3Plus: swarm.earthquakes.filter(eq => eq.magnitude >= 3).length,
-      m4Plus: swarm.earthquakes.filter(eq => eq.magnitude >= 4).length,
+      m2Plus: episode.earthquakes.filter(eq => eq.magnitude >= 2).length,
+      m3Plus: episode.earthquakes.filter(eq => eq.magnitude >= 3).length,
+      m4Plus: episode.earthquakes.filter(eq => eq.magnitude >= 4).length,
     };
-  }, [swarm.earthquakes]);
+  }, [episode.earthquakes]);
   
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
@@ -774,13 +779,16 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
     }
   };
   
+  // Get max count for scaling daily bars
+  const maxDailyCount = Math.max(...episode.dailyBreakdown.map(d => d.count), 1);
+  
   return (
     <div 
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
       onClick={handleBackdropClick}
     >
       <div 
-        className="w-full max-w-5xl m-4 my-8"
+        className="w-full max-w-6xl m-4 my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Datadog Style Breadcrumb */}
@@ -796,19 +804,27 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
             <ChevronRight className="w-4 h-4" />
             <span className="text-neutral-300">{region?.name}</span>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-white font-medium">{format(swarm.startTime, 'MMMM d, yyyy')} Swarm</span>
+            <span className="text-white font-medium">
+              {format(episode.startTime, 'MMM d')} – {format(episode.endTime, 'MMM d, yyyy')} Episode
+            </span>
+            {selectedDay && (
+              <>
+                <ChevronRight className="w-4 h-4" />
+                <span className="text-cyan-400">{format(selectedDay.date, 'MMMM d')}</span>
+              </>
+            )}
           </div>
           
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-xl font-semibold">Swarm Event Details</h2>
-                <span className={`text-xs px-2 py-1 rounded-full ${intensityColors[intensity].bg} ${intensityColors[intensity].text} uppercase font-medium`}>
-                  {intensity} intensity
+                <h2 className="text-xl font-semibold">Swarm Episode Details</h2>
+                <span className={`text-xs px-2 py-1 rounded-full ${colors.bg} ${colors.text} uppercase font-medium border ${colors.border}`}>
+                  {episode.intensity}
                 </span>
               </div>
               <p className="text-sm text-neutral-500">
-                {format(swarm.startTime, 'PPP p')} → {format(swarm.endTime, 'PPP p')}
+                {format(episode.startTime, 'PPP')} → {format(episode.endTime, 'PPP')} ({episode.durationDays} days)
               </p>
             </div>
             <button 
@@ -822,23 +838,24 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
         
         {/* Stats Overview - Datadog Metric Cards */}
         <div className="bg-neutral-900/80 border-x border-white/10 p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <MetricCard
               icon={<Hash className="w-4 h-4" />}
               label="Total Quakes"
-              value={swarm.totalCount.toString()}
+              value={episode.totalCount.toString()}
               color={region?.color}
+            />
+            <MetricCard
+              icon={<Calendar className="w-4 h-4" />}
+              label="Duration"
+              value={`${episode.durationDays}d`}
+              subtext={`${episode.activeDays} active`}
             />
             <MetricCard
               icon={<Zap className="w-4 h-4" />}
               label="Peak Magnitude"
-              value={`M${swarm.peakMagnitude.toFixed(1)}`}
-              color={getMagnitudeColor(swarm.peakMagnitude)}
-            />
-            <MetricCard
-              icon={<Timer className="w-4 h-4" />}
-              label="Duration"
-              value={durationHours < 24 ? `${durationHours}h` : `${Math.round(durationHours / 24)}d`}
+              value={`M${episode.peakMagnitude.toFixed(1)}`}
+              color={getMagnitudeColor(episode.peakMagnitude)}
             />
             <MetricCard
               icon={<Gauge className="w-4 h-4" />}
@@ -849,6 +866,12 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
               icon={<MapPin className="w-4 h-4" />}
               label="Avg Depth"
               value={`${stats.avgDepth.toFixed(1)}km`}
+            />
+            <MetricCard
+              icon={<TrendingUp className="w-4 h-4" />}
+              label="Peak Day"
+              value={episode.peakDay ? episode.peakDay.count.toString() : '—'}
+              subtext={episode.peakDay ? format(episode.peakDay.date, 'MMM d') : ''}
             />
             <MetricCard
               icon={<Users className="w-4 h-4" />}
@@ -875,8 +898,113 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
           </div>
         </div>
         
+        {/* Daily Breakdown Section */}
+        <div className="bg-neutral-800/50 border-x border-white/10 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-neutral-500" />
+              Daily Activity Breakdown
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setViewMode('daily'); setSelectedDay(null); }}
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                  viewMode === 'daily' ? 'bg-white/10 text-white' : 'text-neutral-500 hover:text-white'
+                }`}
+              >
+                Daily View
+              </button>
+              <button
+                onClick={() => { setViewMode('all'); setSelectedDay(null); }}
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                  viewMode === 'all' ? 'bg-white/10 text-white' : 'text-neutral-500 hover:text-white'
+                }`}
+              >
+                All Quakes
+              </button>
+            </div>
+          </div>
+          
+          {/* Daily bars */}
+          <div className="grid grid-cols-7 md:grid-cols-14 lg:grid-cols-21 gap-1">
+            {episode.dailyBreakdown.map((day, idx) => {
+              const isSelected = selectedDay?.dateString === day.dateString;
+              const heightPercent = maxDailyCount > 0 ? (day.count / maxDailyCount) * 100 : 0;
+              
+              return (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setSelectedDay(isSelected ? null : day);
+                    setViewMode('daily');
+                  }}
+                  className={`flex flex-col items-center gap-1 p-1 rounded-lg transition-all ${
+                    isSelected 
+                      ? 'bg-cyan-500/20 ring-2 ring-cyan-500' 
+                      : day.count > 0 
+                        ? 'hover:bg-white/10' 
+                        : 'opacity-50'
+                  }`}
+                  title={`${format(day.date, 'MMM d')}: ${day.count} quakes${day.count > 0 ? `, Peak M${day.peakMagnitude.toFixed(1)}` : ''}`}
+                >
+                  {/* Bar */}
+                  <div className="w-full h-12 flex items-end justify-center">
+                    <div
+                      className="w-full max-w-[20px] rounded-t transition-all"
+                      style={{
+                        height: `${Math.max(heightPercent, day.count > 0 ? 10 : 2)}%`,
+                        backgroundColor: dailyIntensityColors[day.intensity].dot,
+                      }}
+                    />
+                  </div>
+                  {/* Date label */}
+                  <span className="text-[9px] text-neutral-500 leading-none">
+                    {format(day.date, 'd')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Legend */}
+          <div className="mt-3 flex items-center gap-4 text-xs">
+            <span className="text-neutral-500">Intensity:</span>
+            {(['quiet', 'low', 'moderate', 'high', 'extreme'] as const).map(level => (
+              <span key={level} className="flex items-center gap-1">
+                <div 
+                  className="w-2 h-2 rounded-sm"
+                  style={{ backgroundColor: dailyIntensityColors[level].dot }}
+                />
+                <span className={dailyIntensityColors[level].text}>{level}</span>
+              </span>
+            ))}
+          </div>
+          
+          {/* Selected day info */}
+          {selectedDay && (
+            <div className={`mt-4 p-3 rounded-lg ${dailyIntensityColors[selectedDay.intensity].bg} border border-white/10`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">{format(selectedDay.date, 'EEEE, MMMM d, yyyy')}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${dailyIntensityColors[selectedDay.intensity].bg} ${dailyIntensityColors[selectedDay.intensity].text}`}>
+                    {selectedDay.intensity} day
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <span>{selectedDay.count} earthquakes</span>
+                  {selectedDay.count > 0 && (
+                    <span style={{ color: getMagnitudeColor(selectedDay.peakMagnitude) }}>
+                      Peak M{selectedDay.peakMagnitude.toFixed(1)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* Filters & Search - Datadog Style Toolbar */}
-        <div className="bg-neutral-800/50 border-x border-white/10 p-3 flex items-center gap-3 flex-wrap">
+        <div className="bg-neutral-800/30 border-x border-white/10 p-3 flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
@@ -903,8 +1031,18 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
           
           {/* Results count */}
           <span className="text-sm text-neutral-500">
-            {filteredEarthquakes.length} of {swarm.totalCount} earthquakes
+            {displayEarthquakes.length} {selectedDay ? `on ${format(selectedDay.date, 'MMM d')}` : 'total'} earthquakes
           </span>
+          
+          {selectedDay && (
+            <button
+              onClick={() => setSelectedDay(null)}
+              className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Clear day filter
+            </button>
+          )}
         </div>
         
         {/* Earthquake Table - Datadog Log Viewer Style */}
@@ -938,7 +1076,7 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
           
           {/* Table Body */}
           <div className="max-h-[400px] overflow-y-auto">
-            {filteredEarthquakes.map((eq, idx) => (
+            {displayEarthquakes.map((eq, idx) => (
               <div 
                 key={`${eq.id}-${idx}`}
                 onClick={() => onEarthquakeClick?.(eq)}
@@ -1010,10 +1148,10 @@ function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDril
               </div>
             ))}
             
-            {filteredEarthquakes.length === 0 && (
+            {displayEarthquakes.length === 0 && (
               <div className="text-center py-8 text-neutral-500">
                 <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No earthquakes match your filters</p>
+                <p>{selectedDay ? 'No earthquakes on this day' : 'No earthquakes match your filters'}</p>
               </div>
             )}
           </div>
@@ -1049,47 +1187,53 @@ function MetricCard({
   );
 }
 
-// Generate natural language insight about swarm patterns
-function generateSwarmInsight(yearlyData: YearlySwarmData[], regionName: string): string {
-  const allSwarms = yearlyData.flatMap(yd => yd.swarms);
-  if (allSwarms.length === 0) {
-    return `${regionName} has not experienced any detected earthquake swarms in the historical record.`;
+// Generate natural language insight about episode patterns
+function generateEpisodeInsight(yearlyData: YearlySwarmData[], regionName: string): string {
+  const allEpisodes = yearlyData.flatMap(yd => yd.episodes);
+  if (allEpisodes.length === 0) {
+    return `${regionName} has not experienced any detected swarm episodes in the historical record.`;
   }
   
-  const totalSwarms = allSwarms.length;
-  const yearsWithSwarms = yearlyData.filter(yd => yd.swarms.length > 0).length;
-  const avgPerYear = totalSwarms / Math.max(yearlyData.length, 1);
+  const totalEpisodes = allEpisodes.length;
+  const yearsWithEpisodes = yearlyData.filter(yd => yd.episodes.length > 0).length;
+  const avgPerYear = totalEpisodes / Math.max(yearlyData.length, 1);
   
-  const biggestSwarm = allSwarms.reduce((max, s) => s.totalCount > max.totalCount ? s : max);
-  const strongestSwarm = allSwarms.reduce((max, s) => s.peakMagnitude > max.peakMagnitude ? s : max);
+  const biggestEpisode = allEpisodes.reduce((max, e) => e.totalCount > max.totalCount ? e : max);
+  const longestEpisode = allEpisodes.reduce((max, e) => e.durationDays > max.durationDays ? e : max);
+  const strongestEpisode = allEpisodes.reduce((max, e) => e.peakMagnitude > max.peakMagnitude ? e : max);
   
   const totalM3Plus = yearlyData.reduce((sum, yd) => sum + yd.magnitudeCounts.m3plus, 0);
+  const avgDuration = allEpisodes.reduce((sum, e) => sum + e.durationDays, 0) / totalEpisodes;
   
   const recentYears = yearlyData.slice(0, 3);
   const olderYears = yearlyData.slice(3, 6);
-  const recentSwarms = recentYears.reduce((sum, yd) => sum + yd.swarms.length, 0);
-  const olderSwarms = olderYears.reduce((sum, yd) => sum + yd.swarms.length, 0);
+  const recentEpisodes = recentYears.reduce((sum, yd) => sum + yd.episodes.length, 0);
+  const olderEpisodes = olderYears.reduce((sum, yd) => sum + yd.episodes.length, 0);
   
-  let insight = `${regionName} has experienced ${totalSwarms} earthquake swarms across ${yearsWithSwarms} different years`;
+  let insight = `${regionName} has experienced ${totalEpisodes} multi-week swarm episodes across ${yearsWithEpisodes} different years`;
   
-  insight += `, averaging about ${avgPerYear.toFixed(1)} swarms per year. `;
+  insight += `, averaging about ${avgPerYear.toFixed(1)} episodes per year (${avgDuration.toFixed(0)} days average duration). `;
   
-  insight += `The largest swarm occurred in ${format(biggestSwarm.startTime, 'MMMM yyyy')} with ${biggestSwarm.totalCount} earthquakes`;
+  insight += `The largest episode occurred in ${format(biggestEpisode.startTime, 'MMMM yyyy')} with ${biggestEpisode.totalCount} earthquakes over ${biggestEpisode.durationDays} days`;
   
-  if (biggestSwarm.id !== strongestSwarm.id) {
-    insight += `, while the most powerful swarm (M${strongestSwarm.peakMagnitude.toFixed(1)} peak) was in ${format(strongestSwarm.startTime, 'MMMM yyyy')}`;
+  if (longestEpisode.id !== biggestEpisode.id) {
+    insight += `. The longest episode lasted ${longestEpisode.durationDays} days in ${format(longestEpisode.startTime, 'MMMM yyyy')}`;
+  }
+  
+  if (strongestEpisode.id !== biggestEpisode.id) {
+    insight += `, while the strongest (M${strongestEpisode.peakMagnitude.toFixed(1)} peak) was in ${format(strongestEpisode.startTime, 'MMMM yyyy')}`;
   }
   
   insight += `. `;
   
   if (totalM3Plus > 0) {
-    insight += `There have been ${totalM3Plus} magnitude 3+ earthquakes total. `;
+    insight += `There have been ${totalM3Plus} magnitude 3+ earthquakes total across all episodes. `;
   }
   
   // Trend analysis
-  if (recentSwarms > olderSwarms * 1.5) {
+  if (recentEpisodes > olderEpisodes * 1.5) {
     insight += 'Swarm activity has increased in recent years.';
-  } else if (recentSwarms < olderSwarms * 0.5) {
+  } else if (recentEpisodes < olderEpisodes * 0.5) {
     insight += 'Swarm activity has decreased compared to earlier years.';
   } else {
     insight += 'Swarm activity has remained relatively consistent over time.';
