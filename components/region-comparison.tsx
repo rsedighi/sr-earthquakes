@@ -313,7 +313,7 @@ export function RegionComparison({ earthquakes, className = '' }: RegionComparis
   );
 }
 
-// Region Selector Component
+// Region Selector Component - Now with Area Codes
 function RegionSelector({ 
   value, 
   onChange, 
@@ -339,12 +339,15 @@ function RegionSelector({
           className="w-3 h-3 rounded-full flex-shrink-0"
           style={{ backgroundColor: selectedRegion?.color }}
         />
-        <span className="flex-1 truncate text-sm">{selectedRegion?.name}</span>
+        <span className="px-1.5 py-0.5 text-xs font-mono bg-white/10 rounded text-neutral-300">
+          {selectedRegion?.areaCode}
+        </span>
+        <span className="flex-1 truncate text-sm">{selectedRegion?.name.split(' / ')[0]}</span>
         <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 max-h-80 overflow-y-auto">
           {REGIONS
             .filter(r => r.id !== excludeId)
             .map(region => (
@@ -362,9 +365,12 @@ function RegionSelector({
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: region.color }}
                 />
+                <span className="px-1.5 py-0.5 text-xs font-mono bg-white/10 rounded text-neutral-400 flex-shrink-0">
+                  {region.areaCode}
+                </span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm truncate">{region.name}</div>
-                  <div className="text-xs text-neutral-500">{region.faultLine}</div>
+                  <div className="text-xs text-neutral-500">{region.county} County • {region.faultLine}</div>
                 </div>
               </button>
             ))}

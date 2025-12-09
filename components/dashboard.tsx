@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { Earthquake, SwarmEvent } from '@/lib/types';
-import { REGIONS, getRegionById } from '@/lib/regions';
+import { REGIONS, getRegionById, getLocationContext } from '@/lib/regions';
 import { useRealtimeEarthquakes } from '@/hooks/use-realtime-earthquakes';
 import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import { detectSwarms, getMagnitudeColor, getMagnitudeLabel, getRecentActivity } from '@/lib/analysis';
@@ -191,7 +191,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
               </div>
               <div>
                 <h1 className="font-semibold text-lg">Bay Area Earthquake Tracker</h1>
-                <p className="text-xs text-neutral-500">Live earthquake monitoring for the Bay Area</p>
+                <p className="text-xs text-neutral-500">Live earthquake monitoring for the SF Bay Area</p>
               </div>
             </div>
             
@@ -275,7 +275,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
               <StatCard
                 label="This Week"
                 value={realtimeQuakes.length}
-                subtext="earthquakes in NorCal"
+                subtext="earthquakes in Bay Area"
                 icon={<Activity className="w-4 h-4" />}
               />
               <StatCard
@@ -306,7 +306,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold">Live Earthquake Map</h2>
-                    <p className="text-sm text-neutral-500 mt-0.5">Northern California • Last 7 days</p>
+                    <p className="text-sm text-neutral-500 mt-0.5">San Francisco Bay Area • Last 7 days</p>
                   </div>
                   <a 
                     href="https://earthquake.usgs.gov/earthquakes/map/"
@@ -588,6 +588,7 @@ export function Dashboard({ historicalData }: DashboardProps) {
           earthquake={detailEarthquake}
           onClose={() => setDetailEarthquake(null)}
           breadcrumb="Recent Earthquakes"
+          allEarthquakes={allHistoricalQuakes}
         />
       )}
     </div>
@@ -634,6 +635,7 @@ function EarthquakeRow({
   onMapSelect?: () => void;
 }) {
   const region = getRegionById(earthquake.region);
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
   
   return (
     <div 
@@ -643,7 +645,7 @@ function EarthquakeRow({
       onClick={onClick}
     >
       {/* Magnitude */}
-      <div className="w-14 text-center">
+      <div className="w-14 text-center flex-shrink-0">
         <div 
           className={`text-2xl font-light`}
           style={{ color: getMagnitudeColor(earthquake.magnitude) }}
@@ -657,17 +659,26 @@ function EarthquakeRow({
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm truncate">{earthquake.place}</div>
-        <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500">
+        {/* Primary location - nearest city with distance */}
+        <div className="text-sm font-medium">
+          {locationContext.formattedLocation || earthquake.place}
+        </div>
+        {/* Original USGS place name if different */}
+        {locationContext.formattedLocation && (
+          <div className="text-xs text-neutral-500 truncate mt-0.5">
+            {earthquake.place}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-neutral-500">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {formatDistanceToNow(earthquake.time, { addSuffix: true })}
           </span>
-          <span>·</span>
-          <span>{earthquake.depth.toFixed(0)} km deep</span>
+          <span className="hidden sm:inline">·</span>
+          <span className="hidden sm:inline">{earthquake.depth.toFixed(0)} km deep</span>
           {earthquake.felt && earthquake.felt > 0 && (
             <>
-              <span>·</span>
+              <span className="hidden sm:inline">·</span>
               <span className="text-amber-400 flex items-center gap-1">
                 <Users className="w-3 h-3" />
                 {earthquake.felt} felt it
@@ -677,17 +688,25 @@ function EarthquakeRow({
         </div>
       </div>
 
-      {/* Region indicator */}
+      {/* Region indicator with area code */}
       {region && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMapSelect?.();
-          }}
-          className="w-2 h-8 rounded-full hidden sm:block hover:scale-125 transition-transform"
-          style={{ backgroundColor: region.color }}
-          title={`Show ${region.name} on map`}
-        />
+        <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMapSelect?.();
+            }}
+            className="px-2 py-1 text-xs font-mono rounded-md hover:scale-105 transition-transform"
+            style={{ 
+              backgroundColor: region.color + '20',
+              color: region.color,
+              border: `1px solid ${region.color}40`
+            }}
+            title={`${region.name} • ${region.county} County`}
+          >
+            {region.areaCode}
+          </button>
+        </div>
       )}
 
       {/* Arrow */}

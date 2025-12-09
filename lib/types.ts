@@ -26,6 +26,8 @@ export interface Region {
   };
   color: string;
   faultLine: string;
+  areaCode: string;
+  county: string;
 }
 
 export interface SwarmEvent {

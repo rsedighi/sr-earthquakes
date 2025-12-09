@@ -6,12 +6,13 @@ const FEEDS = {
   all_week: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson',
 };
 
-// Northern California bounding box (approximate)
-const NORCAL_BOUNDS = {
-  minLat: 36.5,
-  maxLat: 39.0,
-  minLon: -123.5,
-  maxLon: -121.0,
+// Bay Area proper (9 counties) - tighter bounds that exclude areas like The Geysers
+// which is a geothermal area ~70 miles north of SF
+const BAY_AREA_BOUNDS = {
+  minLat: 36.9,   // Southern Santa Clara County
+  maxLat: 38.35,  // Northern Solano/Napa (excludes The Geysers at ~38.75)
+  minLon: -123.0, // Pacific coast
+  maxLon: -121.4, // Eastern Contra Costa/Alameda
 };
 
 export async function GET(request: NextRequest) {
@@ -31,15 +32,15 @@ export async function GET(request: NextRequest) {
     
     const data = await response.json();
     
-    // Filter to Northern California earthquakes
+    // Filter to Bay Area earthquakes only
     const filteredFeatures = data.features.filter((feature: {
       geometry: { coordinates: [number, number, number] }
     }) => {
       const [lon, lat] = feature.geometry.coordinates;
-      return lat >= NORCAL_BOUNDS.minLat && 
-             lat <= NORCAL_BOUNDS.maxLat && 
-             lon >= NORCAL_BOUNDS.minLon && 
-             lon <= NORCAL_BOUNDS.maxLon;
+      return lat >= BAY_AREA_BOUNDS.minLat && 
+             lat <= BAY_AREA_BOUNDS.maxLat && 
+             lon >= BAY_AREA_BOUNDS.minLon && 
+             lon <= BAY_AREA_BOUNDS.maxLon;
     });
     
     return NextResponse.json({
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
       metadata: {
         ...data.metadata,
         count: filteredFeatures.length,
-        region: 'Northern California',
+        region: 'San Francisco Bay Area',
       },
     });
   } catch (error) {

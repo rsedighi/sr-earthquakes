@@ -29,8 +29,10 @@ import {
   Hash,
   Gauge,
   Timer,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
 } from 'lucide-react';
+import { EarthquakeDetailModal } from './earthquake-detail-modal';
 
 interface HistoricalSwarmsProps {
   earthquakes: Earthquake[];
@@ -117,6 +119,7 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
   
   // Drill-down state
   const [selectedSwarm, setSelectedSwarm] = useState<SwarmEvent | null>(null);
+  const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   
   const region = getRegionById(selectedRegion);
   
@@ -585,6 +588,17 @@ export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwar
           swarm={selectedSwarm} 
           region={region}
           onClose={closeSwarmDetail}
+          onEarthquakeClick={(eq) => setSelectedEarthquake(eq)}
+        />
+      )}
+      
+      {/* Individual Earthquake Detail Modal */}
+      {selectedEarthquake && (
+        <EarthquakeDetailModal
+          earthquake={selectedEarthquake}
+          onClose={() => setSelectedEarthquake(null)}
+          breadcrumb={selectedSwarm ? `${format(selectedSwarm.startTime, 'MMM d, yyyy')} Swarm` : 'Historical Swarms'}
+          allEarthquakes={earthquakes}
         />
       )}
     </div>
@@ -596,9 +610,10 @@ interface SwarmDrillDownProps {
   swarm: SwarmEvent;
   region: ReturnType<typeof getRegionById>;
   onClose: () => void;
+  onEarthquakeClick?: (earthquake: Earthquake) => void;
 }
 
-function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
+function SwarmDrillDown({ swarm, region, onClose, onEarthquakeClick }: SwarmDrillDownProps) {
   const [sortBy, setSortBy] = useState<'time' | 'magnitude' | 'depth'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -828,7 +843,7 @@ function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
         {/* Earthquake Table - Datadog Log Viewer Style */}
         <div className="bg-neutral-900/60 border border-white/10 rounded-b-2xl overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-[80px_1fr_100px_80px_60px] gap-4 px-4 py-3 bg-white/5 border-b border-white/10 text-xs font-medium text-neutral-400 uppercase tracking-wider">
+          <div className="grid grid-cols-[80px_1fr_100px_80px_80px] gap-4 px-4 py-3 bg-white/5 border-b border-white/10 text-xs font-medium text-neutral-400 uppercase tracking-wider">
             <button 
               onClick={() => toggleSort('time')}
               className="flex items-center gap-1 hover:text-white transition-colors"
@@ -851,7 +866,7 @@ function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
               Depth
               {sortBy === 'depth' && (sortOrder === 'desc' ? <SortDesc className="w-3 h-3" /> : <SortAsc className="w-3 h-3" />)}
             </button>
-            <span>Link</span>
+            <span>Actions</span>
           </div>
           
           {/* Table Body */}
@@ -859,7 +874,8 @@ function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
             {filteredEarthquakes.map((eq, idx) => (
               <div 
                 key={`${eq.id}-${idx}`}
-                className={`grid grid-cols-[80px_1fr_100px_80px_60px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors ${
+                onClick={() => onEarthquakeClick?.(eq)}
+                className={`grid grid-cols-[80px_1fr_100px_80px_80px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer group ${
                   eq.magnitude >= 3 ? 'bg-yellow-500/5' : ''
                 } ${eq.magnitude >= 4 ? 'bg-orange-500/5' : ''}`}
               >
@@ -875,7 +891,7 @@ function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getMagnitudeColor(eq.magnitude) }}
                   />
-                  <span className="text-sm truncate">{eq.place}</span>
+                  <span className="text-sm truncate group-hover:text-white transition-colors">{eq.place}</span>
                   {eq.felt && eq.felt > 0 && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 flex-shrink-0">
                       {eq.felt} felt
@@ -901,15 +917,29 @@ function SwarmDrillDown({ swarm, region, onClose }: SwarmDrillDownProps) {
                   {eq.depth.toFixed(1)} km
                 </div>
                 
-                {/* Link */}
-                <a
-                  href={eq.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 hover:bg-white/10 rounded transition-colors inline-flex"
-                >
-                  <ExternalLink className="w-4 h-4 text-neutral-500 hover:text-white" />
-                </a>
+                {/* Actions */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEarthquakeClick?.(eq);
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                    title="View details"
+                  >
+                    <Eye className="w-4 h-4 text-neutral-500 group-hover:text-blue-400" />
+                  </button>
+                  <a
+                    href={eq.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                    title="View on USGS"
+                  >
+                    <ExternalLink className="w-4 h-4 text-neutral-500 hover:text-white" />
+                  </a>
+                </div>
               </div>
             ))}
             
