@@ -351,14 +351,20 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             
             {region && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
+                <span
                   style={{
-                    width: 12,
-                    height: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    fontSize: 14,
+                    padding: '4px 10px',
                     borderRadius: 6,
-                    backgroundColor: region.color,
+                    backgroundColor: region.color + '30',
+                    color: region.color,
+                    border: `1px solid ${region.color}50`,
                   }}
-                />
+                >
+                  {region.areaCode}
+                </span>
                 <span style={{ color: '#999', fontSize: 16 }}>{region.name}</span>
               </div>
             )}

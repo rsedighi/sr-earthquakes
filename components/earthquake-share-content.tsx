@@ -191,14 +191,17 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
               </p>
               {region && (
                 <div className="flex items-center gap-2 mt-3">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: region.color }}
-                  />
-                  <span className="text-sm text-neutral-300">{region.name}</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-neutral-400 font-mono">
+                  <span 
+                    className="font-mono font-bold px-2 py-0.5 rounded text-sm"
+                    style={{ 
+                      backgroundColor: region.color + '20',
+                      color: region.color,
+                      border: `1px solid ${region.color}40`
+                    }}
+                  >
                     {region.areaCode}
                   </span>
+                  <span className="text-sm text-neutral-300">{region.name}</span>
                 </div>
               )}
             </div>
@@ -390,12 +393,8 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
         {region && (
           <div className="bg-neutral-800/50 border-b border-white/10 p-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <div 
-                className="w-4 h-4 rounded-full flex-shrink-0"
-                style={{ backgroundColor: region.color }}
-              />
               <span 
-                className="px-2 py-1 text-sm font-mono rounded-md flex-shrink-0"
+                className="px-3 py-1.5 text-lg font-mono font-bold rounded-lg flex-shrink-0"
                 style={{ 
                   backgroundColor: region.color + '20',
                   color: region.color,

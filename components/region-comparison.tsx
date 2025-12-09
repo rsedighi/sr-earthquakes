@@ -317,11 +317,14 @@ function RegionSelector({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-white/20 transition-colors text-left"
       >
-        <span className="px-2.5 py-1 text-sm font-mono font-bold bg-white/15 rounded-lg text-white tracking-wider">
+        <span className="px-2.5 py-1 text-sm font-mono font-bold bg-white/15 rounded-lg text-white tracking-wider flex-shrink-0">
           {selectedRegion?.areaCode}
         </span>
-        <span className="flex-1 truncate text-sm">{selectedRegion?.name.split(' / ')[0]}</span>
-        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium truncate">{selectedRegion?.name}</div>
+          <div className="text-xs text-neutral-500 truncate">{selectedRegion?.county} County</div>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (

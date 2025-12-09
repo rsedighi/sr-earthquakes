@@ -16,6 +16,7 @@ interface MyCityData {
   lat: number;
   lon: number;
   county: string;
+  areaCode: string;
 }
 
 interface MyCityStats {
@@ -85,6 +86,7 @@ export function useMyCity(earthquakes: Earthquake[]) {
         lat: city.lat,
         lon: city.lon,
         county: city.county,
+        areaCode: city.areaCode,
       });
     }
   }, [setMyCity]);

@@ -516,12 +516,8 @@ export function EarthquakeDetailModal({
         {region && (
           <div className="bg-neutral-800/50 border-x border-white/10 p-4">
             <div className="flex items-center gap-3">
-              <div 
-                className="w-4 h-4 rounded-full flex-shrink-0"
-                style={{ backgroundColor: region.color }}
-              />
               <span 
-                className="px-2 py-1 text-sm font-mono rounded-md flex-shrink-0"
+                className="px-3 py-1.5 text-lg font-mono font-bold rounded-lg flex-shrink-0"
                 style={{ 
                   backgroundColor: region.color + '20',
                   color: region.color,

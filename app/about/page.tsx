@@ -186,12 +186,18 @@ export default function AboutPage() {
               <Link
                 key={region.id}
                 href={`/region/${region.id}`}
-                className="flex items-center gap-2 p-3 bg-neutral-900 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
+                className="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
               >
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: region.color }}
-                />
+                <span 
+                  className="font-mono text-xs font-bold px-2 py-1 rounded"
+                  style={{ 
+                    backgroundColor: region.color + '20',
+                    color: region.color,
+                    border: `1px solid ${region.color}40`
+                  }}
+                >
+                  {region.areaCode}
+                </span>
                 <span className="text-sm">{region.name.split(' / ')[0]}</span>
               </Link>
             ))}

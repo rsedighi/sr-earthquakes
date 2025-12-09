@@ -453,18 +453,20 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                     Regions
                     <ChevronDown className="w-3 h-3" />
                   </button>
-                  <div className="absolute right-0 top-full mt-1 w-56 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-2">
+                  <div className="absolute right-0 top-full mt-1 w-[420px] bg-neutral-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-2">
                     {REGIONS.map(region => (
                       <Link
                         key={region.id}
                         href={`/region/${region.id}`}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-4 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
                       >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: region.color }}
-                        />
-                        {region.name.split(' / ')[0]}
+                        <span className="w-12 text-center font-mono text-base font-bold px-2 py-1 rounded-md bg-white/15 text-white border border-white/20 flex-shrink-0">
+                          {region.areaCode}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-white">{region.name}</div>
+                          <div className="text-xs text-neutral-500">{region.county} County • {region.faultLine}</div>
+                        </div>
                       </Link>
                     ))}
                   </div>
@@ -587,28 +589,50 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                 subtext={strongestToday ? formatDistanceToNow(strongestToday.time, { addSuffix: true }) : 'None yet'}
                 icon={<Sparkles className="w-4 h-4" />}
               />
-              {/* Configurable My City Widget */}
-              <div className="relative">
-                {myCityLoaded && myCity ? (
-                  <StatCard
-                    label={myCity.cityName}
-                    value={myCityStats?.nearbyThisWeek || 0}
-                    subtext={myCityStats?.isElevated ? 'Elevated activity' : 'quakes nearby'}
-                    icon={<Home className="w-4 h-4" />}
-                    highlight={myCityStats?.isElevated}
-                    onConfigure={() => setShowCitySelector(true)}
-                  />
-                ) : (
+              {/* Configurable My City Widget - Made Prominent */}
+              {(() => {
+                // Look up area code from available cities (handles legacy stored data without areaCode)
+                const cityAreaCode = myCity?.areaCode || availableCities.find(c => c.name === myCity?.cityName)?.areaCode || '';
+                
+                return (
                   <button
                     onClick={() => setShowCitySelector(true)}
-                    className="card p-4 w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-white/[0.04] transition-colors border-dashed border-white/20"
+                    className={`card p-4 w-full h-full text-left group relative overflow-hidden transition-all hover:bg-white/[0.04] ${
+                      myCityLoaded && myCity && myCityStats?.isElevated ? 'border-white/20 bg-white/[0.04]' : ''
+                    }`}
                   >
-                    <Settings className="w-5 h-5 text-neutral-500" />
-                    <span className="text-sm text-neutral-400">Set Your City</span>
-                    <span className="text-xs text-neutral-600">Personalized stats</span>
+                    {myCityLoaded && myCity ? (
+                      <>
+                        {/* Area Code Badge - Large and Prominent */}
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="font-mono text-lg font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20">
+                            {cityAreaCode}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs uppercase tracking-wider text-neutral-400 truncate">{myCity.cityName}</div>
+                            <div className="text-[10px] text-neutral-600">Your City</div>
+                          </div>
+                          <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">Change ›</span>
+                        </div>
+                        <div className={`text-3xl font-light ${myCityStats?.isElevated ? 'text-white' : ''}`}>
+                          {myCityStats?.nearbyThisWeek || 0}
+                        </div>
+                        <div className="text-xs text-neutral-500 mt-1">
+                          {myCityStats?.isElevated ? 'Elevated activity' : 'quakes nearby'}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-2 py-2">
+                        <div className="w-12 h-12 rounded-lg bg-white/10 border border-dashed border-white/30 flex items-center justify-center">
+                          <Home className="w-6 h-6 text-neutral-400" />
+                        </div>
+                        <span className="text-sm font-medium text-neutral-300">Select Your City</span>
+                        <span className="text-xs text-neutral-500">Tap to personalize</span>
+                      </div>
+                    )}
                   </button>
-                )}
-              </div>
+                );
+              })()}
             </div>
             
             {/* City Selector Modal */}
@@ -644,7 +668,8 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                     {availableCities
                       .filter(city => 
                         city.name.toLowerCase().includes(citySearch.toLowerCase()) ||
-                        city.county.toLowerCase().includes(citySearch.toLowerCase())
+                        city.county.toLowerCase().includes(citySearch.toLowerCase()) ||
+                        city.areaCode.includes(citySearch)
                       )
                       .map(city => (
                         <button
@@ -654,23 +679,28 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                             setShowCitySelector(false);
                             setCitySearch('');
                           }}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors text-left
+                          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors text-left
                             ${myCity?.cityName === city.name 
                               ? 'bg-white/10 border border-white/20' 
                               : 'hover:bg-white/5'}`}
                         >
-                          <div>
+                          {/* Area Code Badge - Prominent */}
+                          <div className="w-12 h-12 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
+                            <span className="font-mono text-lg font-bold text-white">{city.areaCode}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
                             <div className="font-medium">{city.name}</div>
                             <div className="text-xs text-neutral-500">{city.county} County</div>
                           </div>
                           {myCity?.cityName === city.name && (
-                            <span className="text-white text-sm">Selected</span>
+                            <span className="text-xs px-2 py-1 bg-white/20 rounded text-white">Selected</span>
                           )}
                         </button>
                       ))}
                     {availableCities.filter(city => 
                       city.name.toLowerCase().includes(citySearch.toLowerCase()) ||
-                      city.county.toLowerCase().includes(citySearch.toLowerCase())
+                      city.county.toLowerCase().includes(citySearch.toLowerCase()) ||
+                      city.areaCode.includes(citySearch)
                     ).length === 0 && (
                       <p className="text-center text-neutral-500 py-8">No cities found matching "{citySearch}"</p>
                     )}

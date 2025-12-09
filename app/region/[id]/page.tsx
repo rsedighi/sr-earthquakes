@@ -127,13 +127,17 @@ export default async function RegionPage({ params }: RegionPageProps) {
         {/* Header */}
         <header className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <div 
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: region.color }}
-            />
-            <span className="text-sm px-3 py-1 rounded-full bg-white/10 text-neutral-300 font-mono">
+            <span 
+              className="text-2xl font-mono font-bold px-4 py-2 rounded-lg"
+              style={{ 
+                backgroundColor: region.color + '20',
+                color: region.color,
+                border: `1px solid ${region.color}40`
+              }}
+            >
               {region.areaCode}
             </span>
+            <span className="text-sm text-neutral-500">{region.county} County</span>
           </div>
           <h1 className="text-4xl font-bold mb-4">
             {region.name} Earthquakes

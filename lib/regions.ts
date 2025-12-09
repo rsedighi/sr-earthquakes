@@ -143,54 +143,55 @@ export const BAY_AREA_BOUNDS = {
   center: { lat: 37.75, lon: -122.25 },
 };
 
-// Major cities/landmarks for location context
+// Major cities/landmarks for location context with area codes
 export const BAY_AREA_LANDMARKS: Array<{
   name: string;
   lat: number;
   lon: number;
   county: string;
+  areaCode: string;
   type: 'city' | 'landmark';
 }> = [
-  // Major Cities
-  { name: 'San Francisco', lat: 37.7749, lon: -122.4194, county: 'San Francisco', type: 'city' },
-  { name: 'Oakland', lat: 37.8044, lon: -122.2712, county: 'Alameda', type: 'city' },
-  { name: 'San Jose', lat: 37.3382, lon: -121.8863, county: 'Santa Clara', type: 'city' },
-  { name: 'Berkeley', lat: 37.8716, lon: -122.2727, county: 'Alameda', type: 'city' },
-  { name: 'San Ramon', lat: 37.7799, lon: -121.9780, county: 'Contra Costa', type: 'city' },
-  { name: 'Dublin', lat: 37.7022, lon: -121.9358, county: 'Alameda', type: 'city' },
-  { name: 'Pleasanton', lat: 37.6624, lon: -121.8747, county: 'Alameda', type: 'city' },
-  { name: 'Fremont', lat: 37.5485, lon: -121.9886, county: 'Alameda', type: 'city' },
-  { name: 'Hayward', lat: 37.6688, lon: -122.0808, county: 'Alameda', type: 'city' },
-  { name: 'Concord', lat: 37.9780, lon: -122.0311, county: 'Contra Costa', type: 'city' },
-  { name: 'Walnut Creek', lat: 37.9101, lon: -122.0652, county: 'Contra Costa', type: 'city' },
-  { name: 'Danville', lat: 37.8216, lon: -121.9997, county: 'Contra Costa', type: 'city' },
-  { name: 'Livermore', lat: 37.6819, lon: -121.7680, county: 'Alameda', type: 'city' },
-  { name: 'Richmond', lat: 37.9358, lon: -122.3478, county: 'Contra Costa', type: 'city' },
-  { name: 'Vallejo', lat: 38.1041, lon: -122.2566, county: 'Solano', type: 'city' },
-  { name: 'Napa', lat: 38.2975, lon: -122.2869, county: 'Napa', type: 'city' },
-  { name: 'Santa Rosa', lat: 38.4404, lon: -122.7141, county: 'Sonoma', type: 'city' },
-  { name: 'San Mateo', lat: 37.5630, lon: -122.3255, county: 'San Mateo', type: 'city' },
-  { name: 'Palo Alto', lat: 37.4419, lon: -122.1430, county: 'Santa Clara', type: 'city' },
-  { name: 'Mountain View', lat: 37.3861, lon: -122.0839, county: 'Santa Clara', type: 'city' },
-  { name: 'Sunnyvale', lat: 37.3688, lon: -122.0363, county: 'Santa Clara', type: 'city' },
-  { name: 'Santa Clara', lat: 37.3541, lon: -121.9552, county: 'Santa Clara', type: 'city' },
-  { name: 'Morgan Hill', lat: 37.1305, lon: -121.6544, county: 'Santa Clara', type: 'city' },
-  { name: 'Gilroy', lat: 37.0058, lon: -121.5683, county: 'Santa Clara', type: 'city' },
-  { name: 'Hollister', lat: 36.8525, lon: -121.4016, county: 'San Benito', type: 'city' },
-  { name: 'Pacifica', lat: 37.6138, lon: -122.4869, county: 'San Mateo', type: 'city' },
-  { name: 'Daly City', lat: 37.6879, lon: -122.4702, county: 'San Mateo', type: 'city' },
-  { name: 'San Leandro', lat: 37.7249, lon: -122.1561, county: 'Alameda', type: 'city' },
-  { name: 'Union City', lat: 37.5934, lon: -122.0438, county: 'Alameda', type: 'city' },
-  { name: 'Milpitas', lat: 37.4323, lon: -121.8996, county: 'Santa Clara', type: 'city' },
-  { name: 'Antioch', lat: 38.0049, lon: -121.8058, county: 'Contra Costa', type: 'city' },
-  { name: 'Pittsburg', lat: 38.0278, lon: -121.8847, county: 'Contra Costa', type: 'city' },
-  { name: 'Brentwood', lat: 37.9319, lon: -121.6958, county: 'Contra Costa', type: 'city' },
-  { name: 'Martinez', lat: 38.0194, lon: -122.1341, county: 'Contra Costa', type: 'city' },
-  { name: 'Benicia', lat: 38.0494, lon: -122.1586, county: 'Solano', type: 'city' },
+  // Major Cities with their area codes
+  { name: 'San Francisco', lat: 37.7749, lon: -122.4194, county: 'San Francisco', areaCode: '415', type: 'city' },
+  { name: 'Oakland', lat: 37.8044, lon: -122.2712, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'San Jose', lat: 37.3382, lon: -121.8863, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Berkeley', lat: 37.8716, lon: -122.2727, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'San Ramon', lat: 37.7799, lon: -121.9780, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Dublin', lat: 37.7022, lon: -121.9358, county: 'Alameda', areaCode: '925', type: 'city' },
+  { name: 'Pleasanton', lat: 37.6624, lon: -121.8747, county: 'Alameda', areaCode: '925', type: 'city' },
+  { name: 'Fremont', lat: 37.5485, lon: -121.9886, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'Hayward', lat: 37.6688, lon: -122.0808, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'Concord', lat: 37.9780, lon: -122.0311, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Walnut Creek', lat: 37.9101, lon: -122.0652, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Danville', lat: 37.8216, lon: -121.9997, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Livermore', lat: 37.6819, lon: -121.7680, county: 'Alameda', areaCode: '925', type: 'city' },
+  { name: 'Richmond', lat: 37.9358, lon: -122.3478, county: 'Contra Costa', areaCode: '510', type: 'city' },
+  { name: 'Vallejo', lat: 38.1041, lon: -122.2566, county: 'Solano', areaCode: '707', type: 'city' },
+  { name: 'Napa', lat: 38.2975, lon: -122.2869, county: 'Napa', areaCode: '707', type: 'city' },
+  { name: 'Santa Rosa', lat: 38.4404, lon: -122.7141, county: 'Sonoma', areaCode: '707', type: 'city' },
+  { name: 'San Mateo', lat: 37.5630, lon: -122.3255, county: 'San Mateo', areaCode: '650', type: 'city' },
+  { name: 'Palo Alto', lat: 37.4419, lon: -122.1430, county: 'Santa Clara', areaCode: '650', type: 'city' },
+  { name: 'Mountain View', lat: 37.3861, lon: -122.0839, county: 'Santa Clara', areaCode: '650', type: 'city' },
+  { name: 'Sunnyvale', lat: 37.3688, lon: -122.0363, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Santa Clara', lat: 37.3541, lon: -121.9552, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Morgan Hill', lat: 37.1305, lon: -121.6544, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Gilroy', lat: 37.0058, lon: -121.5683, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Hollister', lat: 36.8525, lon: -121.4016, county: 'San Benito', areaCode: '831', type: 'city' },
+  { name: 'Pacifica', lat: 37.6138, lon: -122.4869, county: 'San Mateo', areaCode: '650', type: 'city' },
+  { name: 'Daly City', lat: 37.6879, lon: -122.4702, county: 'San Mateo', areaCode: '650', type: 'city' },
+  { name: 'San Leandro', lat: 37.7249, lon: -122.1561, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'Union City', lat: 37.5934, lon: -122.0438, county: 'Alameda', areaCode: '510', type: 'city' },
+  { name: 'Milpitas', lat: 37.4323, lon: -121.8996, county: 'Santa Clara', areaCode: '408', type: 'city' },
+  { name: 'Antioch', lat: 38.0049, lon: -121.8058, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Pittsburg', lat: 38.0278, lon: -121.8847, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Brentwood', lat: 37.9319, lon: -121.6958, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Martinez', lat: 38.0194, lon: -122.1341, county: 'Contra Costa', areaCode: '925', type: 'city' },
+  { name: 'Benicia', lat: 38.0494, lon: -122.1586, county: 'Solano', areaCode: '707', type: 'city' },
   // Notable locations/landmarks
-  { name: 'The Geysers', lat: 38.8, lon: -122.8, county: 'Sonoma/Lake', type: 'landmark' },
-  { name: 'Mt. Diablo', lat: 37.8816, lon: -121.9142, county: 'Contra Costa', type: 'landmark' },
-  { name: 'Mt. Hamilton', lat: 37.3414, lon: -121.6425, county: 'Santa Clara', type: 'landmark' },
+  { name: 'The Geysers', lat: 38.8, lon: -122.8, county: 'Sonoma/Lake', areaCode: '707', type: 'landmark' },
+  { name: 'Mt. Diablo', lat: 37.8816, lon: -121.9142, county: 'Contra Costa', areaCode: '925', type: 'landmark' },
+  { name: 'Mt. Hamilton', lat: 37.3414, lon: -121.6425, county: 'Santa Clara', areaCode: '408', type: 'landmark' },
 ];
 
 // Assign a region to an earthquake based on coordinates
