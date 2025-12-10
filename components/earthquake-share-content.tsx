@@ -251,16 +251,42 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
           </div>
         </div>
         
-        {/* Share This Earthquake */}
-        <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-b border-white/10 p-4">
+        {/* Share This Earthquake - Prominent Section */}
+        <div className="bg-gradient-to-r from-emerald-500/30 via-blue-500/30 to-purple-500/30 border-b border-white/10 p-5">
+          {/* Main Share Button - Native Share */}
+          <button
+            onClick={async () => {
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl,
+                  });
+                } catch (err) {
+                  // User cancelled or error - fallback to copy
+                  if ((err as Error).name !== 'AbortError') {
+                    await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }
+                }
+              } else {
+                // Fallback for browsers without Web Share API
+                await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }
+            }}
+            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group"
+          >
+            <Share2 className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
+            <span className="text-lg font-bold text-white">Share This Earthquake</span>
+            <MessageSquare className="w-5 h-5 text-white/80" />
+          </button>
+          
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <Share2 className="w-5 h-5 text-neutral-300" />
-              <div>
-                <h3 className="text-sm font-medium text-white">Share this earthquake</h3>
-                <p className="text-xs text-neutral-400">Let your neighbors know about this event</p>
-              </div>
-            </div>
+            <p className="text-sm text-neutral-400">Or share directly on:</p>
             
             <div className="flex items-center gap-2">
               {/* X (Twitter) */}
@@ -294,15 +320,6 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
                 title="Share on Nextdoor"
               >
                 <NextdoorIcon className="w-4 h-4 text-white" />
-              </a>
-              
-              {/* Message/SMS */}
-              <a
-                href={smsShareUrl}
-                className="p-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-                title="Send as message"
-              >
-                <MessageSquare className="w-4 h-4 text-white" />
               </a>
               
               {/* Copy Link */}
