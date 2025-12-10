@@ -58,6 +58,19 @@ const LeafletMap = dynamic(
   }
 );
 
+// Dynamically import Fault Map to avoid SSR issues  
+const FaultMap = dynamic(
+  () => import('./fault-map').then(mod => mod.FaultMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+      </div>
+    )
+  }
+);
+
 // Lightweight summary from server - NO raw earthquake arrays!
 interface HistoricalSummary {
   totalCount: number;
@@ -1377,7 +1390,7 @@ function LearnSection() {
             Several major fault systems run through our region, each capable of producing significant earthquakes.
           </p>
           
-          {/* Interactive Fault Map */}
+          {/* Interactive Fault Map - Using Leaflet with GeoJSON */}
           <div className="rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
             <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
               <span className="text-sm text-neutral-400">Interactive Fault Map</span>
@@ -1387,162 +1400,85 @@ function LearnSection() {
                 rel="noopener noreferrer"
                 className="text-xs text-neutral-500 hover:text-white flex items-center gap-1 transition-colors"
               >
-                Open full map <ExternalLink className="w-3 h-3" />
+                Official USGS Map <ExternalLink className="w-3 h-3" />
               </a>
             </div>
-            <div className="relative aspect-[16/9] md:aspect-[2/1] bg-neutral-950">
-              {/* Simplified SVG Fault Map */}
-              <svg 
-                viewBox="0 0 400 300" 
-                className="w-full h-full"
-                style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f1729 100%)' }}
-              >
-                {/* Water bodies */}
-                <path d="M50 80 Q100 60 150 90 Q200 120 180 180 Q160 240 100 260 Q40 280 30 220 Q20 160 50 80" 
-                      fill="#1e3a5f" opacity="0.3"/>
-                
-                {/* San Andreas Fault - Red */}
-                <path d="M10 40 Q30 80 60 120 Q90 160 100 220 Q110 280 130 320" 
-                      stroke="#ef4444" strokeWidth="4" fill="none" strokeLinecap="round"
-                      className="animate-pulse" style={{ animationDuration: '3s' }}/>
-                <text x="15" y="35" fill="#ef4444" fontSize="10" fontWeight="bold">San Andreas</text>
-                
-                {/* Hayward Fault - Orange */}
-                <path d="M200 30 Q195 80 200 130 Q210 180 220 230 Q230 280 240 320" 
-                      stroke="#f97316" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                <text x="245" y="130" fill="#f97316" fontSize="9" fontWeight="bold">Hayward</text>
-                
-                {/* Calaveras Fault - Yellow */}
-                <path d="M250 50 Q260 100 270 150 Q280 200 300 250 Q320 300 340 350" 
-                      stroke="#eab308" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                <text x="305" y="180" fill="#eab308" fontSize="9" fontWeight="bold">Calaveras</text>
-                
-                {/* Rodgers Creek Fault - Pink */}
-                <path d="M150 0 Q160 30 170 60 Q175 90 180 120" 
-                      stroke="#ec4899" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                <text x="185" y="90" fill="#ec4899" fontSize="8">Rodgers Creek</text>
-                
-                {/* Concord-Green Valley - Purple */}
-                <path d="M280 0 Q285 40 290 80 Q295 120 300 160" 
-                      stroke="#a855f7" strokeWidth="2" fill="none" strokeLinecap="round"/>
-                <text x="305" y="80" fill="#a855f7" fontSize="7">Concord</text>
-                
-                {/* City markers */}
-                <circle cx="130" cy="140" r="6" fill="#fff" opacity="0.9"/>
-                <text x="140" y="145" fill="#fff" fontSize="10" fontWeight="600">SF</text>
-                
-                <circle cx="200" cy="145" r="4" fill="#fff" opacity="0.7"/>
-                <text x="208" y="148" fill="#fff" fontSize="8">Oakland</text>
-                
-                <circle cx="260" cy="170" r="4" fill="#fff" opacity="0.7"/>
-                <text x="268" y="173" fill="#fff" fontSize="8">San Ramon</text>
-                
-                <circle cx="250" cy="250" r="4" fill="#fff" opacity="0.7"/>
-                <text x="258" y="253" fill="#fff" fontSize="8">San Jose</text>
-                
-                {/* Legend */}
-                <rect x="10" y="250" width="120" height="45" rx="4" fill="#000" opacity="0.5"/>
-                <text x="20" y="265" fill="#888" fontSize="8">FAULT RISK LEVEL</text>
-                <line x1="20" y1="275" x2="35" y2="275" stroke="#ef4444" strokeWidth="2"/>
-                <text x="40" y="278" fill="#888" fontSize="7">Very High</text>
-                <line x1="75" y1="275" x2="90" y2="275" stroke="#f97316" strokeWidth="2"/>
-                <text x="95" y="278" fill="#888" fontSize="7">High</text>
-                <line x1="20" y1="288" x2="35" y2="288" stroke="#eab308" strokeWidth="2"/>
-                <text x="40" y="291" fill="#888" fontSize="7">Moderate</text>
-              </svg>
-              
-              {/* Overlay gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/80 via-transparent to-transparent pointer-events-none" />
-              
-              {/* Attribution */}
-              <div className="absolute bottom-2 right-2 text-[10px] text-neutral-600">
-                Data: USGS Quaternary Fault Database
-              </div>
-            </div>
+            <FaultMap height="450px" />
           </div>
           
-          {/* Fault Details Grid */}
+          {/* Fault Details Grid - Last Major M6+ Events */}
           <div className="grid md:grid-cols-2 gap-4">
             {[
               { 
                 name: 'San Andreas Fault', 
                 desc: 'The most famous fault in California. Runs 800 miles from the Salton Sea to Cape Mendocino. The 1906 San Francisco earthquake (M7.9) caused over 3,000 deaths.',
                 risk: 'Very High',
-                lastMajor: '1906 (M7.9)',
-                yearsSince: new Date().getFullYear() - 1906,
+                lastMajor: { year: 1906, magnitude: 7.9, location: 'San Francisco' },
                 color: '#ef4444',
-                probability: '22%'
               },
               { 
                 name: 'Hayward Fault', 
                 desc: 'Runs through the East Bay, directly beneath UC Berkeley, Oakland, and Fremont. Scientists consider it the most dangerous fault in the Bay Area due to urban density.',
                 risk: 'Very High',
-                lastMajor: '1868 (M6.8)',
-                yearsSince: new Date().getFullYear() - 1868,
+                lastMajor: { year: 1868, magnitude: 6.8, location: 'Hayward' },
                 color: '#f97316',
-                probability: '33%'
               },
               { 
                 name: 'Calaveras Fault', 
                 desc: 'Eastern fault zone running through San Ramon, Dublin, Fremont, and into Silicon Valley. Known for frequent earthquake swarms.',
                 risk: 'High',
-                lastMajor: '1984 (M6.2)',
-                yearsSince: new Date().getFullYear() - 1984,
+                lastMajor: { year: 1984, magnitude: 6.2, location: 'Morgan Hill' },
                 color: '#eab308',
-                probability: '26%'
               },
               { 
                 name: 'Rodgers Creek Fault', 
                 desc: 'Northern extension of the Hayward Fault, through Sonoma and Napa wine country. Ruptured during the 2014 South Napa earthquake.',
                 risk: 'High',
-                lastMajor: '2014 (M6.0)',
-                yearsSince: new Date().getFullYear() - 2014,
+                lastMajor: { year: 2014, magnitude: 6.0, location: 'South Napa' },
                 color: '#ec4899',
-                probability: '15%'
               },
-            ].map(fault => (
-              <div key={fault.name} className="p-5 bg-white/[0.02] rounded-xl border border-white/5 hover:bg-white/[0.03] transition-colors">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fault.color }} />
-                    <h4 className="font-semibold text-neutral-200">{fault.name}</h4>
+            ].map(fault => {
+              const yearsSince = new Date().getFullYear() - fault.lastMajor.year;
+              return (
+                <div key={fault.name} className="p-5 bg-white/[0.02] rounded-xl border border-white/5 hover:bg-white/[0.03] transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fault.color }} />
+                      <h4 className="font-semibold text-neutral-200">{fault.name}</h4>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      fault.risk === 'Very High' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                      fault.risk === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                      'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                    }`}>
+                      {fault.risk} Risk
+                    </span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    fault.risk === 'Very High' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                    fault.risk === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                    'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                  }`}>
-                    {fault.risk} Risk
-                  </span>
-                </div>
-                <p className="text-sm text-neutral-400 mb-3">{fault.desc}</p>
-                <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="text-neutral-500">Last major: <span className="text-neutral-300">{fault.lastMajor}</span></span>
-                  <span className="text-neutral-500">•</span>
-                  <span className={`font-bold ${
-                    fault.yearsSince >= 100 ? 'text-red-400' : 
-                    fault.yearsSince >= 50 ? 'text-orange-400' : 'text-yellow-400'
-                  }`}>
-                    {fault.yearsSince} years ago
-                  </span>
-                </div>
-                <div className="mt-3 pt-3 border-t border-white/5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-500">30-year M6.7+ probability</span>
-                    <span className="text-sm font-bold text-white">{fault.probability}</span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ 
-                        width: fault.probability,
-                        backgroundColor: fault.color
-                      }}
-                    />
+                  <p className="text-sm text-neutral-400 mb-4">{fault.desc}</p>
+                  
+                  {/* Last Major M6+ Event - Highlighted */}
+                  <div className="p-3 bg-white/[0.03] rounded-lg border border-white/5">
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Last Major Event (M6+)</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-light" style={{ color: fault.color }}>
+                        M{fault.lastMajor.magnitude.toFixed(1)}
+                      </span>
+                      <span className="text-neutral-300">{fault.lastMajor.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 text-xs">
+                      <span className="text-neutral-500">{fault.lastMajor.year}</span>
+                      <span className="text-neutral-600">•</span>
+                      <span className={`font-bold ${
+                        yearsSince >= 100 ? 'text-red-400' : 
+                        yearsSince >= 50 ? 'text-orange-400' : 'text-yellow-400'
+                      }`}>
+                        {yearsSince} years ago
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           {/* USGS Link */}
