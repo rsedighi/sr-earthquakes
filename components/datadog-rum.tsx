@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { datadogRum } from '@datadog/browser-rum';
 
 /**
  * Datadog RUM (Real User Monitoring) Component
@@ -12,42 +13,13 @@ import { useEffect } from 'react';
  * - Performance metrics (Core Web Vitals)
  * - API call tracking
  * 
- * To enable RUM, add these environment variables:
+ * Required environment variables in Netlify:
  * - NEXT_PUBLIC_DD_APPLICATION_ID: Your Datadog RUM Application ID
  * - NEXT_PUBLIC_DD_CLIENT_TOKEN: Your Datadog Client Token
- * - NEXT_PUBLIC_DD_SITE: Datadog site (e.g., 'datadoghq.com', 'datadoghq.eu')
+ * - NEXT_PUBLIC_DD_SITE: Datadog site (default: 'datadoghq.com')
  * 
  * Get these values from: Datadog > UX Monitoring > RUM Applications
  */
-
-declare global {
-  interface Window {
-    DD_RUM?: {
-      init: (config: DatadogRUMConfig) => void;
-      setUser: (user: { id?: string; name?: string; email?: string }) => void;
-      setGlobalContextProperty: (key: string, value: unknown) => void;
-      addAction: (name: string, context?: Record<string, unknown>) => void;
-      addError: (error: Error, context?: Record<string, unknown>) => void;
-      startView: (name: string) => void;
-    };
-  }
-}
-
-interface DatadogRUMConfig {
-  applicationId: string;
-  clientToken: string;
-  site: string;
-  service: string;
-  env: string;
-  version: string;
-  sessionSampleRate: number;
-  sessionReplaySampleRate: number;
-  trackUserInteractions: boolean;
-  trackResources: boolean;
-  trackLongTasks: boolean;
-  defaultPrivacyLevel: 'mask-user-input' | 'mask' | 'allow';
-  allowedTracingUrls?: Array<string | RegExp | { match: string | RegExp; propagatorTypes: string[] }>;
-}
 
 export function DatadogRUM() {
   useEffect(() => {
@@ -64,57 +36,39 @@ export function DatadogRUM() {
       }
       return;
     }
-    
-    // Load the Datadog RUM SDK
-    const script = document.createElement('script');
-    script.src = 'https://www.datadoghq-browser-agent.com/us1/v5/datadog-rum.js';
-    script.async = true;
-    
-    script.onload = () => {
-      if (window.DD_RUM) {
-        window.DD_RUM.init({
-          applicationId,
-          clientToken,
-          site,
-          service: 'baytremor',
-          env: process.env.NODE_ENV || 'production',
-          version: process.env.NEXT_PUBLIC_VERSION || '1.0.0',
-          sessionSampleRate: 100, // Sample 100% of sessions
-          sessionReplaySampleRate: 20, // Record 20% of sessions for replay
-          trackUserInteractions: true,
-          trackResources: true,
-          trackLongTasks: true,
-          defaultPrivacyLevel: 'mask-user-input',
-          // Connect RUM with APM traces if you add APM later
-          allowedTracingUrls: [
-            /https:\/\/.*\.baytremor\.com/,
-            /https:\/\/.*\.netlify\.app/,
-            { match: window.location.origin, propagatorTypes: ['tracecontext', 'datadog'] },
-          ],
-        });
-        
-        // Set global context for all RUM events
-        window.DD_RUM.setGlobalContextProperty('app_name', 'baytremor');
-        window.DD_RUM.setGlobalContextProperty('region', 'bay_area');
-        
-        console.log('[Datadog RUM] Initialized successfully');
-      }
-    };
-    
-    script.onerror = () => {
-      console.error('[Datadog RUM] Failed to load SDK');
-    };
-    
-    document.head.appendChild(script);
-    
-    return () => {
-      // Cleanup if component unmounts (though this shouldn't happen in layout)
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
+
+    // Don't re-initialize if already initialized
+    if (datadogRum.getInitConfiguration()) {
+      return;
+    }
+
+    datadogRum.init({
+      applicationId,
+      clientToken,
+      site,
+      service: 'baytremor.com',
+      env: 'prod',
+      version: '1.0.0',
+      sessionSampleRate: 100,
+      sessionReplaySampleRate: 20,
+      trackUserInteractions: true,
+      trackResources: true,
+      trackLongTasks: true,
+      defaultPrivacyLevel: 'mask-user-input',
+      allowedTracingUrls: [
+        { match: /https:\/\/.*\.baytremor\.com/, propagatorTypes: ['tracecontext', 'datadog'] },
+        { match: /https:\/\/.*\.netlify\.app/, propagatorTypes: ['tracecontext', 'datadog'] },
+        { match: window.location.origin, propagatorTypes: ['tracecontext', 'datadog'] },
+      ],
+    });
+
+    // Set global context for all RUM events
+    datadogRum.setGlobalContextProperty('app_name', 'baytremor.com');
+    datadogRum.setGlobalContextProperty('region', 'bay_area');
+
+    console.log('[Datadog RUM] Initialized successfully');
   }, []);
-  
+
   return null;
 }
 
@@ -124,37 +78,28 @@ export function DatadogRUM() {
  * Track a custom action (e.g., user clicked on earthquake, filtered data)
  */
 export function trackAction(name: string, context?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && window.DD_RUM) {
-    window.DD_RUM.addAction(name, context);
-  }
+  datadogRum.addAction(name, context);
 }
 
 /**
  * Track a custom error
  */
 export function trackError(error: Error, context?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && window.DD_RUM) {
-    window.DD_RUM.addError(error, context);
-  }
+  datadogRum.addError(error, context);
 }
 
 /**
  * Set user information (if you add auth later)
  */
 export function setUser(user: { id?: string; name?: string; email?: string }) {
-  if (typeof window !== 'undefined' && window.DD_RUM) {
-    window.DD_RUM.setUser(user);
-  }
+  datadogRum.setUser(user);
 }
 
 /**
  * Track a custom view (for SPA navigation not caught automatically)
  */
 export function trackView(name: string) {
-  if (typeof window !== 'undefined' && window.DD_RUM) {
-    window.DD_RUM.startView(name);
-  }
+  datadogRum.startView({ name });
 }
 
 export default DatadogRUM;
-
