@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger, logExternalCall } from '@/lib/logger';
 
 const FEEDS = {
   all_hour: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson',
@@ -16,17 +17,24 @@ const BAY_AREA_BOUNDS = {
 };
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
   const searchParams = request.nextUrl.searchParams;
   const feed = (searchParams.get('feed') || 'all_day') as keyof typeof FEEDS;
   
   const feedUrl = FEEDS[feed] || FEEDS.all_day;
   
   try {
+    const fetchStart = Date.now();
     const response = await fetch(feedUrl, {
       next: { revalidate: 60 }, // Cache for 60 seconds
     });
+    const fetchDuration = Date.now() - fetchStart;
     
     if (!response.ok) {
+      logExternalCall('usgs', 'fetchFeed', false, fetchDuration, {
+        feed,
+        statusCode: response.status,
+      });
       throw new Error(`USGS API returned ${response.status}`);
     }
     
@@ -43,6 +51,23 @@ export async function GET(request: NextRequest) {
              lon <= BAY_AREA_BOUNDS.maxLon;
     });
     
+    const totalDuration = Date.now() - startTime;
+    
+    logExternalCall('usgs', 'fetchFeed', true, fetchDuration, {
+      feed,
+      totalCount: data.features?.length || 0,
+      filteredCount: filteredFeatures.length,
+    });
+    
+    logger.info('Earthquakes API request completed', {
+      path: '/api/earthquakes',
+      method: 'GET',
+      statusCode: 200,
+      duration: totalDuration,
+      feed,
+      earthquakeCount: filteredFeatures.length,
+    });
+    
     return NextResponse.json({
       ...data,
       features: filteredFeatures,
@@ -53,7 +78,18 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching USGS data:', error);
+    const duration = Date.now() - startTime;
+    
+    logger.error('Failed to fetch earthquake data from USGS', {
+      path: '/api/earthquakes',
+      method: 'GET',
+      statusCode: 500,
+      duration,
+      feed,
+      error,
+      service: 'usgs',
+    });
+    
     return NextResponse.json(
       { error: 'Failed to fetch earthquake data' },
       { status: 500 }

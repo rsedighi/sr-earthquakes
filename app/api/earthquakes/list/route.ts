@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEarthquakesPage, getSwarmsForRegion, loadAllEarthquakes } from '@/lib/server-data';
+import { logger } from '@/lib/logger';
 
 // API endpoint for paginated historical earthquake data
 // This keeps the heavy data on the server and only sends what's needed
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
   const searchParams = request.nextUrl.searchParams;
   
   const region = searchParams.get('region') || 'all';
@@ -34,6 +36,17 @@ export async function GET(request: NextRequest) {
         ...eq,
         time: eq.time.toISOString(),
       }));
+      
+      logger.info('Earthquakes list API request completed (fetchAll)', {
+        path: '/api/earthquakes/list',
+        method: 'GET',
+        statusCode: 200,
+        duration: Date.now() - startTime,
+        region,
+        earthquakeCount: earthquakes.length,
+        minMagnitude,
+        fetchAll: true,
+      });
       
       return NextResponse.json({
         earthquakes,
@@ -75,6 +88,21 @@ export async function GET(request: NextRequest) {
       }));
     }
     
+    logger.info('Earthquakes list API request completed', {
+      path: '/api/earthquakes/list',
+      method: 'GET',
+      statusCode: 200,
+      duration: Date.now() - startTime,
+      region,
+      page,
+      limit,
+      earthquakeCount: earthquakes.length,
+      totalAvailable: result.total,
+      hasMore: result.hasMore,
+      includeSwarms,
+      swarmCount: swarms?.length || 0,
+    });
+    
     return NextResponse.json({
       earthquakes,
       total: result.total,
@@ -84,7 +112,17 @@ export async function GET(request: NextRequest) {
       swarms,
     });
   } catch (error) {
-    console.error('Error fetching earthquakes:', error);
+    logger.error('Failed to fetch earthquake list data', {
+      path: '/api/earthquakes/list',
+      method: 'GET',
+      statusCode: 500,
+      duration: Date.now() - startTime,
+      region,
+      page,
+      limit,
+      error,
+    });
+    
     return NextResponse.json(
       { error: 'Failed to fetch earthquake data' },
       { status: 500 }

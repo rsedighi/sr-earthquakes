@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { generateHomepageSchemas } from '@/lib/seo';
+import { DatadogRUM } from '@/components/datadog-rum';
 import './globals.css';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
@@ -151,6 +152,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased min-h-screen">
+        <DatadogRUM />
         {children}
       </body>
     </html>

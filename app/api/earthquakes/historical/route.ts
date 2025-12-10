@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger, logExternalCall } from '@/lib/logger';
 
 // USGS Earthquake API - Free, no API key needed!
 // Docs: https://earthquake.usgs.gov/fdsnws/event/1/
@@ -40,6 +41,7 @@ interface USGSResponse {
 }
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
   const searchParams = request.nextUrl.searchParams;
   
   // Get parameters
@@ -82,16 +84,29 @@ export async function GET(request: NextRequest) {
   
   const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?${params}`;
   
-  console.log('Fetching recent USGS data from:', url);
+  logger.debug('Fetching recent USGS historical data', {
+    path: '/api/earthquakes/historical',
+    minMagnitude,
+    feltOnly,
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+  });
   
   try {
+    const fetchStart = Date.now();
     const response = await fetch(url, {
       next: { revalidate: 300 }, // Cache for 5 minutes for recent data
     });
+    const fetchDuration = Date.now() - fetchStart;
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('USGS API error response:', errorText);
+      
+      logExternalCall('usgs', 'fetchHistorical', false, fetchDuration, {
+        statusCode: response.status,
+        errorPreview: errorText.slice(0, 200),
+      });
+      
       throw new Error(`USGS API returned ${response.status}: ${errorText.slice(0, 200)}`);
     }
     
@@ -120,6 +135,23 @@ export async function GET(request: NextRequest) {
         region: 'norcal', // Will be assigned by client
       }));
     
+    const totalDuration = Date.now() - startTime;
+    
+    logExternalCall('usgs', 'fetchHistorical', true, fetchDuration, {
+      rawCount: data.features?.length || 0,
+      deduplicatedCount: earthquakes.length,
+    });
+    
+    logger.info('Historical earthquakes API request completed', {
+      path: '/api/earthquakes/historical',
+      method: 'GET',
+      statusCode: 200,
+      duration: totalDuration,
+      earthquakeCount: earthquakes.length,
+      minMagnitude,
+      feltOnly,
+    });
+    
     return NextResponse.json({
       earthquakes,
       metadata: {
@@ -133,7 +165,19 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching recent USGS data:', error);
+    const duration = Date.now() - startTime;
+    
+    logger.error('Failed to fetch historical earthquake data from USGS', {
+      path: '/api/earthquakes/historical',
+      method: 'GET',
+      statusCode: 500,
+      duration,
+      error,
+      service: 'usgs',
+      minMagnitude,
+      feltOnly,
+    });
+    
     return NextResponse.json(
       { error: 'Failed to fetch recent earthquake data', details: String(error) },
       { status: 500 }
