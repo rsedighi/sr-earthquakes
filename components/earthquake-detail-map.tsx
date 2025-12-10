@@ -5,6 +5,7 @@ import { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { formatDepth, formatDistance } from '@/lib/units';
 
 interface EarthquakeDetailMapProps {
   earthquake: Earthquake;
@@ -143,7 +144,7 @@ export function EarthquakeDetailMap({
                     {format(eq.time, 'MMM d, yyyy')}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {getDistanceKm(earthquake.latitude, earthquake.longitude, eq.latitude, eq.longitude).toFixed(1)} km away
+                    {formatDistance(getDistanceKm(earthquake.latitude, earthquake.longitude, eq.latitude, eq.longitude))} away
                   </div>
                 </div>
               </Popup>
@@ -204,7 +205,7 @@ export function EarthquakeDetailMap({
               </div>
               <div className="text-sm text-gray-700 mb-2">{earthquake.place}</div>
               <div className="text-xs text-gray-500 space-y-1">
-                <div>Depth: {earthquake.depth.toFixed(1)} km</div>
+                <div>Depth: {formatDepth(earthquake.depth)}</div>
                 <div>Lat: {earthquake.latitude.toFixed(4)}°</div>
                 <div>Lon: {earthquake.longitude.toFixed(4)}°</div>
               </div>
@@ -223,7 +224,7 @@ export function EarthquakeDetailMap({
       {/* Depth indicator */}
       <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
         <div className="text-xs text-neutral-400">
-          Depth: <span className="text-white font-medium">{earthquake.depth.toFixed(1)} km</span>
+          Depth: <span className="text-white font-medium">{formatDepth(earthquake.depth)}</span>
         </div>
       </div>
       

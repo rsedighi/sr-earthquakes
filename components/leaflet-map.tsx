@@ -5,6 +5,7 @@ import { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Search, MapPin, X, Loader2 } from 'lucide-react';
+import { formatDistance, formatDepth, kmToMiles } from '@/lib/units';
 
 interface LeafletMapProps {
   earthquakes: Earthquake[];
@@ -226,7 +227,7 @@ function LeafletMapInner({
                   </div>
                   <div className="text-sm text-gray-700 mb-2">{eq.place}</div>
                   <div className="text-xs text-gray-500 space-y-1">
-                    <div>Depth: {eq.depth.toFixed(1)} km</div>
+                    <div>Depth: {formatDepth(eq.depth)}</div>
                     <div>Time: {format(eq.time, 'PPpp')}</div>
                     {eq.felt && eq.felt > 0 && (
                       <div className="text-amber-600 font-medium">
@@ -235,7 +236,7 @@ function LeafletMapInner({
                     )}
                     {userLocation && (
                       <div className="text-blue-600">
-                        📍 {getDistanceKm(userLocation.lat, userLocation.lon, eq.latitude, eq.longitude).toFixed(1)} km from you
+                        📍 {formatDistance(getDistanceKm(userLocation.lat, userLocation.lon, eq.latitude, eq.longitude))} from you
                       </div>
                     )}
                   </div>
@@ -260,7 +261,7 @@ function LeafletMapInner({
           <div className="text-xs text-neutral-400">
             <span className="text-white font-medium">{displayedQuakes.length}</span> earthquakes
             {showOnlyFelt && <span className="text-amber-400 ml-1">felt</span>}
-            <span className="text-blue-400 ml-1">within {searchRadius}km</span>
+            <span className="text-blue-400 ml-1">within {Math.round(kmToMiles(searchRadius))} mi ({searchRadius} km)</span>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { getRegionById } from '@/lib/regions';
 import { formatDistanceToNow } from 'date-fns';
+import { formatDepth } from '@/lib/units';
 
 // We'll use a simple SVG-based map since Leaflet requires window object
 // This provides a clean, fast alternative that works with SSR
@@ -263,7 +264,7 @@ export function EarthquakeMap({
                 {formatDistanceToNow(displayQuake.time, { addSuffix: true })}
               </div>
               <div className="text-xs text-neutral-500 mt-1">
-                {displayQuake.depth.toFixed(1)} km deep • {getMagnitudeLabel(displayQuake.magnitude)}
+                {formatDepth(displayQuake.depth)} deep • {getMagnitudeLabel(displayQuake.magnitude)}
               </div>
               {displayQuake.felt && displayQuake.felt > 0 && (
                 <div className="text-xs text-amber-400 mt-1">

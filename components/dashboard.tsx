@@ -39,6 +39,7 @@ import { useRealtimeEarthquakes } from '@/hooks/use-realtime-earthquakes';
 import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import { useMyCity, SELECTABLE_CITIES } from '@/hooks/use-my-city';
 import { detectSwarms, getMagnitudeColor, getMagnitudeLabel, getRecentActivity } from '@/lib/analysis';
+import { formatDepth, formatDepthDeep, formatRadius, kmToMiles, getDepthDescription } from '@/lib/units';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
 import { HistoricalSwarms } from './historical-swarms';
@@ -471,9 +472,9 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                       <Link
                         key={region.id}
                         href={`/region/${region.id}`}
-                        className="flex items-center gap-4 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-4 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors group"
                       >
-                        <span className="w-12 text-center font-mono text-base font-bold px-2 py-1 rounded-md bg-white/15 text-white border border-white/20 flex-shrink-0">
+                        <span className="w-12 text-center font-mono text-base font-bold px-2 py-1 rounded-md bg-white/20 text-white border border-white/30 flex-shrink-0 group-hover:bg-white/30 group-hover:border-white/50 transition-all">
                           {region.areaCode}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -526,15 +527,76 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               }`}>
                 Elevated Seismic Activity
               </h3>
-              <p className="text-sm text-neutral-300 mt-1">
-                {aiSummary || (
-                  <>
-                    {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical weekly earthquake rate
-                    with {hotspotRegion.count} earthquakes this week.
-                    {hotspotRegion.region?.faultLine && ` Activity is centered along the ${hotspotRegion.region.faultLine}.`}
-                  </>
-                )}
-              </p>
+              {isLoadingAiSummary ? (
+                <div className="mt-2 space-y-2">
+                  <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse" />
+                  <div className="h-4 w-5/6 bg-white/10 rounded animate-pulse" />
+                </div>
+              ) : aiSummary ? (
+                <div className="text-sm text-neutral-300 mt-1 space-y-2">
+                  <p>{aiSummary}</p>
+                  <p className="text-neutral-400">
+                    <button 
+                      onClick={() => setActiveTab('history')}
+                      className={`hover:underline underline-offset-2 ${
+                        hotspotRegion.multiplier >= 5 
+                          ? 'text-red-400 hover:text-red-300' 
+                          : hotspotRegion.multiplier >= 3 
+                            ? 'text-orange-400 hover:text-orange-300' 
+                            : 'text-yellow-400 hover:text-yellow-300'
+                      }`}
+                    >
+                      View Historical Analysis →
+                    </button>
+                    <span className="mx-2">•</span>
+                    <button 
+                      onClick={() => setActiveTab('learn')}
+                      className={`hover:underline underline-offset-2 ${
+                        hotspotRegion.multiplier >= 5 
+                          ? 'text-red-400 hover:text-red-300' 
+                          : hotspotRegion.multiplier >= 3 
+                            ? 'text-orange-400 hover:text-orange-300' 
+                            : 'text-yellow-400 hover:text-yellow-300'
+                      }`}
+                    >
+                      Learn About Swarms →
+                    </button>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-300 mt-1">
+                  {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical weekly earthquake rate
+                  with {hotspotRegion.count} earthquakes this week.
+                  {hotspotRegion.region?.faultLine && ` Activity is centered along the ${hotspotRegion.region.faultLine}. `}
+                  Similar swarm events have occurred many times before in this region.{' '}
+                  <button 
+                    onClick={() => setActiveTab('history')}
+                    className={`hover:underline underline-offset-2 ${
+                      hotspotRegion.multiplier >= 5 
+                        ? 'text-red-400 hover:text-red-300' 
+                        : hotspotRegion.multiplier >= 3 
+                          ? 'text-orange-400 hover:text-orange-300' 
+                          : 'text-yellow-400 hover:text-yellow-300'
+                    }`}
+                  >
+                    Explore past events
+                  </button>
+                  {' '}or{' '}
+                  <button 
+                    onClick={() => setActiveTab('learn')}
+                    className={`hover:underline underline-offset-2 ${
+                      hotspotRegion.multiplier >= 5 
+                        ? 'text-red-400 hover:text-red-300' 
+                        : hotspotRegion.multiplier >= 3 
+                          ? 'text-orange-400 hover:text-orange-300' 
+                          : 'text-yellow-400 hover:text-yellow-300'
+                    }`}
+                  >
+                    learn about swarms
+                  </button>.
+                </p>
+              )}
             </div>
             <a 
               href="https://earthquake.usgs.gov/earthquakes/eventpage/"
@@ -592,8 +654,8 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               />
               <StatCard
                 label="Avg Depth"
-                value={`${avgDepth.toFixed(1)}km`}
-                subtext={avgDepth < 10 ? 'Shallow' : avgDepth < 30 ? 'Intermediate' : 'Deep'}
+                value={formatDepth(avgDepth)}
+                subtext={getDepthDescription(avgDepth)}
                 icon={<Layers className="w-4 h-4" />}
               />
               <StatCard
@@ -1545,8 +1607,8 @@ function LearnSection() {
                   <div className="text-xs text-neutral-500 mt-1">Duration</div>
                 </div>
                 <div className="text-center p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                  <div className="text-2xl font-light text-white">&lt;10km</div>
-                  <div className="text-xs text-neutral-500 mt-1">Cluster radius</div>
+                                <div className="text-2xl font-light text-white">&lt;6 mi (10 km)</div>
+                                <div className="text-xs text-neutral-500 mt-1">Cluster radius</div>
                 </div>
               </div>
               <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
@@ -1847,7 +1909,7 @@ function EarthquakeRow({
             {formatDistanceToNow(earthquake.time, { addSuffix: true })}
           </span>
           <span className="hidden sm:inline">·</span>
-          <span className="hidden sm:inline">{earthquake.depth.toFixed(0)} km deep</span>
+          <span className="hidden sm:inline">{formatDepthDeep(earthquake.depth)}</span>
           {earthquake.felt && earthquake.felt > 0 && (
             <>
               <span className="hidden sm:inline">·</span>

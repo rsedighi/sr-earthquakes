@@ -40,7 +40,7 @@ export async function generateActivitySummary(input: ActivitySummaryInput): Prom
     `M${q.magnitude.toFixed(1)} at ${q.depth.toFixed(0)}km depth`
   ).join(', ');
   
-  const prompt = `You are a seismologist writing a brief, informative summary for the public about earthquake activity. Be calm, factual, and reassuring while being informative.
+  const prompt = `You are a seismologist writing a brief, informative summary for the public about earthquake activity in the San Francisco Bay Area. Be calm, factual, and reassuring while being informative.
 
 Current situation:
 - Region: ${regionName}
@@ -52,13 +52,20 @@ Current situation:
 - Recent quakes: ${recentQuakesSummary}
 - Swarm detected: ${input.isSwarm ? 'Yes' : 'No'}
 
-Write a 2-3 sentence summary explaining what's happening and providing historical context. Be reassuring but factual. Don't use technical jargon. Don't say "don't panic" or similar - just be calm and informative.`;
+IMPORTANT CONTEXT: The ${faultLine} has produced similar earthquake swarms many times before. Our 15-year historical data shows dozens of swarm events in this region - this is normal geological behavior for this fault system. Swarms are typically caused by fluids moving through fault zones and usually end without producing damaging earthquakes.
+
+Write a 3-4 sentence summary that:
+1. Briefly explains the current elevated activity (mention specific numbers)
+2. Provides reassuring historical context - emphasize that similar swarms have occurred before along this fault
+3. End with a helpful suggestion like "Explore the Historical Analysis tab to see past swarm events, or visit our Learn section to understand more about earthquake swarms."
+
+Be reassuring but factual. Don't use technical jargon. Don't say "don't panic" or similar - just be calm and informative. Keep the tone helpful and educational.`;
 
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 200,
+      max_tokens: 300,
       temperature: 0.7,
     });
     

@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { Earthquake } from '@/lib/types';
 import { getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { formatDepth, formatDistance, kmToMiles, getDepthDescription } from '@/lib/units';
 import {
   X,
   ArrowLeft,
@@ -484,8 +485,8 @@ export function EarthquakeDetailModal({
             <MetricCard
               icon={<Layers className="w-4 h-4" />}
               label="Depth"
-              value={`${earthquake.depth.toFixed(1)} km`}
-              subtext={earthquake.depth < 10 ? 'Shallow' : earthquake.depth < 70 ? 'Intermediate' : 'Deep'}
+              value={formatDepth(earthquake.depth)}
+              subtext={getDepthDescription(earthquake.depth)}
             />
             <MetricCard
               icon={<Target className="w-4 h-4" />}
@@ -563,7 +564,7 @@ export function EarthquakeDetailModal({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-neutral-400 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Nearby Activity (within 25km, 30 days)
+                Nearby Activity (within 15 mi / 25 km, 30 days)
               </h3>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-neutral-500">Sort by:</span>
@@ -601,9 +602,9 @@ export function EarthquakeDetailModal({
                       <div className="flex items-center gap-3 text-xs text-neutral-500">
                         <span>{format(eq.time, 'MMM d, yyyy')}</span>
                         <span>•</span>
-                        <span>{(eq as typeof eq & { distance: number }).distance.toFixed(1)} km away</span>
+                        <span>{formatDistance((eq as typeof eq & { distance: number }).distance)} away</span>
                         <span>•</span>
-                        <span>{eq.depth.toFixed(0)} km deep</span>
+                        <span>{formatDepth(eq.depth)} deep</span>
                       </div>
                     </div>
                     <a
@@ -699,7 +700,7 @@ export function EarthquakeDetailModal({
               <p>
                 A magnitude {earthquake.magnitude.toFixed(1)} earthquake is considered <span className="font-medium" style={{ color: magnitudeColor }}>{magnitudeLabel.toLowerCase()}</span> and 
                 would typically be felt by most people in the area. Indoor objects may shake or rattle.
-                {stats.feltRadiusKm > 0 && ` It could potentially be felt up to ${stats.feltRadiusKm.toFixed(0)} km from the epicenter.`}
+                {stats.feltRadiusKm > 0 && ` It could potentially be felt up to ${kmToMiles(stats.feltRadiusKm).toFixed(0)} miles (${stats.feltRadiusKm.toFixed(0)} km) from the epicenter.`}
               </p>
             ) : earthquake.magnitude >= 3 ? (
               <p>
@@ -722,7 +723,7 @@ export function EarthquakeDetailModal({
               <div className="flex items-start gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
                 <p className="text-neutral-300">
-                  This was a <span className="font-medium">shallow earthquake</span> ({earthquake.depth.toFixed(1)}km deep), which can feel stronger 
+                  This was a <span className="font-medium">shallow earthquake</span> ({formatDepth(earthquake.depth)} deep), which can feel stronger 
                   at the surface than deeper earthquakes of the same magnitude.
                 </p>
               </div>
@@ -732,7 +733,7 @@ export function EarthquakeDetailModal({
               <div className="flex items-start gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-lg">
                 <Activity className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
                 <p className="text-neutral-300">
-                  There have been <span className="font-medium">{nearbyEarthquakes.length} other earthquakes</span> within 25km 
+                  There have been <span className="font-medium">{nearbyEarthquakes.length} other earthquakes</span> within 15 miles (25 km) 
                   in the past 30 days, suggesting this may be part of a cluster or swarm event.
                 </p>
               </div>

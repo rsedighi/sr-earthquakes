@@ -5,6 +5,7 @@ import { format, getYear, differenceInHours, differenceInDays, formatDistanceToN
 import { Earthquake, SwarmEvent, SwarmEpisode, DailyActivityCluster } from '@/lib/types';
 import { REGIONS, getRegionById } from '@/lib/regions';
 import { detectSwarms, detectSwarmEpisodes, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { formatDepth } from '@/lib/units';
 import {
   Activity,
   Calendar,
@@ -865,7 +866,7 @@ function EpisodeDrillDown({ episode, region, onClose, onEarthquakeClick }: Episo
             <MetricCard
               icon={<MapPin className="w-4 h-4" />}
               label="Avg Depth"
-              value={`${stats.avgDepth.toFixed(1)}km`}
+              value={formatDepth(stats.avgDepth)}
             />
             <MetricCard
               icon={<TrendingUp className="w-4 h-4" />}
@@ -1119,7 +1120,7 @@ function EpisodeDrillDown({ episode, region, onClose, onEarthquakeClick }: Episo
                 
                 {/* Depth */}
                 <div className="text-sm text-neutral-400">
-                  {eq.depth.toFixed(1)} km
+                  {formatDepth(eq.depth)}
                 </div>
                 
                 {/* Actions */}
