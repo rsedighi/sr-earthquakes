@@ -35,6 +35,16 @@ export function loadAllEarthquakes(): Earthquake[] {
       
       if (data.features) {
         for (const feature of data.features) {
+          // Skip features that aren't earthquake data (e.g., fault lines)
+          // Earthquakes must have: a valid time, Point geometry, and magnitude
+          if (
+            !feature.properties?.time ||
+            feature.geometry?.type !== 'Point' ||
+            feature.properties?.mag == null
+          ) {
+            continue;
+          }
+
           const [longitude, latitude, depth] = feature.geometry.coordinates;
           const earthquake: Earthquake = {
             id: feature.id,
