@@ -393,7 +393,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full border border-white/20">
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse-gentle" />
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-gentle" />
                 <span className="text-white text-sm font-medium">Live</span>
               </div>
             </div>
@@ -1170,36 +1170,141 @@ function LearnSection() {
             </div>
           </div>
           
-          {/* Drop Cover Hold On */}
+          {/* Drop Cover Hold On - With Official Graphics */}
           <div className="bg-white/[0.03] rounded-xl p-6 border border-white/10">
-            <h4 className="font-semibold mb-4 text-lg">The 3 Steps: Drop, Cover, Hold On</h4>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-semibold text-lg">The 3 Steps: Drop, Cover, Hold On</h4>
+              <a 
+                href="https://www.shakeout.org/dropcoverholdon/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-neutral-500 hover:text-white flex items-center gap-1 transition-colors"
+              >
+                Source: ShakeOut.org <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/30 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-red-400">1</span>
+              {/* DROP */}
+              <div className="text-center group">
+                <div className="relative w-full aspect-square max-w-[200px] mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-red-500/10 to-red-600/5 border-2 border-red-500/30 flex items-center justify-center">
+                  {/* SVG Illustration for DROP */}
+                  <svg viewBox="0 0 100 100" className="w-3/4 h-3/4 text-red-400">
+                    <circle cx="50" cy="25" r="12" fill="currentColor" opacity="0.9"/>
+                    <path d="M50 37 L50 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    <path d="M50 55 L35 75" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    <path d="M50 55 L65 75" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    <path d="M50 42 L30 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    <path d="M50 42 L70 55" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    {/* Ground line */}
+                    <path d="M20 80 L80 80" stroke="currentColor" strokeWidth="2" opacity="0.5"/>
+                    {/* Arrow pointing down */}
+                    <path d="M50 85 L50 95 M45 90 L50 95 L55 90" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  </svg>
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-white font-bold text-sm">
+                    1
+                  </div>
                 </div>
-                <h5 className="font-semibold text-neutral-200 mb-2">DROP</h5>
+                <h5 className="font-bold text-red-400 text-xl mb-2">DROP</h5>
                 <p className="text-sm text-neutral-400">
-                  Get down on your hands and knees. This position protects you from falling and lets you crawl to shelter.
+                  Get down on your hands and knees. This protects you from falling and lets you crawl to shelter.
                 </p>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-orange-500/20 to-orange-600/20 border border-orange-500/30 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-orange-400">2</span>
+              
+              {/* COVER */}
+              <div className="text-center group">
+                <div className="relative w-full aspect-square max-w-[200px] mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-2 border-orange-500/30 flex items-center justify-center">
+                  {/* SVG Illustration for COVER */}
+                  <svg viewBox="0 0 100 100" className="w-3/4 h-3/4 text-orange-400">
+                    {/* Table */}
+                    <rect x="15" y="35" width="70" height="5" rx="2" fill="currentColor" opacity="0.7"/>
+                    <rect x="18" y="40" width="4" height="35" fill="currentColor" opacity="0.5"/>
+                    <rect x="78" y="40" width="4" height="35" fill="currentColor" opacity="0.5"/>
+                    {/* Person under table */}
+                    <circle cx="50" cy="50" r="8" fill="currentColor" opacity="0.9"/>
+                    <path d="M50 58 L50 68" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M50 68 L42 78" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M50 68 L58 78" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Arms protecting head */}
+                    <path d="M50 60 L40 50" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M50 60 L60 50" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Ground */}
+                    <path d="M15 80 L85 80" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+                  </svg>
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
+                    2
+                  </div>
                 </div>
-                <h5 className="font-semibold text-neutral-200 mb-2">COVER</h5>
+                <h5 className="font-bold text-orange-400 text-xl mb-2">COVER</h5>
                 <p className="text-sm text-neutral-400">
                   Get under a sturdy desk or table. Cover your head and neck with your arms if no shelter is nearby.
                 </p>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-yellow-400">3</span>
+              
+              {/* HOLD ON */}
+              <div className="text-center group">
+                <div className="relative w-full aspect-square max-w-[200px] mx-auto mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-2 border-yellow-500/30 flex items-center justify-center">
+                  {/* SVG Illustration for HOLD ON */}
+                  <svg viewBox="0 0 100 100" className="w-3/4 h-3/4 text-yellow-400">
+                    {/* Table */}
+                    <rect x="15" y="35" width="70" height="5" rx="2" fill="currentColor" opacity="0.7"/>
+                    <rect x="18" y="40" width="4" height="35" fill="currentColor" opacity="0.5"/>
+                    <rect x="78" y="40" width="4" height="35" fill="currentColor" opacity="0.5"/>
+                    {/* Person under table holding leg */}
+                    <circle cx="50" cy="50" r="8" fill="currentColor" opacity="0.9"/>
+                    <path d="M50 58 L50 68" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M50 68 L42 78" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M50 68 L58 78" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Arm holding table leg */}
+                    <path d="M50 60 L22 52" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Other arm on head */}
+                    <path d="M50 55 L55 45" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                    {/* Shake lines */}
+                    <path d="M10 30 L15 25 M10 40 L5 35" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+                    <path d="M90 30 L85 25 M90 40 L95 35" stroke="currentColor" strokeWidth="1.5" opacity="0.6"/>
+                    {/* Ground */}
+                    <path d="M15 80 L85 80" stroke="currentColor" strokeWidth="2" opacity="0.3"/>
+                  </svg>
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center text-white font-bold text-sm">
+                    3
+                  </div>
                 </div>
-                <h5 className="font-semibold text-neutral-200 mb-2">HOLD ON</h5>
+                <h5 className="font-bold text-yellow-400 text-xl mb-2">HOLD ON</h5>
                 <p className="text-sm text-neutral-400">
                   Stay under cover and hold on until the shaking stops. Be prepared to move with your shelter.
                 </p>
+              </div>
+            </div>
+            
+            {/* Official Graphics Link */}
+            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+              <p className="text-sm text-neutral-300 mb-3">
+                <strong>Download official graphics</strong> for your home, school, or workplace:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="https://www.shakeout.org/dropcoverholdon/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
+                >
+                  ShakeOut Graphics <ExternalLink className="w-3 h-3" />
+                </a>
+                <a
+                  href="https://www.ready.gov/earthquakes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
+                >
+                  Ready.gov Guide <ExternalLink className="w-3 h-3" />
+                </a>
+                <a
+                  href="https://www.earthquakecountry.org/dropcoverholdon/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
+                >
+                  Earthquake Country <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </div>
           </div>
@@ -1256,7 +1361,7 @@ function LearnSection() {
         </div>
       </section>
       
-      {/* Bay Area Fault Lines */}
+      {/* Bay Area Fault Lines with Interactive Map */}
       <section className="card overflow-hidden">
         <div className="p-6 border-b border-white/5">
           <h3 className="text-xl font-semibold flex items-center gap-3">
@@ -1272,40 +1377,136 @@ function LearnSection() {
             Several major fault systems run through our region, each capable of producing significant earthquakes.
           </p>
           
+          {/* Interactive Fault Map */}
+          <div className="rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
+            <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
+              <span className="text-sm text-neutral-400">Interactive Fault Map</span>
+              <a 
+                href="https://usgs.maps.arcgis.com/apps/webappviewer/index.html?id=5a6038b3a1684561a9b0aadf88412fcf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-neutral-500 hover:text-white flex items-center gap-1 transition-colors"
+              >
+                Open full map <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <div className="relative aspect-[16/9] md:aspect-[2/1] bg-neutral-950">
+              {/* Simplified SVG Fault Map */}
+              <svg 
+                viewBox="0 0 400 300" 
+                className="w-full h-full"
+                style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f1729 100%)' }}
+              >
+                {/* Water bodies */}
+                <path d="M50 80 Q100 60 150 90 Q200 120 180 180 Q160 240 100 260 Q40 280 30 220 Q20 160 50 80" 
+                      fill="#1e3a5f" opacity="0.3"/>
+                
+                {/* San Andreas Fault - Red */}
+                <path d="M10 40 Q30 80 60 120 Q90 160 100 220 Q110 280 130 320" 
+                      stroke="#ef4444" strokeWidth="4" fill="none" strokeLinecap="round"
+                      className="animate-pulse" style={{ animationDuration: '3s' }}/>
+                <text x="15" y="35" fill="#ef4444" fontSize="10" fontWeight="bold">San Andreas</text>
+                
+                {/* Hayward Fault - Orange */}
+                <path d="M200 30 Q195 80 200 130 Q210 180 220 230 Q230 280 240 320" 
+                      stroke="#f97316" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                <text x="245" y="130" fill="#f97316" fontSize="9" fontWeight="bold">Hayward</text>
+                
+                {/* Calaveras Fault - Yellow */}
+                <path d="M250 50 Q260 100 270 150 Q280 200 300 250 Q320 300 340 350" 
+                      stroke="#eab308" strokeWidth="3" fill="none" strokeLinecap="round"/>
+                <text x="305" y="180" fill="#eab308" fontSize="9" fontWeight="bold">Calaveras</text>
+                
+                {/* Rodgers Creek Fault - Pink */}
+                <path d="M150 0 Q160 30 170 60 Q175 90 180 120" 
+                      stroke="#ec4899" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                <text x="185" y="90" fill="#ec4899" fontSize="8">Rodgers Creek</text>
+                
+                {/* Concord-Green Valley - Purple */}
+                <path d="M280 0 Q285 40 290 80 Q295 120 300 160" 
+                      stroke="#a855f7" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <text x="305" y="80" fill="#a855f7" fontSize="7">Concord</text>
+                
+                {/* City markers */}
+                <circle cx="130" cy="140" r="6" fill="#fff" opacity="0.9"/>
+                <text x="140" y="145" fill="#fff" fontSize="10" fontWeight="600">SF</text>
+                
+                <circle cx="200" cy="145" r="4" fill="#fff" opacity="0.7"/>
+                <text x="208" y="148" fill="#fff" fontSize="8">Oakland</text>
+                
+                <circle cx="260" cy="170" r="4" fill="#fff" opacity="0.7"/>
+                <text x="268" y="173" fill="#fff" fontSize="8">San Ramon</text>
+                
+                <circle cx="250" cy="250" r="4" fill="#fff" opacity="0.7"/>
+                <text x="258" y="253" fill="#fff" fontSize="8">San Jose</text>
+                
+                {/* Legend */}
+                <rect x="10" y="250" width="120" height="45" rx="4" fill="#000" opacity="0.5"/>
+                <text x="20" y="265" fill="#888" fontSize="8">FAULT RISK LEVEL</text>
+                <line x1="20" y1="275" x2="35" y2="275" stroke="#ef4444" strokeWidth="2"/>
+                <text x="40" y="278" fill="#888" fontSize="7">Very High</text>
+                <line x1="75" y1="275" x2="90" y2="275" stroke="#f97316" strokeWidth="2"/>
+                <text x="95" y="278" fill="#888" fontSize="7">High</text>
+                <line x1="20" y1="288" x2="35" y2="288" stroke="#eab308" strokeWidth="2"/>
+                <text x="40" y="291" fill="#888" fontSize="7">Moderate</text>
+              </svg>
+              
+              {/* Overlay gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/80 via-transparent to-transparent pointer-events-none" />
+              
+              {/* Attribution */}
+              <div className="absolute bottom-2 right-2 text-[10px] text-neutral-600">
+                Data: USGS Quaternary Fault Database
+              </div>
+            </div>
+          </div>
+          
+          {/* Fault Details Grid */}
           <div className="grid md:grid-cols-2 gap-4">
             {[
               { 
                 name: 'San Andreas Fault', 
-                desc: 'The most famous fault in California. Runs 800 miles from the Salton Sea to Cape Mendocino.',
-                risk: 'High',
+                desc: 'The most famous fault in California. Runs 800 miles from the Salton Sea to Cape Mendocino. The 1906 San Francisco earthquake (M7.9) caused over 3,000 deaths.',
+                risk: 'Very High',
                 lastMajor: '1906 (M7.9)',
-                yearsSince: new Date().getFullYear() - 1906
+                yearsSince: new Date().getFullYear() - 1906,
+                color: '#ef4444',
+                probability: '22%'
               },
               { 
                 name: 'Hayward Fault', 
-                desc: 'Runs through the East Bay, directly beneath densely populated cities.',
+                desc: 'Runs through the East Bay, directly beneath UC Berkeley, Oakland, and Fremont. Scientists consider it the most dangerous fault in the Bay Area due to urban density.',
                 risk: 'Very High',
                 lastMajor: '1868 (M6.8)',
-                yearsSince: new Date().getFullYear() - 1868
+                yearsSince: new Date().getFullYear() - 1868,
+                color: '#f97316',
+                probability: '33%'
               },
               { 
                 name: 'Calaveras Fault', 
-                desc: 'Eastern fault zone running through San Ramon, Dublin, and into Silicon Valley.',
-                risk: 'Moderate',
+                desc: 'Eastern fault zone running through San Ramon, Dublin, Fremont, and into Silicon Valley. Known for frequent earthquake swarms.',
+                risk: 'High',
                 lastMajor: '1984 (M6.2)',
-                yearsSince: new Date().getFullYear() - 1984
+                yearsSince: new Date().getFullYear() - 1984,
+                color: '#eab308',
+                probability: '26%'
               },
               { 
                 name: 'Rodgers Creek Fault', 
-                desc: 'Northern extension of the Hayward Fault, through Sonoma and Napa.',
+                desc: 'Northern extension of the Hayward Fault, through Sonoma and Napa wine country. Ruptured during the 2014 South Napa earthquake.',
                 risk: 'High',
-                lastMajor: '1969 (M5.7)',
-                yearsSince: new Date().getFullYear() - 1969
+                lastMajor: '2014 (M6.0)',
+                yearsSince: new Date().getFullYear() - 2014,
+                color: '#ec4899',
+                probability: '15%'
               },
             ].map(fault => (
-              <div key={fault.name} className="p-5 bg-white/[0.02] rounded-xl border border-white/5">
+              <div key={fault.name} className="p-5 bg-white/[0.02] rounded-xl border border-white/5 hover:bg-white/[0.03] transition-colors">
                 <div className="flex items-start justify-between mb-3">
-                  <h4 className="font-semibold text-neutral-200">{fault.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fault.color }} />
+                    <h4 className="font-semibold text-neutral-200">{fault.name}</h4>
+                  </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     fault.risk === 'Very High' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
                     fault.risk === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
@@ -1315,20 +1516,51 @@ function LearnSection() {
                   </span>
                 </div>
                 <p className="text-sm text-neutral-400 mb-3">{fault.desc}</p>
-                <div className="flex items-center gap-4 text-xs text-neutral-500">
-                  <span>Last major: {fault.lastMajor}</span>
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className={`text-sm font-bold ${
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <span className="text-neutral-500">Last major: <span className="text-neutral-300">{fault.lastMajor}</span></span>
+                  <span className="text-neutral-500">•</span>
+                  <span className={`font-bold ${
                     fault.yearsSince >= 100 ? 'text-red-400' : 
                     fault.yearsSince >= 50 ? 'text-orange-400' : 'text-yellow-400'
                   }`}>
-                    {fault.yearsSince} years
+                    {fault.yearsSince} years ago
                   </span>
-                  <span className="text-xs text-neutral-500">since last M6.0+ earthquake</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-500">30-year M6.7+ probability</span>
+                    <span className="text-sm font-bold text-white">{fault.probability}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ 
+                        width: fault.probability,
+                        backgroundColor: fault.color
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* USGS Link */}
+          <div className="p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h5 className="font-medium text-neutral-200 mb-1">Explore the Full Interactive Map</h5>
+                <p className="text-sm text-neutral-400">View detailed fault traces, slip rates, and earthquake history from USGS.</p>
+              </div>
+              <a
+                href="https://usgs.maps.arcgis.com/apps/webappviewer/index.html?id=5a6038b3a1684561a9b0aadf88412fcf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors font-medium text-sm"
+              >
+                USGS Fault Map <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
           </div>
         </div>
       </section>

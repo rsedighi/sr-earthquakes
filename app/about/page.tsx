@@ -109,8 +109,8 @@ export default function AboutPage() {
               <MapPin className="w-8 h-8 text-green-400 mb-3" />
               <h3 className="text-lg font-semibold mb-2">Regional Focus</h3>
               <p className="text-neutral-400 text-sm">
-                Specialized coverage of 8 distinct Bay Area regions, from San Ramon to 
-                San Francisco, with local context for each area.
+                Specialized coverage of all 9 Bay Area counties plus San Benito across 12 distinct regions, 
+                from San Francisco to Sonoma, with local context for each area.
               </p>
             </div>
             

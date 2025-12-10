@@ -114,7 +114,7 @@ export default async function Image() {
                 borderRadius: '12px',
               }}
             >
-              <span style={{ fontSize: '24px', color: '#f59e0b', fontFamily: 'system-ui' }}>8 Regions</span>
+              <span style={{ fontSize: '24px', color: '#f59e0b', fontFamily: 'system-ui' }}>12 Regions</span>
               <span style={{ fontSize: '16px', color: '#737373', fontFamily: 'system-ui' }}>Bay Area</span>
             </div>
             <div
