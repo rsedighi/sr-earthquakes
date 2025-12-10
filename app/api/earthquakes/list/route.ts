@@ -73,7 +73,17 @@ export async function GET(request: NextRequest) {
     }));
     
     // Optionally include swarms for the region
-    let swarms = undefined;
+    let swarms: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      peakMagnitude: number;
+      totalCount: number;
+      region: string;
+      centerLat: number;
+      centerLon: number;
+    }> | undefined = undefined;
+    
     if (includeSwarms && region && region !== 'all') {
       const regionSwarms = getSwarmsForRegion(region);
       swarms = regionSwarms.slice(0, 20).map(swarm => ({
@@ -88,6 +98,8 @@ export async function GET(request: NextRequest) {
       }));
     }
     
+    const swarmCount = swarms?.length ?? 0;
+    
     logger.info('Earthquakes list API request completed', {
       path: '/api/earthquakes/list',
       method: 'GET',
@@ -100,7 +112,7 @@ export async function GET(request: NextRequest) {
       totalAvailable: result.total,
       hasMore: result.hasMore,
       includeSwarms,
-      swarmCount: swarms?.length || 0,
+      swarmCount,
     });
     
     return NextResponse.json({
