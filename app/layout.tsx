@@ -143,6 +143,13 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
+        {/* Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2599154949047210"
+          crossOrigin="anonymous"
+        />
+        
         {/* JSON-LD Structured Data for SEO */}
         <script
           type="application/ld+json"

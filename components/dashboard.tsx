@@ -45,6 +45,7 @@ import { MyNeighborhood } from './my-neighborhood';
 import { HistoricalSwarms } from './historical-swarms';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
+import { AdBanner } from './ad-banner';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -808,6 +809,13 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               </div>
             )}
 
+            {/* Ad Banner - Between stats and map */}
+            <AdBanner 
+              slot="YOUR_AD_SLOT_1" 
+              format="auto" 
+              className="rounded-xl"
+            />
+
             {/* Map Section */}
             <section className="card overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-white/5">
@@ -971,6 +979,13 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         {activeTab === 'learn' && (
           <LearnSection />
         )}
+
+        {/* Ad Banner - Above footer */}
+        <AdBanner 
+          slot="YOUR_AD_SLOT_2" 
+          format="auto" 
+          className="rounded-xl mt-8"
+        />
 
         {/* Footer */}
         <footer className="border-t border-white/5 mt-12 pt-8 pb-12">

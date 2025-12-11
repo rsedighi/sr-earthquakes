@@ -120,3 +120,4 @@ export async function getCommentCountsForEarthquakes(earthquakeIds: string[]): P
 
 export default clientPromise;
 
+
