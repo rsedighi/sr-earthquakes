@@ -210,6 +210,173 @@ export async function getCommunityStats(): Promise<{
   return { totalComments, totalFeltIt, activeEarthquakes, last24hComments };
 }
 
+// ============================================
+// User Address Storage (for My Neighborhood)
+// ============================================
+
+export interface UserAddress {
+  _id?: ObjectId;
+visitorId: string; // Unique identifier for the visitor (fingerprint or generated ID)
+  address: string;
+  lat: number;
+  lon: number;
+  city?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  searchCount: number; // Track how many times they've searched
+  lastSearchAt: Date;
+  userAgent?: string;
+  ipHash?: string; // Hashed IP for analytics (not storing raw IP)
+}
+
+export interface UserAddressWithId extends Omit<UserAddress, '_id'> {
+  _id: string;
+}
+
+export async function getUserAddressesCollection(): Promise<Collection<UserAddress> | null> {
+  const db = await getDatabase();
+  if (!db) return null;
+  return db.collection<UserAddress>('user_addresses');
+}
+
+// Save or update a user's address
+export async function saveUserAddress(data: {
+  visitorId: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city?: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<UserAddressWithId | null> {
+  const collection = await getUserAddressesCollection();
+  if (!collection) return null;
+  
+  const now = new Date();
+  
+  // Check if this visitor already has this address saved
+  const existing = await collection.findOne({ 
+    visitorId: data.visitorId,
+    address: data.address 
+  });
+  
+  if (existing) {
+    // Update existing record
+    await collection.updateOne(
+      { _id: existing._id },
+      { 
+        $set: { 
+          updatedAt: now,
+          lastSearchAt: now,
+          lat: data.lat,
+          lon: data.lon,
+        },
+        $inc: { searchCount: 1 }
+      }
+    );
+    
+    return {
+      ...existing,
+      _id: existing._id!.toString(),
+      updatedAt: now,
+      lastSearchAt: now,
+      searchCount: existing.searchCount + 1,
+    };
+  }
+  
+  // Create new record
+  const newAddress: UserAddress = {
+    visitorId: data.visitorId,
+    address: data.address,
+    lat: data.lat,
+    lon: data.lon,
+    city: data.city,
+    createdAt: now,
+    updatedAt: now,
+    searchCount: 1,
+    lastSearchAt: now,
+    userAgent: data.userAgent,
+    ipHash: data.ipHash,
+  };
+  
+  const result = await collection.insertOne(newAddress);
+  
+  return {
+    ...newAddress,
+    _id: result.insertedId.toString(),
+  };
+}
+
+// Get addresses for a specific visitor
+export async function getAddressesByVisitor(visitorId: string): Promise<UserAddressWithId[]> {
+  const collection = await getUserAddressesCollection();
+  if (!collection) return [];
+  
+  const addresses = await collection
+    .find({ visitorId })
+    .sort({ lastSearchAt: -1 })
+    .limit(10)
+    .toArray();
+  
+  return addresses.map(a => ({
+    ...a,
+    _id: a._id!.toString(),
+  }));
+}
+
+// Get all unique addresses (for marketing/analytics)
+export async function getAllUserAddresses(options?: {
+  limit?: number;
+  skip?: number;
+  since?: Date;
+}): Promise<{ addresses: UserAddressWithId[]; total: number }> {
+  const collection = await getUserAddressesCollection();
+  if (!collection) return { addresses: [], total: 0 };
+  
+  const query = options?.since ? { createdAt: { $gte: options.since } } : {};
+  
+  const [addresses, total] = await Promise.all([
+    collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(options?.skip || 0)
+      .limit(options?.limit || 100)
+      .toArray(),
+    collection.countDocuments(query),
+  ]);
+  
+  return {
+    addresses: addresses.map(a => ({
+      ...a,
+      _id: a._id!.toString(),
+    })),
+    total,
+  };
+}
+
+// Get address statistics
+export async function getAddressStats(): Promise<{
+  totalAddresses: number;
+  uniqueVisitors: number;
+  addressesToday: number;
+  addressesThisWeek: number;
+}> {
+  const collection = await getUserAddressesCollection();
+  if (!collection) return { totalAddresses: 0, uniqueVisitors: 0, addressesToday: 0, addressesThisWeek: 0 };
+  
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  
+  const [totalAddresses, uniqueVisitors, addressesToday, addressesThisWeek] = await Promise.all([
+    collection.countDocuments({}),
+    collection.distinct('visitorId').then(ids => ids.length),
+    collection.countDocuments({ createdAt: { $gte: oneDayAgo } }),
+    collection.countDocuments({ createdAt: { $gte: oneWeekAgo } }),
+  ]);
+  
+  return { totalAddresses, uniqueVisitors, addressesToday, addressesThisWeek };
+}
+
 export default clientPromise;
 
 

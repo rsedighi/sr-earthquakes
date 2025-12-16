@@ -1,6 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRecentComments, getTrendingEarthquakes, getCommunityStats } from '@/lib/mongodb';
+import { getRecentComments, getTrendingEarthquakes, getCommunityStats, CommentWithId } from '@/lib/mongodb';
 import { logger, logExternalCall } from '@/lib/logger';
+
+// Cache for earthquake data to avoid repeated fetches
+const earthquakeCache = new Map<string, { place: string; magnitude: number; time: number } | null>();
+
+// Fetch earthquake details from USGS
+async function getEarthquakeDetails(earthquakeId: string): Promise<{ place: string; magnitude: number; time: number } | null> {
+  if (earthquakeCache.has(earthquakeId)) {
+    return earthquakeCache.get(earthquakeId) || null;
+  }
+  
+  try {
+    const response = await fetch(
+      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${earthquakeId}.geojson`,
+      { next: { revalidate: 3600 } } // Cache for 1 hour
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      const result = {
+        place: data.properties.place,
+        magnitude: data.properties.mag,
+        time: data.properties.time,
+      };
+      earthquakeCache.set(earthquakeId, result);
+      return result;
+    }
+  } catch (err) {
+    console.error(`Failed to fetch earthquake ${earthquakeId}:`, err);
+  }
+  
+  earthquakeCache.set(earthquakeId, null);
+  return null;
+}
+
+// Enrich comments with earthquake data
+async function enrichCommentsWithEarthquakeData(comments: CommentWithId[]) {
+  // Get unique earthquake IDs
+  const earthquakeIds = [...new Set(comments.map(c => c.earthquakeId))];
+  
+  // Fetch earthquake details in parallel
+  const earthquakeDetails = await Promise.all(
+    earthquakeIds.map(async id => ({ id, details: await getEarthquakeDetails(id) }))
+  );
+  
+  // Create lookup map
+  const detailsMap = new Map(earthquakeDetails.map(e => [e.id, e.details]));
+  
+  // Enrich comments
+  return comments.map(comment => {
+    const details = detailsMap.get(comment.earthquakeId);
+    return {
+      ...comment,
+      earthquakePlace: details?.place,
+      earthquakeMagnitude: details?.magnitude,
+      earthquakeTime: details?.time ? new Date(details.time).toISOString() : undefined,
+    };
+  });
+}
 
 // GET /api/community - Get community feed data
 // ?type=feed - Recent comments across all earthquakes
@@ -15,12 +73,15 @@ export async function GET(request: NextRequest) {
   try {
     if (type === 'feed') {
       const dbStart = Date.now();
-      const comments = await getRecentComments(limit);
+      const rawComments = await getRecentComments(limit);
       
       logExternalCall('mongodb', 'getRecentComments', true, Date.now() - dbStart, {
         limit,
-        commentCount: comments.length,
+        commentCount: rawComments.length,
       });
+      
+      // Enrich comments with earthquake data
+      const comments = await enrichCommentsWithEarthquakeData(rawComments);
       
       logger.info('Community feed request', {
         path: '/api/community',
@@ -78,16 +139,19 @@ export async function GET(request: NextRequest) {
     // All data at once (for initial load)
     if (type === 'all') {
       const dbStart = Date.now();
-      const [comments, trending, stats] = await Promise.all([
+      const [rawComments, trending, stats] = await Promise.all([
         getRecentComments(30),
         getTrendingEarthquakes(10, 72),
         getCommunityStats(),
       ]);
       
       logExternalCall('mongodb', 'getCommunityAll', true, Date.now() - dbStart, {
-        commentCount: comments.length,
+        commentCount: rawComments.length,
         trendingCount: trending.length,
       });
+      
+      // Enrich comments with earthquake data
+      const comments = await enrichCommentsWithEarthquakeData(rawComments);
       
       logger.info('Community all data request', {
         path: '/api/community',

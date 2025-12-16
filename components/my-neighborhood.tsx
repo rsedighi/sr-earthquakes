@@ -12,15 +12,14 @@ import {
   Users, 
   Clock,
   Activity,
-  Sliders,
   History,
   AlertCircle,
   Home,
   Ruler,
   ChevronRight,
-  ArrowUpRight,
   Loader2,
-  Filter
+  Filter,
+  CheckCircle
 } from 'lucide-react';
 
 // Convert km to miles
@@ -66,18 +65,142 @@ interface MyNeighborhoodProps {
   className?: string;
 }
 
+const VISITOR_ID_KEY = 'baytremor_visitor_id';
+
+// Generate a unique visitor ID
+function generateVisitorId(): string {
+  return 'v_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Get or create visitor ID
+function getVisitorId(): string {
+  if (typeof window === 'undefined') return '';
+  
+  let visitorId = localStorage.getItem(VISITOR_ID_KEY);
+  if (!visitorId) {
+    visitorId = generateVisitorId();
+    localStorage.setItem(VISITOR_ID_KEY, visitorId);
+  }
+  return visitorId;
+}
+
+interface SavedAddress {
+  _id: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city?: string;
+  lastSearchAt: string;
+}
+
 export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeighborhoodProps) {
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lon: number;
     address: string;
   } | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [isLoadingFromStorage, setIsLoadingFromStorage] = useState(true);
+  const [visitorId, setVisitorId] = useState<string>('');
   
   const [searchRadiusMiles, setSearchRadiusMiles] = useState(15); // miles
   const [showOnlyFelt, setShowOnlyFelt] = useState(true);
   const [timeFilterId, setTimeFilterId] = useState<string>('1w');
   const [showTimeFilters, setShowTimeFilters] = useState(false);
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
+  
+  // Initialize visitor ID and load saved addresses from MongoDB
+  useEffect(() => {
+    const vid = getVisitorId();
+    setVisitorId(vid);
+    
+    if (!vid) {
+      setIsLoadingFromStorage(false);
+      return;
+    }
+    
+    // Fetch saved addresses from API
+    async function loadAddresses() {
+      try {
+        const res = await fetch(`/api/addresses?visitorId=${vid}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSavedAddresses(data.addresses || []);
+          
+          // Auto-select the most recent address
+          if (data.addresses && data.addresses.length > 0) {
+            const mostRecent = data.addresses[0];
+            setUserLocation({
+              lat: mostRecent.lat,
+              lon: mostRecent.lon,
+              address: mostRecent.address,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved addresses:', error);
+      } finally {
+        setIsLoadingFromStorage(false);
+      }
+    }
+    
+    loadAddresses();
+  }, []);
+  
+  // Save location to MongoDB when user selects an address
+  const handleLocationSelect = async (location: { lat: number; lon: number; address: string }) => {
+    setUserLocation(location);
+    
+    if (!visitorId) return;
+    
+    // Extract city from address (usually first part before comma)
+    const city = location.address.split(',')[0]?.trim();
+    
+    try {
+      const res = await fetch('/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId,
+          address: location.address,
+          lat: location.lat,
+          lon: location.lon,
+          city,
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Update saved addresses list
+        setSavedAddresses(prev => {
+          const filtered = prev.filter(a => a.address !== location.address);
+          return [data.address, ...filtered].slice(0, 10);
+        });
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+    }
+  };
+  
+  // Clear current location (but keep in saved list)
+  const handleLocationClear = () => {
+    setUserLocation(null);
+  };
+  
+  // Select a previously saved address
+  const handleSelectSavedAddress = (address: SavedAddress) => {
+    setUserLocation({
+      lat: address.lat,
+      lon: address.lon,
+      address: address.address,
+    });
+    // Also update in MongoDB to refresh lastSearchAt
+    handleLocationSelect({
+      lat: address.lat,
+      lon: address.lon,
+      address: address.address,
+    });
+  };
   
   // Get the current time filter
   const currentTimeFilter = TIME_FILTERS.find(f => f.id === timeFilterId) || TIME_FILTERS[5]; // default to 1 week
@@ -163,10 +286,50 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
       
       {/* Address Search */}
       <AddressSearch
-        onLocationSelect={setUserLocation}
-        onClear={() => setUserLocation(null)}
+        onLocationSelect={handleLocationSelect}
+        onClear={handleLocationClear}
         currentLocation={userLocation}
       />
+      
+      {/* Previously Saved Addresses */}
+      {savedAddresses.length > 0 && !userLocation && (
+        <div className="bg-white/[0.02] rounded-xl border border-white/10 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-white/5 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-neutral-500" />
+            <span className="text-sm font-medium text-neutral-400">Your Saved Addresses</span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {savedAddresses.slice(0, 3).map((addr) => (
+              <button
+                key={addr._id}
+                onClick={() => handleSelectSavedAddress(addr)}
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/[0.03] transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{addr.address}</div>
+                  <div className="text-xs text-neutral-500">
+                    Last searched {formatDistanceToNow(new Date(addr.lastSearchAt), { addSuffix: true })}
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-neutral-600" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Saved address indicator */}
+      {userLocation && !isLoadingFromStorage && (
+        <div className="flex items-center gap-2 text-xs text-green-500/80 bg-green-500/10 rounded-lg px-3 py-2 border border-green-500/20">
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          <span>Your address is saved for your next visit</span>
+        </div>
+      )}
       
       {/* Controls */}
       {userLocation && (
@@ -368,13 +531,21 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
       )}
       
       {/* Empty State */}
-      {!userLocation && (
+      {!userLocation && !isLoadingFromStorage && (
         <div className="text-center py-12 text-neutral-500">
           <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p className="font-medium">Enter your address above</p>
           <p className="text-sm mt-1">
             See earthquakes people felt near your home over the last 10 years
           </p>
+        </div>
+      )}
+      
+      {/* Loading state for localStorage */}
+      {isLoadingFromStorage && (
+        <div className="text-center py-8 text-neutral-500">
+          <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
+          <p className="text-sm">Loading saved location...</p>
         </div>
       )}
       

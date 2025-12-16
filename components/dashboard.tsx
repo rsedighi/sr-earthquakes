@@ -30,6 +30,7 @@ import {
   HelpCircle,
   FileText,
   Globe,
+  MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -437,7 +438,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                 <nav className="flex border-b border-white/10" role="tablist">
                   {[
                     { id: 'live', label: 'Live', fullLabel: 'Live Map', icon: Map, badge: realtimeQuakes.length },
-                    { id: 'community', label: 'Community', fullLabel: 'Community', icon: Users, highlight: true },
+                    { id: 'community', label: 'Discuss', fullLabel: 'Discussions', icon: MessageCircle, highlight: true },
                     { id: 'neighborhood', label: 'My Area', fullLabel: 'My Neighborhood', icon: House },
                     { id: 'compare', label: 'Compare', fullLabel: 'Compare Regions', icon: BarChart3 },
                     { id: 'history', label: 'History', fullLabel: 'Historical Analysis', icon: TrendingUp },

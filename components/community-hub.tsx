@@ -46,10 +46,11 @@ interface CommunityStats {
 interface CommunityComment extends CommentWithId {
   earthquakePlace?: string;
   earthquakeMagnitude?: number;
+  earthquakeTime?: string;
 }
 
 export function CommunityHub() {
-  const [activeView, setActiveView] = useState<'feed' | 'trending' | 'report'>('feed');
+  const [activeView, setActiveView] = useState<'feed' | 'report'>('feed');
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [trending, setTrending] = useState<TrendingEarthquake[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
@@ -185,72 +186,108 @@ export function CommunityHub() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-900/30 via-neutral-900 to-blue-900/20 border border-white/10 p-6 sm:p-8">
-        <div className="absolute inset-0 opacity-10">
+      {/* Primary CTA - Did You Feel It? */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-900/40 via-orange-900/30 to-red-900/20 border border-amber-500/20 p-6 sm:p-8">
+        <div className="absolute inset-0 opacity-5">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
-              <pattern id="community-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                <circle cx="5" cy="5" r="1" fill="currentColor"/>
+              <pattern id="quake-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M0 10 Q5 0, 10 10 T20 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#community-pattern)"/>
+            <rect width="100%" height="100%" fill="url(#quake-pattern)"/>
           </svg>
         </div>
         
         <div className="relative">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl">
-              <Users className="w-6 h-6 text-white" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+            <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg shadow-amber-500/30">
+              <Zap className="w-8 h-8 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Community Hub</h1>
-              <p className="text-neutral-400 text-sm">Real-time earthquake discussions from the Bay Area</p>
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Did You Feel an Earthquake?</h1>
+              <p className="text-neutral-300 text-base">
+                Share your experience with the Bay Area community! Your report helps others understand the impact.
+              </p>
             </div>
+            <button
+              onClick={() => setActiveView('report')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/30 hover:from-amber-400 hover:to-orange-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Send className="w-5 h-5" />
+              Report Now
+            </button>
           </div>
-
-          {/* Stats Row */}
-          {stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                <div className="text-2xl font-light text-white">{stats.commentsToday}</div>
-                <div className="text-xs text-neutral-500">Reports Today</div>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                <div className="text-2xl font-light text-white">{stats.commentsThisWeek}</div>
-                <div className="text-xs text-neutral-500">This Week</div>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                <div className="text-2xl font-light text-white">{stats.totalContributors}</div>
-                <div className="text-xs text-neutral-500">Contributors</div>
-              </div>
-              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                <div className="text-2xl font-light text-white">{trending.length}</div>
-                <div className="text-xs text-neutral-500">Active Discussions</div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* View Toggle */}
+      {/* Trending Earthquakes - Quick Access */}
+      {trending.length > 0 && activeView !== 'report' && (
+        <div className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-orange-500" />
+              <span className="font-medium text-sm">Hot Discussions</span>
+            </div>
+            <span className="text-xs text-neutral-500">Join the conversation</span>
+          </div>
+          <div className="flex overflow-x-auto gap-3 p-4 scrollbar-hide">
+            {trending.slice(0, 5).map(quake => (
+              <Link
+                key={quake.earthquakeId}
+                href={`/earthquake/${quake.earthquakeId}#comments`}
+                className="flex-shrink-0 w-48 p-3 bg-white/[0.03] rounded-lg border border-white/5 hover:border-white/15 hover:bg-white/[0.05] transition-all group"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                    style={{ 
+                      backgroundColor: getMagnitudeColor(quake.magnitude) + '20',
+                      color: getMagnitudeColor(quake.magnitude)
+                    }}
+                  >
+                    {quake.magnitude.toFixed(1)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-white truncate font-medium">{quake.place?.split(',')[0]}</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-500 flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                    {quake.commentCount}
+                  </span>
+                  <span className="text-amber-500 flex items-center gap-1 group-hover:text-amber-400">
+                    Join <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* View Toggle - Simplified */}
       <div className="flex items-center justify-between">
         <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
           {[
             { id: 'feed', label: 'Live Feed', icon: Activity },
-            { id: 'trending', label: 'Trending', icon: Flame },
-            { id: 'report', label: 'Report Quake', icon: Send },
+            { id: 'report', label: 'Report Quake', icon: Send, highlight: true },
           ].map(view => (
             <button
               key={view.id}
               onClick={() => setActiveView(view.id as typeof activeView)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all
                 ${activeView === view.id 
-                  ? 'bg-white text-black shadow-lg' 
-                  : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}
+                  ? view.highlight 
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg' 
+                    : 'bg-white text-black shadow-lg' 
+                  : view.highlight
+                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}
             >
               <view.icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{view.label}</span>
+              <span>{view.label}</span>
             </button>
           ))}
         </div>
@@ -305,32 +342,6 @@ export function CommunityHub() {
         </div>
       )}
 
-      {/* Trending Discussions View */}
-      {activeView === 'trending' && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              Trending Discussions
-            </h2>
-            <span className="text-sm text-neutral-500">Most active in 72h</span>
-          </div>
-
-          {trending.length === 0 ? (
-            <div className="text-center py-12 bg-white/[0.02] rounded-2xl border border-white/5">
-              <TrendingUp className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <p className="text-neutral-400 font-medium">No trending discussions</p>
-              <p className="text-neutral-600 text-sm mt-1">Discussions will appear here when people start talking!</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {trending.map((quake, i) => (
-                <TrendingCard key={quake.earthquakeId} quake={quake} rank={i + 1} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Quick Report View */}
       {activeView === 'report' && (
@@ -448,58 +459,79 @@ export function CommunityHub() {
   );
 }
 
-// Feed Comment Component
+// Feed Comment Component - Enhanced with full earthquake context
 function FeedComment({ comment }: { comment: CommunityComment }) {
   return (
     <Link
-      href={`/earthquake/${comment.earthquakeId}`}
-      className="block p-4 bg-white/[0.02] rounded-xl border border-white/5 hover:border-white/15 hover:bg-white/[0.04] transition-all group"
+      href={`/earthquake/${comment.earthquakeId}#comments`}
+      className="block bg-white/[0.02] rounded-xl border border-white/5 hover:border-white/15 hover:bg-white/[0.04] transition-all group overflow-hidden"
     >
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border border-white/10">
-          <User className="w-5 h-5 text-neutral-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-semibold text-sm text-white">{comment.author}</span>
-            {comment.location && (
-              <span className="text-xs text-neutral-500 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {comment.location}
-              </span>
-            )}
-            {comment.feltIt && (
-              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/30">
-                <Sparkles className="w-3 h-3" />
-                Felt it
-              </span>
+      {/* Earthquake Context Header */}
+      {comment.earthquakeMagnitude && comment.earthquakePlace && (
+        <div 
+          className="px-4 py-2.5 border-b border-white/5 flex items-center gap-3"
+          style={{ backgroundColor: getMagnitudeColor(comment.earthquakeMagnitude) + '08' }}
+        >
+          <div 
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
+            style={{ 
+              backgroundColor: getMagnitudeColor(comment.earthquakeMagnitude) + '20',
+              color: getMagnitudeColor(comment.earthquakeMagnitude),
+              border: `1px solid ${getMagnitudeColor(comment.earthquakeMagnitude)}30`
+            }}
+          >
+            {comment.earthquakeMagnitude.toFixed(1)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-white truncate">{comment.earthquakePlace}</div>
+            {comment.earthquakeTime && (
+              <div className="text-xs text-neutral-500">
+                {format(new Date(comment.earthquakeTime), 'MMM d, yyyy • h:mm a')}
+              </div>
             )}
           </div>
-          
-          <p className="text-sm text-neutral-300 line-clamp-2 mb-2">{comment.content}</p>
-          
-          <div className="flex items-center gap-3 text-xs text-neutral-500">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-            </span>
-            {comment.earthquakePlace && (
-              <>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Activity className="w-3 h-3" />
-                  {comment.earthquakeMagnitude && (
-                    <span style={{ color: getMagnitudeColor(comment.earthquakeMagnitude) }}>
-                      M{comment.earthquakeMagnitude.toFixed(1)}
-                    </span>
-                  )}
-                  {comment.earthquakePlace}
+          <Activity className="w-4 h-4 text-neutral-600" />
+        </div>
+      )}
+      
+      {/* Comment Content */}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border border-white/10">
+            <User className="w-4 h-4 text-neutral-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <span className="font-semibold text-sm text-white">{comment.author}</span>
+              {comment.location && (
+                <span className="text-xs text-neutral-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
+                  <MapPin className="w-3 h-3" />
+                  {comment.location}
                 </span>
-              </>
-            )}
+              )}
+              {comment.feltIt && (
+                <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/30">
+                  <Sparkles className="w-3 h-3" />
+                  Felt it
+                </span>
+              )}
+            </div>
+            
+            <p className="text-sm text-neutral-300 line-clamp-2 leading-relaxed">{comment.content}</p>
+            
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-xs text-neutral-500 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+              </span>
+              <span className="text-xs text-neutral-500 flex items-center gap-1 group-hover:text-amber-400 transition-colors">
+                <MessageCircle className="w-3 h-3" />
+                View discussion
+                <ChevronRight className="w-3 h-3" />
+              </span>
+            </div>
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors flex-shrink-0" />
       </div>
     </Link>
   );

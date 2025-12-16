@@ -12,6 +12,9 @@ import {
   ChevronUp,
   CheckCircle2,
   Sparkles,
+  Reply,
+  CornerDownRight,
+  X,
 } from 'lucide-react';
 import { getPusherClient, getEarthquakeChannel, PUSHER_EVENTS } from '@/lib/pusher';
 import type { CommentWithId } from '@/lib/mongodb';
@@ -28,6 +31,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded for prominence
   const [error, setError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   
   // Form state
   const [author, setAuthor] = useState('');
@@ -73,8 +77,8 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
     };
   }, [earthquakeId, loadComments]);
   
-  // Submit comment
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Submit comment or reply
+  const handleSubmit = async (e: React.FormEvent, parentId?: string) => {
     e.preventDefault();
     if (!author.trim() || !content.trim()) return;
     
@@ -87,10 +91,11 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           earthquakeId,
+          parentId: parentId || undefined,
           author: author.trim(),
           content: content.trim(),
           location: location.trim() || undefined,
-          feltIt,
+          feltIt: parentId ? false : feltIt, // No "felt it" for replies
         }),
       });
       
@@ -106,6 +111,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
       // Clear form (the new comment will come via Pusher)
       setContent('');
       setFeltIt(false);
+      setReplyingTo(null);
       // Keep author and location for convenience
       
     } catch (err) {
@@ -117,6 +123,11 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
   
   const topLevelComments = comments.filter(c => !c.parentId);
   const feltCount = comments.filter(c => c.feltIt).length;
+  
+  // Get replies for a comment
+  const getReplies = (parentId: string) => {
+    return comments.filter(c => c.parentId === parentId);
+  };
   
   return (
     <div className="rounded-xl overflow-hidden">
@@ -161,7 +172,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
       {isExpanded && (
         <div className="mt-3 space-y-4 animate-fade-in">
           {/* Comment Form - More Prominent */}
-          <form onSubmit={handleSubmit} className="p-5 bg-gradient-to-b from-white/[0.03] to-white/[0.01] rounded-xl border border-white/10">
+          <form onSubmit={(e) => handleSubmit(e)} className="p-5 bg-gradient-to-b from-white/[0.03] to-white/[0.01] rounded-xl border border-white/10">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <Send className="w-4 h-4 text-blue-400" />
@@ -290,7 +301,20 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
               </div>
             ) : (
               topLevelComments.map(comment => (
-                <CommentCard key={comment._id} comment={comment} />
+                <CommentCard 
+                  key={comment._id} 
+                  comment={comment} 
+                  replies={getReplies(comment._id)}
+                  onReply={(commentId) => setReplyingTo(commentId)}
+                  replyingTo={replyingTo}
+                  onCancelReply={() => setReplyingTo(null)}
+                  onSubmitReply={(e, parentId) => handleSubmit(e, parentId)}
+                  isSubmitting={isSubmitting}
+                  author={author}
+                  setAuthor={setAuthor}
+                  replyContent={content}
+                  setReplyContent={setContent}
+                />
               ))
             )}
           </div>
@@ -300,34 +324,170 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
   );
 }
 
-function CommentCard({ comment }: { comment: CommentWithId }) {
+interface CommentCardProps {
+  comment: CommentWithId;
+  replies: CommentWithId[];
+  onReply: (commentId: string) => void;
+  replyingTo: string | null;
+  onCancelReply: () => void;
+  onSubmitReply: (e: React.FormEvent, parentId: string) => void;
+  isSubmitting: boolean;
+  author: string;
+  setAuthor: (author: string) => void;
+  replyContent: string;
+  setReplyContent: (content: string) => void;
+}
+
+function CommentCard({ 
+  comment, 
+  replies, 
+  onReply, 
+  replyingTo, 
+  onCancelReply, 
+  onSubmitReply,
+  isSubmitting,
+  author,
+  setAuthor,
+  replyContent,
+  setReplyContent,
+}: CommentCardProps) {
+  const [showReplies, setShowReplies] = useState(true);
+  const isReplying = replyingTo === comment._id;
+  
   return (
-    <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5 hover:border-white/10 transition-all hover:bg-white/[0.03]">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center flex-shrink-0 border border-white/10">
-          <User className="w-5 h-5 text-neutral-400" />
+    <div className="bg-white/[0.02] rounded-xl border border-white/5 hover:border-white/10 transition-all overflow-hidden">
+      {/* Main Comment */}
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center flex-shrink-0 border border-white/10">
+            <User className="w-5 h-5 text-neutral-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-white">{comment.author}</span>
+              {comment.location && (
+                <span className="text-xs text-neutral-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
+                  <MapPin className="w-3 h-3" />
+                  {comment.location}
+                </span>
+              )}
+              {comment.feltIt && (
+                <span className="text-xs bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/30">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Felt it
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-neutral-300 mt-2 whitespace-pre-wrap break-words leading-relaxed">
+              {comment.content}
+            </p>
+            <div className="flex items-center gap-4 mt-3">
+              <span className="text-xs text-neutral-500">
+                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+              </span>
+              <button
+                onClick={() => onReply(comment._id)}
+                className="text-xs text-neutral-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+              >
+                <Reply className="w-3 h-3" />
+                Reply
+              </button>
+              {replies.length > 0 && (
+                <button
+                  onClick={() => setShowReplies(!showReplies)}
+                  className="text-xs text-neutral-400 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                  {showReplies ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Reply Form */}
+      {isReplying && (
+        <div className="px-4 pb-4 pt-2 border-t border-white/5 bg-blue-500/5">
+          <form onSubmit={(e) => onSubmitReply(e, comment._id)} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-blue-400 flex items-center gap-1">
+                <CornerDownRight className="w-3 h-3" />
+                Replying to {comment.author}
+              </span>
+              <button
+                type="button"
+                onClick={onCancelReply}
+                className="text-neutral-500 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="Your name"
+                maxLength={50}
+                className="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 transition-all"
+              />
+              <input
+                type="text"
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write a reply..."
+                maxLength={500}
+                className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting || !author.trim() || !replyContent.trim()}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      
+      {/* Replies */}
+      {replies.length > 0 && showReplies && (
+        <div className="border-t border-white/5 bg-white/[0.01]">
+          {replies.map(reply => (
+            <ReplyCard key={reply._id} reply={reply} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReplyCard({ reply }: { reply: CommentWithId }) {
+  return (
+    <div className="px-4 py-3 border-b border-white/5 last:border-b-0">
+      <div className="flex items-start gap-3 pl-6">
+        <CornerDownRight className="w-4 h-4 text-neutral-600 flex-shrink-0 mt-1" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center flex-shrink-0 border border-white/10">
+          <User className="w-4 h-4 text-neutral-400" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-white">{comment.author}</span>
-            {comment.location && (
-              <span className="text-xs text-neutral-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
+            <span className="font-semibold text-sm text-white">{reply.author}</span>
+            {reply.location && (
+              <span className="text-xs text-neutral-500 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
-                {comment.location}
-              </span>
-            )}
-            {comment.feltIt && (
-              <span className="text-xs bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/30">
-                <CheckCircle2 className="w-3 h-3" />
-                Felt it
+                {reply.location}
               </span>
             )}
           </div>
-          <p className="text-sm text-neutral-300 mt-2 whitespace-pre-wrap break-words leading-relaxed">
-            {comment.content}
+          <p className="text-sm text-neutral-300 mt-1 whitespace-pre-wrap break-words">
+            {reply.content}
           </p>
-          <span className="text-xs text-neutral-500 mt-2 block">
-            {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+          <span className="text-xs text-neutral-500 mt-1 block">
+            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
           </span>
         </div>
       </div>
