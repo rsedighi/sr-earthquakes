@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Users,
   Zap,
-  Home,
+  House,
   Map,
   BarChart3,
   Loader2,
@@ -46,6 +46,7 @@ import { HistoricalSwarms } from './historical-swarms';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
+import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -135,7 +136,19 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
-  const [activeTab, setActiveTab] = useState<'live' | 'neighborhood' | 'compare' | 'history' | 'learn'>('live');
+  const [activeTab, setActiveTab] = useState<'live' | 'community' | 'neighborhood' | 'compare' | 'history' | 'learn'>('live');
+  const [showQuickReport, setShowQuickReport] = useState(false);
+  
+  // Listen for navigation events from other components
+  useEffect(() => {
+    const handleNavigate = (e: CustomEvent<string>) => {
+      if (e.detail === 'community') {
+        setActiveTab('community');
+      }
+    };
+    window.addEventListener('navigate-tab', handleNavigate as EventListener);
+    return () => window.removeEventListener('navigate-tab', handleNavigate as EventListener);
+  }, []);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -415,39 +428,53 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
           </div>
         </div>
         
-        {/* Navigation Tabs - More Prominent */}
-        <div className="bg-neutral-900/50 border-t border-white/5">
+        {/* Navigation Tabs - Traditional Tab Bar Design */}
+        <div className="border-t border-white/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between">
-              <nav className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
-                {[
-                  { id: 'live', label: 'Live Map', icon: Map, badge: realtimeQuakes.length },
-                  { id: 'neighborhood', label: 'My Neighborhood', icon: Home },
-                  { id: 'compare', label: 'Compare Regions', icon: BarChart3 },
-                  { id: 'history', label: 'Historical Analysis', icon: TrendingUp },
-                  { id: 'learn', label: 'Learn', icon: Info },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all rounded-lg whitespace-nowrap
-                      ${activeTab === tab.id 
-                        ? 'bg-white text-black shadow-lg' 
-                        : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    {tab.label}
-                    {tab.badge !== undefined && activeTab !== tab.id && (
-                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-white/10 rounded-full">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </nav>
+              {/* Tab Bar */}
+              <div className="relative flex-1 overflow-hidden">
+                <nav className="flex border-b border-white/10" role="tablist">
+                  {[
+                    { id: 'live', label: 'Live', fullLabel: 'Live Map', icon: Map, badge: realtimeQuakes.length },
+                    { id: 'community', label: 'Community', fullLabel: 'Community', icon: Users, highlight: true },
+                    { id: 'neighborhood', label: 'My Area', fullLabel: 'My Neighborhood', icon: House },
+                    { id: 'compare', label: 'Compare', fullLabel: 'Compare Regions', icon: BarChart3 },
+                    { id: 'history', label: 'History', fullLabel: 'Historical Analysis', icon: TrendingUp },
+                    { id: 'learn', label: 'Learn', fullLabel: 'Learn', icon: Info },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`relative flex items-center justify-center gap-1.5 px-3 sm:px-5 py-3.5 text-sm font-medium transition-all whitespace-nowrap flex-1 sm:flex-initial
+                        ${activeTab === tab.id 
+                          ? 'text-white' 
+                          : tab.highlight 
+                            ? 'text-purple-400 hover:text-purple-300'
+                            : 'text-neutral-500 hover:text-neutral-300'}`}
+                    >
+                      <tab.icon className={`w-4 h-4 ${tab.highlight && activeTab !== tab.id ? 'text-purple-400' : ''}`} />
+                      <span className="hidden sm:inline">{tab.fullLabel}</span>
+                      <span className="sm:hidden">{tab.label}</span>
+                      {tab.badge !== undefined && (
+                        <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full
+                          ${activeTab === tab.id ? 'bg-white/20' : 'bg-white/10'}`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                      {/* Active indicator line */}
+                      {activeTab === tab.id && (
+                        <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${tab.highlight ? 'bg-purple-400' : 'bg-white'}`} />
+                      )}
+                    </button>
+                  ))}
+                </nav>
+              </div>
               
               {/* Secondary Navigation Links */}
-              <div className="hidden md:flex items-center gap-1 pl-4 border-l border-white/10">
+              <div className="hidden lg:flex items-center gap-1 pl-4 ml-4 border-l border-white/10">
                 <Link
                   href="/about"
                   className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
@@ -492,7 +519,95 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        
+        {/* Hero CTA - Recent Earthquakes (Main Call to Action) */}
+        {activeTab === 'live' && (
+          <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 border border-white/10">
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-[0.03]">
+              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                  <pattern id="seismic-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <circle cx="10" cy="10" r="1" fill="currentColor"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#seismic-pattern)"/>
+              </svg>
+            </div>
+            
+            <div className="relative p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                {/* Left: Latest Earthquake Info */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Magnitude Circle - Animated Pulse */}
+                  <div className="relative flex-shrink-0">
+                    <div 
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-light text-3xl sm:text-4xl"
+                      style={{ 
+                        backgroundColor: largestRecent ? getMagnitudeColor(largestRecent.magnitude) + '20' : 'rgba(255,255,255,0.1)',
+                        color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : '#888',
+                        border: `2px solid ${largestRecent ? getMagnitudeColor(largestRecent.magnitude) + '40' : 'rgba(255,255,255,0.1)'}`
+                      }}
+                    >
+                      {largestRecent?.magnitude.toFixed(1) || '—'}
+                    </div>
+                    {last24Hours.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-neutral-900 animate-pulse" />
+                    )}
+                  </div>
+                  
+                  {/* Text Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-lg sm:text-xl font-semibold text-white">Recent Earthquakes</h2>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                        Live
+                      </span>
+                    </div>
+                    <p className="text-sm text-neutral-400 mb-2">
+                      <span className="text-white font-medium">{realtimeQuakes.length}</span> earthquakes in the Bay Area this week
+                      {last24Hours.length > 0 && (
+                        <span> • <span className="text-neutral-300">{last24Hours.length} in last 24h</span></span>
+                      )}
+                    </p>
+                    {largestRecent && (
+                      <p className="text-xs text-neutral-500 truncate">
+                        Largest: M{largestRecent.magnitude.toFixed(1)} {largestRecent.place} • {formatDistanceToNow(largestRecent.time, { addSuffix: true })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Right: CTA Button */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      const feedSection = document.getElementById('earthquake-feed');
+                      if (feedSection) {
+                        feedSection.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-black font-semibold rounded-xl hover:bg-neutral-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Activity className="w-4 h-4" />
+                    View All Quakes
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <a
+                    href="https://earthquake.usgs.gov/earthquakes/map/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/10 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    USGS
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
         
         {/* Alert Banner - Show if elevated activity in any region */}
         {hotspotRegion.isElevated && (
@@ -700,7 +815,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full gap-2 py-2">
                         <div className="w-12 h-12 rounded-lg bg-white/10 border border-dashed border-white/30 flex items-center justify-center">
-                          <Home className="w-6 h-6 text-neutral-400" />
+                          <House className="w-6 h-6 text-neutral-400" />
                         </div>
                         <span className="text-sm font-medium text-neutral-300">Select Your City</span>
                         <span className="text-xs text-neutral-500">Tap to personalize</span>
@@ -842,13 +957,25 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               />
             </section>
 
-            {/* Recent Activity Feed */}
-            <section>
+            {/* Active Discussions Widget - Community Highlight */}
+            <ActiveDiscussionsWidget />
+
+            {/* Recent Activity Feed - Primary Content */}
+            <section id="earthquake-feed" className="scroll-mt-32">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Recent Earthquakes</h2>
-                <span className="text-sm text-neutral-500">
-                  {last24Hours.length} in last 24 hours
-                </span>
+                <div>
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-neutral-400" />
+                    Earthquake Feed
+                  </h2>
+                  <p className="text-sm text-neutral-500 mt-0.5">All seismic activity in the Bay Area</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white/5 rounded-full border border-white/10">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    {last24Hours.length} in 24h
+                  </span>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -886,6 +1013,10 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               </div>
             </section>
           </>
+        )}
+
+        {activeTab === 'community' && (
+          <CommunityHub />
         )}
 
         {activeTab === 'neighborhood' && (
@@ -1122,6 +1253,11 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         </footer>
       </main>
       
+      {/* Quick Report Floating Button - Only on Live tab */}
+      {activeTab === 'live' && (
+        <QuickReportButton onClick={() => setActiveTab('community')} />
+      )}
+
       {/* Earthquake Detail Modal */}
       {detailEarthquake && (
         <EarthquakeDetailModal
@@ -1657,7 +1793,7 @@ function LearnSection() {
         <div className="p-6 border-b border-white/5">
           <h3 className="text-xl font-semibold flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Home className="w-4 h-4 text-white" />
+              <House className="w-4 h-4 text-white" />
             </div>
             Emergency Preparedness
           </h3>

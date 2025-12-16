@@ -149,16 +149,16 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2599154949047210"
           crossOrigin="anonymous"
         />
-        
-        {/* JSON-LD Structured Data for SEO */}
+      </head>
+      <body className="font-sans antialiased min-h-screen">
+        {/* JSON-LD Structured Data for SEO - placed in body to avoid AdSense conflicts */}
         <script
           type="application/ld+json"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(schemas),
           }}
         />
-      </head>
-      <body className="font-sans antialiased min-h-screen">
         <DatadogRUM />
         {children}
       </body>

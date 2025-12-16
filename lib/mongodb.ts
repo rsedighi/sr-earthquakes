@@ -118,6 +118,98 @@ export async function getCommentCountsForEarthquakes(earthquakeIds: string[]): P
   }, {} as Record<string, number>);
 }
 
+// Get recent comments across all earthquakes (for community feed)
+export async function getRecentComments(limit: number = 50): Promise<CommentWithId[]> {
+  const collection = await getCommentsCollection();
+  if (!collection) return [];
+  
+  const comments = await collection
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
+  
+  return comments.map(c => ({
+    ...c,
+    _id: c._id!.toString(),
+  }));
+}
+
+// Get earthquakes with most comments (trending discussions)
+export async function getTrendingEarthquakes(limit: number = 10, hoursBack: number = 72): Promise<Array<{ earthquakeId: string; count: number; recentCount: number; lastComment: Date }>> {
+  const collection = await getCommentsCollection();
+  if (!collection) return [];
+  
+  const cutoffDate = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+  
+  const pipeline = [
+    {
+      $facet: {
+        // Get total counts and last activity
+        totals: [
+          { $group: { 
+            _id: '$earthquakeId', 
+            count: { $sum: 1 },
+            lastComment: { $max: '$createdAt' }
+          }},
+        ],
+        // Get recent activity (last N hours)
+        recent: [
+          { $match: { createdAt: { $gte: cutoffDate } } },
+          { $group: { _id: '$earthquakeId', recentCount: { $sum: 1 } } },
+        ],
+      },
+    },
+  ];
+  
+  const [result] = await collection.aggregate(pipeline).toArray();
+  
+  if (!result) return [];
+  
+  type TotalEntry = { _id: string; count: number; lastComment: Date };
+  const totalsMap = new Map<string, TotalEntry>(result.totals.map((t: TotalEntry) => [t._id, t]));
+  const recentMap = new Map<string, number>(result.recent.map((r: { _id: string; recentCount: number }) => [r._id, r.recentCount]));
+  
+  // Combine and sort by recent activity + total
+  const combined = Array.from(totalsMap.entries()).map(([earthquakeId, data]) => ({
+    earthquakeId,
+    count: data.count,
+    recentCount: recentMap.get(earthquakeId) || 0,
+    lastComment: data.lastComment,
+  }));
+  
+  // Sort by recent activity first, then total count
+  return combined
+    .sort((a, b) => {
+      // Prioritize recent activity
+      if (b.recentCount !== a.recentCount) return b.recentCount - a.recentCount;
+      return b.count - a.count;
+    })
+    .slice(0, limit);
+}
+
+// Get comment stats for community dashboard
+export async function getCommunityStats(): Promise<{
+  totalComments: number;
+  totalFeltIt: number;
+  activeEarthquakes: number;
+  last24hComments: number;
+}> {
+  const collection = await getCommentsCollection();
+  if (!collection) return { totalComments: 0, totalFeltIt: 0, activeEarthquakes: 0, last24hComments: 0 };
+  
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  
+  const [totalComments, totalFeltIt, activeEarthquakes, last24hComments] = await Promise.all([
+    collection.countDocuments({}),
+    collection.countDocuments({ feltIt: true }),
+    collection.distinct('earthquakeId').then(ids => ids.length),
+    collection.countDocuments({ createdAt: { $gte: oneDayAgo } }),
+  ]);
+  
+  return { totalComments, totalFeltIt, activeEarthquakes, last24hComments };
+}
+
 export default clientPromise;
 
 

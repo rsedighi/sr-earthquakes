@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useId } from 'react';
 
 interface AdBannerProps {
   /**
@@ -41,19 +41,45 @@ export function AdBanner({
 }: AdBannerProps) {
   const adRef = useRef<HTMLModElement>(null);
   const isLoaded = useRef(false);
+  const uniqueId = useId();
 
   useEffect(() => {
     // Prevent duplicate ad loads
     if (isLoaded.current) return;
     
-    try {
-      // Push the ad to load
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    // Check if the ad element already has an ad loaded
+    const adElement = adRef.current;
+    if (!adElement) return;
+    
+    // Check if this ins element already has ads (data-adsbygoogle-status attribute is set)
+    if (adElement.getAttribute('data-adsbygoogle-status')) {
       isLoaded.current = true;
-    } catch (err) {
-      console.error('AdSense error:', err);
+      return;
     }
-  }, []);
+    
+    // Small delay to ensure DOM is ready and avoid race conditions
+    const timer = setTimeout(() => {
+      try {
+        // Double-check the status hasn't changed
+        if (adElement.getAttribute('data-adsbygoogle-status')) {
+          isLoaded.current = true;
+          return;
+        }
+        // Push the ad to load
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        isLoaded.current = true;
+      } catch (err) {
+        // Silently handle the "already has ads" error
+        if (err instanceof Error && err.message.includes('already have ads')) {
+          isLoaded.current = true;
+        } else {
+          console.error('AdSense error:', err);
+        }
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [uniqueId]);
 
   // Don't render ads in development (they won't work anyway)
   if (process.env.NODE_ENV === 'development') {
@@ -122,5 +148,7 @@ export function AdBannerRectangle({ className = '', slot }: { className?: string
     />
   );
 }
+
+
 
 
