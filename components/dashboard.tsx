@@ -444,7 +444,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6 space-y-6">
         
         {/* Hero CTA - Recent Earthquakes (Main Call to Action) */}
         {activeTab === 'live' && (

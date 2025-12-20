@@ -178,9 +178,9 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
         </div>
       </nav>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Menu Drawer - Portal to body */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="md:hidden fixed inset-0 z-[100]">
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -199,7 +199,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
               </button>
             </div>
             
-            <div className="p-4 space-y-2 safe-area-bottom max-h-[60vh] overflow-y-auto">
+            <div className="p-4 space-y-2 pb-8 max-h-[60vh] overflow-y-auto">
               {/* Secondary Nav Items */}
               {secondaryItems.map(item => {
                 const Icon = item.icon;
@@ -267,9 +267,6 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
           </div>
         </div>
       )}
-      
-      {/* Spacer for fixed bottom nav on mobile */}
-      <div className="md:hidden h-20" />
     </>
   );
 }
