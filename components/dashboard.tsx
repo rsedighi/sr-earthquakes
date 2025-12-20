@@ -64,6 +64,7 @@ import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
 import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
+import { NavBar } from './dashboard/components/nav-bar';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -439,95 +440,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           </div>
         </div>
         
-        {/* Navigation Tabs - Traditional Tab Bar Design */}
-        <div className="border-t border-white/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between">
-              {/* Tab Bar */}
-              <div className="relative flex-1 overflow-hidden">
-                <nav className="flex border-b border-white/10" role="tablist">
-                  {[
-                    { id: 'live' as TabId, label: 'Live', fullLabel: 'Live Map', icon: Map, badge: realtimeQuakes.length },
-                    { id: 'community' as TabId, label: 'Discuss', fullLabel: 'Discussions', icon: MessageCircle, highlight: true },
-                    { id: 'neighborhood' as TabId, label: 'My Area', fullLabel: 'My Neighborhood', icon: House },
-                    { id: 'compare' as TabId, label: 'Compare', fullLabel: 'Compare Regions', icon: BarChart3 },
-                    { id: 'history' as TabId, label: 'History', fullLabel: 'Historical Analysis', icon: TrendingUp },
-                    { id: 'learn' as TabId, label: 'Learn', fullLabel: 'Learn', icon: Info },
-                  ].map(tab => (
-                    <Link
-                      key={tab.id}
-                      href={TAB_ROUTES[tab.id]}
-                      role="tab"
-                      aria-selected={activeTab === tab.id}
-                      className={`relative flex items-center justify-center gap-1.5 px-3 sm:px-5 py-3.5 text-sm font-medium transition-all whitespace-nowrap flex-1 sm:flex-initial
-                        ${activeTab === tab.id 
-                          ? 'text-white' 
-                          : tab.highlight 
-                            ? 'text-purple-400 hover:text-purple-300'
-                            : 'text-neutral-500 hover:text-neutral-300'}`}
-                    >
-                      <tab.icon className={`w-4 h-4 ${tab.highlight && activeTab !== tab.id ? 'text-purple-400' : ''}`} />
-                      <span className="hidden sm:inline">{tab.fullLabel}</span>
-                      <span className="sm:hidden">{tab.label}</span>
-                      {tab.badge !== undefined && (
-                        <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full
-                          ${activeTab === tab.id ? 'bg-white/20' : 'bg-white/10'}`}>
-                          {tab.badge}
-                        </span>
-                      )}
-                      {/* Active indicator line */}
-                      {activeTab === tab.id && (
-                        <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${tab.highlight ? 'bg-purple-400' : 'bg-white'}`} />
-                      )}
-                    </Link>
-                  ))}
-                </nav>
-              </div>
-              
-              {/* Secondary Navigation Links */}
-              <div className="hidden lg:flex items-center gap-1 pl-4 ml-4 border-l border-white/10">
-                <Link
-                  href="/about"
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  About
-                </Link>
-                <Link
-                  href="/faq"
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  FAQ
-                </Link>
-                <div className="relative group">
-                  <button className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                    <Globe className="w-3.5 h-3.5" />
-                    Regions
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  <div className="absolute right-0 top-full mt-1 w-[420px] bg-neutral-900 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-2">
-                    {REGIONS.map(region => (
-                      <Link
-                        key={region.id}
-                        href={`/region/${region.id}`}
-                        className="flex items-center gap-4 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors group"
-                      >
-                        <span className="w-12 text-center font-mono text-base font-bold px-2 py-1 rounded-md bg-white/20 text-white border border-white/30 flex-shrink-0 group-hover:bg-white/30 group-hover:border-white/50 transition-all">
-                          {region.areaCode}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white">{region.name}</div>
-                          <div className="text-xs text-neutral-500">{region.county} County • {region.faultLine}</div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Navigation Bar */}
+        <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
