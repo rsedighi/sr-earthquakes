@@ -54,7 +54,7 @@ function convertFeature(feature: USGSFeature): Earthquake {
 
 export function useRealtimeEarthquakes({
   feed = 'all_day',
-  refreshInterval = 60000,
+  refreshInterval = 10000, // 10 seconds for near-real-time updates
   enabled = true,
 }: UseRealtimeEarthquakesOptions = {}): UseRealtimeEarthquakesResult {
   const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
@@ -72,7 +72,13 @@ export function useRealtimeEarthquakes({
     setError(null);
 
     try {
-      const response = await fetch(`/api/earthquakes?feed=${feed}`);
+      // Add cache-busting for real-time data
+      const response = await fetch(`/api/earthquakes?feed=${feed}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);

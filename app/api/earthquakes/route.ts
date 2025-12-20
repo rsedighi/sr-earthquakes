@@ -25,8 +25,10 @@ export async function GET(request: NextRequest) {
   
   try {
     const fetchStart = Date.now();
+    // No caching - we want real-time data from USGS
     const response = await fetch(feedUrl, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
+      next: { revalidate: 0 }, // No cache - always fetch fresh data
+      cache: 'no-store', // Ensure no caching at any level
     });
     const fetchDuration = Date.now() - fetchStart;
     
@@ -68,15 +70,25 @@ export async function GET(request: NextRequest) {
       earthquakeCount: filteredFeatures.length,
     });
     
-    return NextResponse.json({
-      ...data,
-      features: filteredFeatures,
-      metadata: {
-        ...data.metadata,
-        count: filteredFeatures.length,
-        region: 'San Francisco Bay Area',
+    // Return with no-cache headers for real-time data
+    return NextResponse.json(
+      {
+        ...data,
+        features: filteredFeatures,
+        metadata: {
+          ...data.metadata,
+          count: filteredFeatures.length,
+          region: 'San Francisco Bay Area',
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'CDN-Cache-Control': 'no-store',
+          'Vercel-CDN-Cache-Control': 'no-store',
+        },
+      }
+    );
   } catch (error) {
     const duration = Date.now() - startTime;
     

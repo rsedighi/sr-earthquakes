@@ -14,7 +14,9 @@ async function getEarthquakeDetails(earthquakeId: string): Promise<{ place: stri
   try {
     const response = await fetch(
       `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${earthquakeId}.geojson`,
-      { next: { revalidate: 3600 } } // Cache for 1 hour
+      { 
+        next: { revalidate: 300 }, // Cache for 5 minutes (community data doesn't need to be as fresh)
+      }
     );
     
     if (response.ok) {

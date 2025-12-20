@@ -188,7 +188,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
     isRefreshing 
   } = useRealtimeEarthquakes({
     feed: 'all_week',
-    refreshInterval: 60000,
+    refreshInterval: 10000, // 10 seconds for near-real-time updates
   });
 
   // Recent earthquake data (since Dec 8, 2025) - supplements the historical data

@@ -95,7 +95,8 @@ export async function GET(request: NextRequest) {
   try {
     const fetchStart = Date.now();
     const response = await fetch(url, {
-      next: { revalidate: 300 }, // Cache for 5 minutes for recent data
+      next: { revalidate: 30 }, // Cache for 30 seconds for recent historical data
+      cache: 'no-store', // No caching for real-time accuracy
     });
     const fetchDuration = Date.now() - fetchStart;
     

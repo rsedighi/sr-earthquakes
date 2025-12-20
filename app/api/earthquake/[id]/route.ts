@@ -13,7 +13,10 @@ async function fetchFromUSGS(id: string): Promise<Earthquake | null> {
     // USGS event detail endpoint
     const response = await fetch(
       `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`,
-      { next: { revalidate: 300 } } // Cache for 5 minutes
+      { 
+        next: { revalidate: 30 }, // Cache for 30 seconds only
+        cache: 'no-store', // Minimize caching for fresh data
+      }
     );
     
     const duration = Date.now() - startTime;
