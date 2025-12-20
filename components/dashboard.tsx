@@ -781,36 +781,95 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </section>
             </div>
 
-            {/* COMPACT STATS BAR */}
-            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/5 overflow-x-auto scrollbar-hide">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
-                <Activity className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="text-sm font-medium">{realtimeQuakes.length}</span>
-                <span className="text-xs text-neutral-500">week</span>
+            {/* STATS GRID */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              {/* This Week */}
+              <div className="card p-4">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Activity className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">This Week</span>
+                </div>
+                <div className="text-2xl font-light">{realtimeQuakes.length}</div>
+                <div className="text-xs text-neutral-500 mt-1">earthquakes in Bay Area</div>
               </div>
-              <div className="w-px h-6 bg-white/10 flex-shrink-0" />
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
-                <Clock className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="text-sm font-medium">{last24Hours.length}</span>
-                <span className="text-xs text-neutral-500">24h</span>
+
+              {/* In Last 24h */}
+              <div className="card p-4">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">In Last 24h</span>
+                </div>
+                <div className="text-2xl font-light">{last24Hours.length}</div>
+                <div className="text-xs text-neutral-500 mt-1">recent activity</div>
               </div>
-              <div className="w-px h-6 bg-white/10 flex-shrink-0" />
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
-                <Zap className="w-3.5 h-3.5 text-neutral-500" />
-                <span className="text-sm font-medium" style={{ color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : undefined }}>
-                  M{largestRecent?.magnitude.toFixed(1) || '—'}
-                </span>
-                <span className="text-xs text-neutral-500">largest</span>
+
+              {/* Largest */}
+              <div className="card p-4">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">Largest</span>
+                </div>
+                <div 
+                  className="text-2xl font-light"
+                  style={{ color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : undefined }}
+                >
+                  {largestRecent?.magnitude.toFixed(1) || '—'}
+                </div>
+                <div className="text-xs text-neutral-500 mt-1">
+                  {largestRecent ? getMagnitudeLabel(largestRecent.magnitude) : 'No data'}
+                </div>
               </div>
-              <div className="flex-1" />
-              <a 
-                href="https://earthquake.usgs.gov/earthquakes/eventpage/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-500 hover:text-white transition-colors flex-shrink-0"
-              >
-                USGS Data <ExternalLink className="w-3 h-3" />
-              </a>
+
+              {/* Hotspot */}
+              <div className={`card p-4 ${hotspotRegion.isElevated ? 'ring-1 ring-white/20' : ''}`}>
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Flame className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">Hotspot</span>
+                </div>
+                <div className="text-2xl font-light" style={{ color: hotspotRegion.region?.color }}>
+                  {hotspotRegion.count}
+                </div>
+                <div className="text-xs text-neutral-500 mt-1">
+                  {hotspotRegion.region?.name.split('/')[0].trim() || 'Most active'}
+                </div>
+              </div>
+
+              {/* M3+ Events */}
+              <div className={`card p-4 ${m3PlusCount >= 3 ? 'ring-1 ring-white/20' : ''}`}>
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Target className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">M3+ Events</span>
+                </div>
+                <div className="text-2xl font-light">{m3PlusCount}</div>
+                <div className="text-xs text-neutral-500 mt-1">significant quakes</div>
+              </div>
+
+              {/* Avg Depth */}
+              <div className="card p-4">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Layers className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">Avg Depth</span>
+                </div>
+                <div className="text-2xl font-light">{formatDepth(avgDepth)}</div>
+                <div className="text-xs text-neutral-500 mt-1">{getDepthDescription(avgDepth)}</div>
+              </div>
+
+              {/* Strongest Today */}
+              <div className="card p-4">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider">Strongest Today</span>
+                </div>
+                <div 
+                  className="text-2xl font-light"
+                  style={{ color: strongestToday ? getMagnitudeColor(strongestToday.magnitude) : undefined }}
+                >
+                  {strongestToday?.magnitude.toFixed(1) || '—'}
+                </div>
+                <div className="text-xs text-neutral-500 mt-1" suppressHydrationWarning>
+                  {strongestToday ? formatDistanceToNow(strongestToday.time, { addSuffix: true }) : 'None yet'}
+                </div>
+              </div>
             </div>
             
             {/* City Selector Modal */}
