@@ -397,11 +397,11 @@ function HeroQuake({
   const isRecent = Date.now() - notableQuake.timestamp < 60 * 60 * 1000; // Within last hour
   
   return (
-    <div className="space-y-3">
-      {/* Most Recent Notable Earthquake - Full width on mobile */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
+      {/* Most Recent Notable Earthquake - Full width on mobile, 3/4 on desktop */}
       <button
         onClick={() => onViewDetails(notableQuake)}
-        className={`w-full card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03] ${
+        className={`md:col-span-3 card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03] ${
           isRecent ? 'ring-1 ring-green-500/30' : ''
         }`}
       >
@@ -445,19 +445,19 @@ function HeroQuake({
         </div>
       </button>
       
-      {/* Set Your City Widget - Full width, compact on mobile */}
+      {/* Set Your City Widget - Full width on mobile, 1/4 on desktop */}
       <button
         onClick={onSetCity}
-        className="w-full card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03]"
+        className="md:col-span-1 card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03]"
       >
         {myCityLoaded && myCity ? (
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-14 h-14 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span className="font-mono text-lg sm:text-xl font-bold text-white">
+          <div className="flex md:flex-col items-center md:items-start gap-3 sm:gap-4 md:gap-2 h-full">
+            <div className="w-14 h-14 md:w-12 md:h-12 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+              <span className="font-mono text-lg md:text-base font-bold text-white">
                 {myCity.areaCode || '—'}
               </span>
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 md:flex-none">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-white truncate">{myCity.cityName}</span>
                 {myCityStats?.isElevated && (
@@ -466,27 +466,27 @@ function HeroQuake({
                   </span>
                 )}
               </div>
-              <div className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+              <div className="text-xs text-neutral-500 mt-0.5">
                 <span className="text-neutral-300 font-medium tabular-nums">
                   {myCityStats?.nearbyThisWeek || 0}
                 </span>{' '}
-                earthquakes nearby this week
+                nearby
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0 md:hidden" />
           </div>
         ) : (
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-dashed border-white/20 flex items-center justify-center flex-shrink-0">
-              <House className="w-6 h-6 text-neutral-500" />
+          <div className="flex md:flex-col items-center md:items-center md:justify-center gap-3 sm:gap-4 md:gap-2 h-full md:py-2">
+            <div className="w-14 h-14 md:w-12 md:h-12 rounded-xl bg-white/[0.04] border border-dashed border-white/20 flex items-center justify-center flex-shrink-0">
+              <House className="w-6 h-6 md:w-5 md:h-5 text-neutral-500" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-white">Set Your City</div>
-              <div className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+            <div className="flex-1 min-w-0 md:flex-none md:text-center">
+              <div className="font-medium text-white text-sm">Set Your City</div>
+              <div className="text-xs text-neutral-500 mt-0.5">
                 Get personalized alerts
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0 md:hidden" />
           </div>
         )}
       </button>
@@ -908,7 +908,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </section>
             </div>
 
-            {/* STATS GRID - Responsive: 2 cols on mobile, 4 on tablet, 7 on desktop */}
+            {/* STATS GRID - All 7 stats visible on all screen sizes */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
               {/* This Week */}
               <div className="card p-3 sm:p-4">
@@ -961,8 +961,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 </div>
               </div>
 
-              {/* M3+ Events - Hidden on smallest screens, shown from sm */}
-              <div className={`card p-3 sm:p-4 hidden sm:block ${m3PlusCount >= 3 ? 'ring-1 ring-white/20' : ''}`}>
+              {/* M3+ Events */}
+              <div className={`card p-3 sm:p-4 ${m3PlusCount >= 3 ? 'ring-1 ring-white/20' : ''}`}>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
                   <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">M3+</span>
@@ -971,8 +971,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">significant</div>
               </div>
 
-              {/* Avg Depth - Hidden on smallest screens, shown from sm */}
-              <div className="card p-3 sm:p-4 hidden sm:block">
+              {/* Avg Depth */}
+              <div className="card p-3 sm:p-4">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
                   <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Depth</span>
@@ -981,8 +981,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">{getDepthDescription(avgDepth)}</div>
               </div>
 
-              {/* Strongest Today - Hidden on smallest screens, shown from lg */}
-              <div className="card p-3 sm:p-4 hidden lg:block">
+              {/* Strongest Today */}
+              <div className="card p-3 sm:p-4">
                 <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
                   <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Today</span>
