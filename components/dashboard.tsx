@@ -40,6 +40,22 @@ import { useRealtimeEarthquakes } from '@/hooks/use-realtime-earthquakes';
 import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import { useMyCity, SELECTABLE_CITIES } from '@/hooks/use-my-city';
 import { detectSwarms, getMagnitudeColor, getMagnitudeLabel, getRecentActivity } from '@/lib/analysis';
+
+// Tab types and routes
+export type TabId = 'live' | 'community' | 'neighborhood' | 'compare' | 'history' | 'learn';
+
+// Map tab IDs to clean URL paths
+const TAB_ROUTES: Record<TabId, string> = {
+  live: '/',
+  community: '/community',
+  neighborhood: '/my-area',
+  compare: '/compare',
+  history: '/history',
+  learn: '/learn',
+};
+
+// Forum category type
+export type ForumCategory = 'earthquake' | 'general' | 'neighborhood' | 'preparedness' | 'science';
 import { formatDepth, formatDepthDeep, formatRadius, kmToMiles, getDepthDescription } from '@/lib/units';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
@@ -118,6 +134,9 @@ interface HistoricalSummary {
 
 interface DashboardProps {
   historicalSummary: HistoricalSummary;
+  initialTab?: TabId;
+  forumCategory?: ForumCategory;
+  forumThread?: string;
 }
 
 // Helper to deduplicate earthquakes by ID
@@ -133,23 +152,14 @@ function deduplicateEarthquakes(earthquakes: Earthquake[]): Earthquake[] {
   return result;
 }
 
-export function Dashboard({ historicalSummary }: DashboardProps) {
+export function Dashboard({ historicalSummary, initialTab = 'live', forumCategory, forumThread }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
-  const [activeTab, setActiveTab] = useState<'live' | 'community' | 'neighborhood' | 'compare' | 'history' | 'learn'>('live');
   const [showQuickReport, setShowQuickReport] = useState(false);
   
-  // Listen for navigation events from other components
-  useEffect(() => {
-    const handleNavigate = (e: CustomEvent<string>) => {
-      if (e.detail === 'community') {
-        setActiveTab('community');
-      }
-    };
-    window.addEventListener('navigate-tab', handleNavigate as EventListener);
-    return () => window.removeEventListener('navigate-tab', handleNavigate as EventListener);
-  }, []);
+  // Tab is controlled by route props
+  const activeTab = initialTab;
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -437,18 +447,18 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
               <div className="relative flex-1 overflow-hidden">
                 <nav className="flex border-b border-white/10" role="tablist">
                   {[
-                    { id: 'live', label: 'Live', fullLabel: 'Live Map', icon: Map, badge: realtimeQuakes.length },
-                    { id: 'community', label: 'Discuss', fullLabel: 'Discussions', icon: MessageCircle, highlight: true },
-                    { id: 'neighborhood', label: 'My Area', fullLabel: 'My Neighborhood', icon: House },
-                    { id: 'compare', label: 'Compare', fullLabel: 'Compare Regions', icon: BarChart3 },
-                    { id: 'history', label: 'History', fullLabel: 'Historical Analysis', icon: TrendingUp },
-                    { id: 'learn', label: 'Learn', fullLabel: 'Learn', icon: Info },
+                    { id: 'live' as TabId, label: 'Live', fullLabel: 'Live Map', icon: Map, badge: realtimeQuakes.length },
+                    { id: 'community' as TabId, label: 'Discuss', fullLabel: 'Discussions', icon: MessageCircle, highlight: true },
+                    { id: 'neighborhood' as TabId, label: 'My Area', fullLabel: 'My Neighborhood', icon: House },
+                    { id: 'compare' as TabId, label: 'Compare', fullLabel: 'Compare Regions', icon: BarChart3 },
+                    { id: 'history' as TabId, label: 'History', fullLabel: 'Historical Analysis', icon: TrendingUp },
+                    { id: 'learn' as TabId, label: 'Learn', fullLabel: 'Learn', icon: Info },
                   ].map(tab => (
-                    <button
+                    <Link
                       key={tab.id}
+                      href={TAB_ROUTES[tab.id]}
                       role="tab"
                       aria-selected={activeTab === tab.id}
-                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
                       className={`relative flex items-center justify-center gap-1.5 px-3 sm:px-5 py-3.5 text-sm font-medium transition-all whitespace-nowrap flex-1 sm:flex-initial
                         ${activeTab === tab.id 
                           ? 'text-white' 
@@ -469,7 +479,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                       {activeTab === tab.id && (
                         <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${tab.highlight ? 'bg-purple-400' : 'bg-white'}`} />
                       )}
-                    </button>
+                    </Link>
                   ))}
                 </nav>
               </div>
@@ -654,8 +664,8 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                 <div className="text-sm text-neutral-300 mt-1 space-y-2">
                   <p>{aiSummary}</p>
                   <p className="text-neutral-400">
-                    <button 
-                      onClick={() => setActiveTab('history')}
+                    <Link 
+                      href="/history"
                       className={`hover:underline underline-offset-2 ${
                         hotspotRegion.multiplier >= 5 
                           ? 'text-red-400 hover:text-red-300' 
@@ -665,10 +675,10 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                       }`}
                     >
                       View Historical Analysis →
-                    </button>
+                    </Link>
                     <span className="mx-2">•</span>
-                    <button 
-                      onClick={() => setActiveTab('learn')}
+                    <Link 
+                      href="/learn"
                       className={`hover:underline underline-offset-2 ${
                         hotspotRegion.multiplier >= 5 
                           ? 'text-red-400 hover:text-red-300' 
@@ -678,7 +688,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                       }`}
                     >
                       Learn About Swarms →
-                    </button>
+                    </Link>
                   </p>
                 </div>
               ) : (
@@ -687,8 +697,8 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                   with {hotspotRegion.count} earthquakes this week.
                   {hotspotRegion.region?.faultLine && ` Activity is centered along the ${hotspotRegion.region.faultLine}. `}
                   Similar swarm events have occurred many times before in this region.{' '}
-                  <button 
-                    onClick={() => setActiveTab('history')}
+                  <Link 
+                    href="/history"
                     className={`hover:underline underline-offset-2 ${
                       hotspotRegion.multiplier >= 5 
                         ? 'text-red-400 hover:text-red-300' 
@@ -698,10 +708,10 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                     }`}
                   >
                     Explore past events
-                  </button>
+                  </Link>
                   {' '}or{' '}
-                  <button 
-                    onClick={() => setActiveTab('learn')}
+                  <Link 
+                    href="/learn"
                     className={`hover:underline underline-offset-2 ${
                       hotspotRegion.multiplier >= 5 
                         ? 'text-red-400 hover:text-red-300' 
@@ -711,7 +721,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
                     }`}
                   >
                     learn about swarms
-                  </button>.
+                  </Link>.
                 </p>
               )}
             </div>
@@ -1017,7 +1027,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
         )}
 
         {activeTab === 'community' && (
-          <CommunityHub />
+          <CommunityHub initialCategory={forumCategory} initialThread={forumThread} />
         )}
 
         {activeTab === 'neighborhood' && (
@@ -1256,7 +1266,7 @@ export function Dashboard({ historicalSummary }: DashboardProps) {
       
       {/* Quick Report Floating Button - Only on Live tab */}
       {activeTab === 'live' && (
-        <QuickReportButton onClick={() => setActiveTab('community')} />
+        <QuickReportButton href="/community" />
       )}
 
       {/* Earthquake Detail Modal */}

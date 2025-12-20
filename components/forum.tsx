@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
 import {
@@ -40,6 +41,12 @@ import { getPusherClient, PUSHER_EVENTS } from '@/lib/pusher';
 import { getMagnitudeColor } from '@/lib/analysis';
 import type { ForumCategory, ForumThreadWithId, ForumPostWithId } from '@/lib/mongodb';
 
+// Props for Forum component
+interface ForumProps {
+  initialCategory?: ForumCategory;
+  initialThread?: string;
+}
+
 // Category configuration
 const CATEGORIES: { id: ForumCategory; name: string; description: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
   { id: 'earthquake', name: 'Earthquake Discussions', description: 'Talk about recent and historical earthquakes', icon: Activity, color: 'amber' },
@@ -48,6 +55,9 @@ const CATEGORIES: { id: ForumCategory; name: string; description: string; icon: 
   { id: 'preparedness', name: 'Preparedness & Safety', description: 'Tips, kits, and emergency planning', icon: Shield, color: 'red' },
   { id: 'science', name: 'Science & Research', description: 'Seismology, geology, and research', icon: Lightbulb, color: 'purple' },
 ];
+
+// Valid category IDs for validation
+const VALID_CATEGORIES: ForumCategory[] = ['earthquake', 'general', 'neighborhood', 'preparedness', 'science'];
 
 // Color classes helper
 const getCategoryColorClasses = (color: string) => ({
@@ -76,31 +86,79 @@ interface ForumState {
   earthquakeId?: string;
 }
 
-export function Forum() {
-  const [state, setState] = useState<ForumState>({
-    view: 'categories',
-    category: null,
-    threadSlug: null,
-  });
+// Build clean URL for forum state
+const buildForumUrl = (state: ForumState): string => {
+  if (state.view === 'thread' && state.category && state.threadSlug) {
+    return `/community/${state.category}/${state.threadSlug}`;
+  }
+  
+  if (state.view === 'threads' && state.category) {
+    return `/community/${state.category}`;
+  }
+  
+  if (state.view === 'create' && state.category) {
+    return `/community/${state.category}?action=create`;
+  }
+  
+  return '/community';
+};
 
-  const navigateTo = (newState: Partial<ForumState>) => {
-    setState(prev => ({ ...prev, ...newState }));
-  };
+// Derive forum state from props
+const deriveForumState = (initialCategory?: ForumCategory, initialThread?: string): ForumState => {
+  if (initialThread && initialCategory) {
+    return { view: 'thread', category: initialCategory, threadSlug: initialThread };
+  }
+  
+  if (initialCategory) {
+    return { view: 'threads', category: initialCategory, threadSlug: null };
+  }
+  
+  return { view: 'categories', category: null, threadSlug: null };
+};
 
-  const goBack = () => {
-    if (state.view === 'thread') {
-      setState(prev => ({ ...prev, view: 'threads', threadSlug: null }));
-    } else if (state.view === 'threads' || state.view === 'create') {
-      setState(prev => ({ ...prev, view: 'categories', category: null }));
+export function Forum({ initialCategory, initialThread }: ForumProps = {}) {
+  const router = useRouter();
+  
+  // State for create mode (handled locally since it's a modal-like interaction)
+  const [isCreateMode, setIsCreateMode] = useState(false);
+  
+  // Derive base state from props (URL determines the view)
+  const state = isCreateMode && initialCategory
+    ? { view: 'create' as ViewMode, category: initialCategory, threadSlug: null }
+    : deriveForumState(initialCategory, initialThread);
+
+  // Navigate to a new state (uses router.push with clean URLs)
+  const navigateTo = useCallback((newState: Partial<ForumState>) => {
+    const nextState = { ...state, ...newState };
+    
+    // Handle create mode locally
+    if (nextState.view === 'create') {
+      setIsCreateMode(true);
+      return;
     }
-  };
+    
+    setIsCreateMode(false);
+    
+    // Build clean URL and navigate
+    const url = buildForumUrl(nextState);
+    router.push(url, { scroll: false });
+  }, [state, router]);
+
+  // Go back using browser history
+  const goBack = useCallback(() => {
+    if (isCreateMode) {
+      setIsCreateMode(false);
+      return;
+    }
+    router.back();
+  }, [router, isCreateMode]);
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm">
-        <button
-          onClick={() => setState({ view: 'categories', category: null, threadSlug: null })}
+        <Link
+          href="/community"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
             state.view === 'categories' 
               ? 'bg-white/10 text-white' 
@@ -109,12 +167,12 @@ export function Forum() {
         >
           <Globe className="w-4 h-4" />
           Forum
-        </button>
+        </Link>
         {state.category && (
           <>
             <ChevronRight className="w-4 h-4 text-neutral-600" />
-            <button
-              onClick={() => navigateTo({ view: 'threads', threadSlug: null })}
+            <Link
+              href={`/community/${state.category}`}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 state.view === 'threads' 
                   ? 'bg-white/10 text-white' 
@@ -122,7 +180,7 @@ export function Forum() {
               }`}
             >
               {CATEGORIES.find(c => c.id === state.category)?.name || state.category}
-            </button>
+            </Link>
           </>
         )}
         {state.threadSlug && (
@@ -135,27 +193,25 @@ export function Forum() {
 
       {/* Main Content */}
       {state.view === 'categories' && (
-        <CategoriesView onSelectCategory={(cat) => navigateTo({ view: 'threads', category: cat })} />
+        <CategoriesView />
       )}
       {state.view === 'threads' && state.category && (
         <ThreadsListView 
           category={state.category} 
-          onSelectThread={(slug) => navigateTo({ view: 'thread', threadSlug: slug })}
-          onCreateThread={() => navigateTo({ view: 'create' })}
-          onBack={goBack}
+          onCreateThread={() => setIsCreateMode(true)}
         />
       )}
-      {state.view === 'thread' && state.threadSlug && (
+      {state.view === 'thread' && state.threadSlug && state.category && (
         <ThreadView 
           slug={state.threadSlug}
-          onBack={goBack}
+          category={state.category}
         />
       )}
       {state.view === 'create' && state.category && (
         <CreateThreadView 
           category={state.category}
-          onCancel={goBack}
-          onSuccess={(slug) => navigateTo({ view: 'thread', threadSlug: slug })}
+          onCancel={() => setIsCreateMode(false)}
+          onSuccess={(slug) => router.push(`/community/${state.category}/${slug}`)}
         />
       )}
     </div>
@@ -163,7 +219,7 @@ export function Forum() {
 }
 
 // Categories View
-function CategoriesView({ onSelectCategory }: { onSelectCategory: (cat: ForumCategory) => void }) {
+function CategoriesView() {
   const [stats, setStats] = useState<{ totalThreads: number; totalPosts: number; activeToday: number } | null>(null);
   const [trending, setTrending] = useState<ForumThreadWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,9 +316,9 @@ function CategoriesView({ onSelectCategory }: { onSelectCategory: (cat: ForumCat
           }[category.color];
 
           return (
-            <button
+            <Link
               key={category.id}
-              onClick={() => onSelectCategory(category.id)}
+              href={`/community/${category.id}`}
               className={`relative overflow-hidden p-5 rounded-xl bg-gradient-to-br ${colorClasses} border transition-all hover:scale-[1.02] active:scale-[0.98] text-left group`}
             >
               <div className="flex items-start gap-4">
@@ -275,7 +331,7 @@ function CategoriesView({ onSelectCategory }: { onSelectCategory: (cat: ForumCat
                 </div>
                 <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
               </div>
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -289,7 +345,7 @@ function CategoriesView({ onSelectCategory }: { onSelectCategory: (cat: ForumCat
           </div>
           <div className="divide-y divide-white/5">
             {trending.map(thread => (
-              <ThreadRow key={thread._id} thread={thread} onClick={() => onSelectCategory(thread.category)} />
+              <ThreadRow key={thread._id} thread={thread} />
             ))}
           </div>
         </div>
@@ -309,14 +365,10 @@ interface RecentEarthquake {
 // Thread List View
 function ThreadsListView({ 
   category, 
-  onSelectThread,
   onCreateThread,
-  onBack,
 }: { 
   category: ForumCategory;
-  onSelectThread: (slug: string) => void;
   onCreateThread: () => void;
-  onBack: () => void;
 }) {
   const [threads, setThreads] = useState<ForumThreadWithId[]>([]);
   const [total, setTotal] = useState(0);
@@ -383,12 +435,12 @@ function ThreadsListView({
       {/* Category Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
+          <Link
+            href="/community"
             className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
+          </Link>
           <div className={`p-3 rounded-xl bg-${categoryInfo?.color}-500/20`}>
             <Icon className={`w-6 h-6 text-${categoryInfo?.color}-400`} />
           </div>
@@ -495,7 +547,6 @@ function ThreadsListView({
               <ThreadRow 
                 key={thread._id} 
                 thread={thread} 
-                onClick={() => onSelectThread(thread.slug)}
                 showCategory={false}
               />
             ))}
@@ -532,19 +583,17 @@ function ThreadsListView({
 // Thread Row Component
 function ThreadRow({ 
   thread, 
-  onClick,
   showCategory = true,
 }: { 
   thread: ForumThreadWithId;
-  onClick: () => void;
   showCategory?: boolean;
 }) {
   const categoryInfo = CATEGORIES.find(c => c.id === thread.category);
   
   return (
-    <button
-      onClick={onClick}
-      className="w-full p-4 hover:bg-white/[0.03] transition-colors text-left group"
+    <Link
+      href={`/community/${thread.category}/${thread.slug}`}
+      className="block w-full p-4 hover:bg-white/[0.03] transition-colors text-left group"
     >
       <div className="flex items-start gap-4">
         {/* Avatar/Icon */}
@@ -620,12 +669,12 @@ function ThreadRow({
 
         <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition-colors flex-shrink-0" />
       </div>
-    </button>
+    </Link>
   );
 }
 
 // Individual Thread View
-function ThreadView({ slug, onBack }: { slug: string; onBack: () => void }) {
+function ThreadView({ slug, category }: { slug: string; category: ForumCategory }) {
   const [thread, setThread] = useState<ForumThreadWithId | null>(null);
   const [posts, setPosts] = useState<ForumPostWithId[]>([]);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -730,12 +779,12 @@ function ThreadView({ slug, onBack }: { slug: string; onBack: () => void }) {
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <p className="text-neutral-400">{error || 'Thread not found'}</p>
-        <button
-          onClick={onBack}
-          className="mt-4 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
+        <Link
+          href={`/community/${category}`}
+          className="mt-4 px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors inline-block"
         >
           Go Back
-        </button>
+        </Link>
       </div>
     );
   }
@@ -747,13 +796,13 @@ function ThreadView({ slug, onBack }: { slug: string; onBack: () => void }) {
       {/* Thread Header */}
       <div className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden">
         <div className="p-5 border-b border-white/5">
-          <button
-            onClick={onBack}
+          <Link
+            href={`/community/${thread.category}`}
             className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {categoryInfo?.name}
-          </button>
+          </Link>
           
           {/* Earthquake Banner */}
           {thread.earthquakeData && (

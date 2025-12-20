@@ -24,8 +24,13 @@ interface TrendingEarthquake {
 }
 
 // Main Community Hub - now uses the Forum component
-export function CommunityHub() {
-  return <Forum />;
+interface CommunityHubProps {
+  initialCategory?: 'earthquake' | 'general' | 'neighborhood' | 'preparedness' | 'science';
+  initialThread?: string;
+}
+
+export function CommunityHub({ initialCategory, initialThread }: CommunityHubProps = {}) {
+  return <Forum initialCategory={initialCategory} initialThread={initialThread} />;
 }
 
 // Compact widget for the Live tab - shows trending earthquake discussions
@@ -132,14 +137,14 @@ export function ActiveDiscussionsWidget() {
 }
 
 // Quick Report Floating Button
-export function QuickReportButton({ onClick }: { onClick: () => void }) {
+export function QuickReportButton({ href }: { href: string }) {
   return (
-    <button
-      onClick={onClick}
+    <Link
+      href={href}
       className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-full shadow-2xl shadow-orange-500/30 hover:from-amber-400 hover:to-orange-500 hover:scale-105 transition-all group"
     >
       <Zap className="w-5 h-5 group-hover:animate-pulse" />
       <span>Did You Feel It?</span>
-    </button>
+    </Link>
   );
 }
