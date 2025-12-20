@@ -214,24 +214,24 @@ function CollapsibleAlert({
     }`}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 text-left hover:bg-white/[0.02] transition-colors"
       >
         <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
           severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
         }`} />
-        <span className={`font-medium text-sm ${
+        <span className={`font-medium text-xs sm:text-sm truncate ${
           severityColor === 'red' ? 'text-red-300' : severityColor === 'orange' ? 'text-orange-300' : 'text-yellow-300'
         }`}>
           Elevated Seismic Activity
         </span>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-neutral-400">
+        <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-white/10 text-neutral-400 flex-shrink-0">
           {hotspotRegion.multiplier.toFixed(0)}× typical
         </span>
         <div className="flex-1" />
         <span className="text-xs text-neutral-500 hidden sm:inline">
-          {isExpanded ? 'Hide details' : 'View AI summary'}
+          {isExpanded ? 'Hide' : 'Details'}
         </span>
-        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
       </button>
       
       {/* Expandable content */}
@@ -397,25 +397,25 @@ function HeroQuake({
   const isRecent = Date.now() - notableQuake.timestamp < 60 * 60 * 1000; // Within last hour
   
   return (
-    <div className="grid md:grid-cols-3 gap-4">
-      {/* Most Recent Notable Earthquake - Takes 2/3 */}
+    <div className="space-y-3">
+      {/* Most Recent Notable Earthquake - Full width on mobile */}
       <button
         onClick={() => onViewDetails(notableQuake)}
-        className={`md:col-span-2 card p-5 text-left group transition-all hover:bg-white/[0.03] ${
+        className={`w-full card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03] ${
           isRecent ? 'ring-1 ring-green-500/30' : ''
         }`}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {/* Magnitude Badge */}
           <div 
-            className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
             style={{ 
               backgroundColor: getMagnitudeColor(notableQuake.magnitude) + '20',
               border: `2px solid ${getMagnitudeColor(notableQuake.magnitude)}50`,
             }}
           >
             <span 
-              className="text-2xl font-light"
+              className="text-xl sm:text-2xl font-light"
               style={{ color: getMagnitudeColor(notableQuake.magnitude) }}
             >
               {notableQuake.magnitude.toFixed(1)}
@@ -423,14 +423,8 @@ function HeroQuake({
           </div>
           
           {/* Details */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              {isRecent && (
-                <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Just now
-                </span>
-              )}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
               <span className="text-xs text-neutral-500" suppressHydrationWarning>
                 {formatDistanceToNow(notableQuake.time, { addSuffix: true })}
               </span>
@@ -438,52 +432,61 @@ function HeroQuake({
                 <span className="text-xs text-amber-400">• {notableQuake.felt} felt reports</span>
               )}
             </div>
-            <h2 className="text-lg font-semibold text-white truncate group-hover:text-white/90">
+            <h2 className="text-base sm:text-lg font-semibold text-white truncate group-hover:text-white/90">
               {locationContext?.formattedLocation || notableQuake.place?.split(',')[0] || 'Bay Area'}
             </h2>
-            <p className="text-sm text-neutral-500 truncate">
+            <p className="text-xs sm:text-sm text-neutral-500 truncate">
               {getMagnitudeLabel(notableQuake.magnitude)} earthquake • {notableQuake.place}
             </p>
           </div>
           
           {/* Arrow */}
-          <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400 flex-shrink-0 transition-colors" />
+          <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400 flex-shrink-0 transition-colors hidden sm:block" />
         </div>
       </button>
       
-      {/* Set Your City Widget - Takes 1/3 */}
+      {/* Set Your City Widget - Full width, compact on mobile */}
       <button
         onClick={onSetCity}
-        className="card p-5 text-left group transition-all hover:bg-white/[0.03]"
+        className="w-full card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03]"
       >
         {myCityLoaded && myCity ? (
-          <div className="h-full flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <House className="w-4 h-4 text-neutral-500" />
-              <span className="text-xs text-neutral-500 uppercase tracking-wider">Your City</span>
-              <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Change →</span>
-            </div>
-            <div className="flex-1 flex items-center gap-3">
-              <span className="font-mono text-xl font-bold px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-14 h-14 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
+              <span className="font-mono text-lg sm:text-xl font-bold text-white">
                 {myCity.areaCode || '—'}
               </span>
-              <div>
-                <div className="font-medium text-white">{myCity.cityName}</div>
-                <div className={`text-sm ${myCityStats?.isElevated ? 'text-amber-400' : 'text-neutral-500'}`}>
-                  {myCityStats?.nearbyThisWeek || 0} quakes nearby
-                </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-white truncate">{myCity.cityName}</span>
+                {myCityStats?.isElevated && (
+                  <span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 flex-shrink-0">
+                    Active
+                  </span>
+                )}
+              </div>
+              <div className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+                <span className="text-neutral-300 font-medium tabular-nums">
+                  {myCityStats?.nearbyThisWeek || 0}
+                </span>{' '}
+                earthquakes nearby this week
               </div>
             </div>
+            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0" />
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center gap-3 py-2">
-            <div className="w-14 h-14 rounded-xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-14 h-14 rounded-xl bg-white/[0.04] border border-dashed border-white/20 flex items-center justify-center flex-shrink-0">
               <House className="w-6 h-6 text-neutral-500" />
             </div>
-            <div className="text-center">
+            <div className="flex-1 min-w-0">
               <div className="font-medium text-white">Set Your City</div>
-              <div className="text-xs text-neutral-500">Get personalized alerts</div>
+              <div className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+                Get personalized alerts
+              </div>
             </div>
+            <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0" />
           </div>
         )}
       </button>
@@ -759,41 +762,41 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   }, [hotspotRegion.isElevated, hotspotRegion.regionId, hotspotRegion.count, hotspotRegion.multiplier, largestRecent?.magnitude, realtimeQuakes, currentSwarm, aiSummary, isLoadingAiSummary]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <BayAreaLogo variant="seismic-bridge" className="w-11 h-11" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <div className="relative flex-shrink-0">
+                <BayAreaLogo variant="seismic-bridge" className="w-9 h-9 sm:w-11 sm:h-11" />
                 {hotspotRegion.isElevated && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full animate-pulse" />
                 )}
               </div>
-              <div>
-                <h1 className="font-semibold text-lg">Bay Area Quake Tracker</h1>
-                <p className="text-xs text-neutral-500">Live earthquake monitoring for the SF Bay Area</p>
+              <div className="min-w-0">
+                <h1 className="font-semibold text-sm sm:text-lg truncate">Bay Area Quake Tracker</h1>
+                <p className="text-[10px] sm:text-xs text-neutral-500 truncate hidden xs:block">Live earthquake monitoring for the SF Bay Area</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {lastUpdated && (
-                <span className="hidden sm:block text-sm text-neutral-500">
+                <span className="hidden md:block text-sm text-neutral-500">
                   Updated {format(lastUpdated, 'h:mm a')}
                 </span>
               )}
               <button 
                 onClick={refresh}
                 disabled={isRefreshing}
-                className="p-2 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50"
                 aria-label="Refresh data"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full border border-white/20">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-gentle" />
-                <span className="text-white text-sm font-medium">Live</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 rounded-full border border-white/20">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse-gentle" />
+                <span className="text-white text-xs sm:text-sm font-medium">Live</span>
               </div>
             </div>
           </div>
@@ -803,7 +806,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6 space-y-4">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 md:pb-6 space-y-3 sm:space-y-4 overflow-x-hidden">
         
         {activeTab === 'live' && (
           <>
@@ -827,40 +830,40 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             />
 
             {/* MAIN CONTENT: Map + Feed Side by Side */}
-            <div className="grid lg:grid-cols-5 gap-4">
+            <div className="grid lg:grid-cols-5 gap-3 sm:gap-4">
               {/* Map - Takes 3/5 on large screens */}
               <section className="lg:col-span-3 card overflow-hidden">
-                <div className="p-3 border-b border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Map className="w-4 h-4 text-neutral-500" />
-                    <span className="text-sm font-medium">Bay Area • Live</span>
+                <div className="p-2.5 sm:p-3 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Map className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500" />
+                    <span className="text-xs sm:text-sm font-medium">Bay Area • Live</span>
                   </div>
                   <a 
                     href="https://earthquake.usgs.gov/earthquakes/map/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-neutral-500 hover:text-white flex items-center gap-1"
+                    className="text-[10px] sm:text-xs text-neutral-500 hover:text-white flex items-center gap-1"
                   >
-                    USGS <ExternalLink className="w-3 h-3" />
+                    USGS <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   </a>
                 </div>
                 <LeafletMap 
                   earthquakes={realtimeQuakes}
                   selectedEarthquake={selectedEarthquake}
                   onSelectEarthquake={setSelectedEarthquake}
-                  className="min-h-[400px] lg:min-h-[500px]"
+                  className="min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
                 />
               </section>
 
               {/* Feed - Takes 2/5 on large screens */}
-              <section id="earthquake-feed" className="lg:col-span-2 card p-0 flex flex-col max-h-[560px]">
-                <div className="p-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-neutral-500" />
-                    <span className="text-sm font-medium">Recent Quakes</span>
-                    <span className="text-xs text-neutral-500">{realtimeQuakes.length} this week</span>
+              <section id="earthquake-feed" className="lg:col-span-2 card p-0 flex flex-col max-h-[400px] sm:max-h-[560px]">
+                <div className="p-2.5 sm:p-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">Recent Quakes</span>
+                    <span className="text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">{realtimeQuakes.length}</span>
                   </div>
-                  <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                     {last24Hours.length} in 24h
                   </span>
@@ -905,92 +908,92 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </section>
             </div>
 
-            {/* STATS GRID */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {/* STATS GRID - Responsive: 2 cols on mobile, 4 on tablet, 7 on desktop */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
               {/* This Week */}
-              <div className="card p-4">
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Activity className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">This Week</span>
+              <div className="card p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">This Week</span>
                 </div>
-                <div className="text-2xl font-light">{realtimeQuakes.length}</div>
-                <div className="text-xs text-neutral-500 mt-1">earthquakes in Bay Area</div>
+                <div className="text-xl sm:text-2xl font-light">{realtimeQuakes.length}</div>
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">earthquakes</div>
               </div>
 
               {/* In Last 24h */}
-              <div className="card p-4">
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">In Last 24h</span>
+              <div className="card p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Last 24h</span>
                 </div>
-                <div className="text-2xl font-light">{last24Hours.length}</div>
-                <div className="text-xs text-neutral-500 mt-1">recent activity</div>
+                <div className="text-xl sm:text-2xl font-light">{last24Hours.length}</div>
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">recent</div>
               </div>
 
               {/* Largest */}
-              <div className="card p-4">
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">Largest</span>
+              <div className="card p-3 sm:p-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Largest</span>
                 </div>
                 <div 
-                  className="text-2xl font-light"
+                  className="text-xl sm:text-2xl font-light"
                   style={{ color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : undefined }}
                 >
                   {largestRecent?.magnitude.toFixed(1) || '—'}
                 </div>
-                <div className="text-xs text-neutral-500 mt-1">
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">
                   {largestRecent ? getMagnitudeLabel(largestRecent.magnitude) : 'No data'}
                 </div>
               </div>
 
               {/* Hotspot */}
-              <div className={`card p-4 ${hotspotRegion.isElevated ? 'ring-1 ring-white/20' : ''}`}>
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Flame className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">Hotspot</span>
+              <div className={`card p-3 sm:p-4 ${hotspotRegion.isElevated ? 'ring-1 ring-white/20' : ''}`}>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Hotspot</span>
                 </div>
-                <div className="text-2xl font-light" style={{ color: hotspotRegion.region?.color }}>
+                <div className="text-xl sm:text-2xl font-light" style={{ color: hotspotRegion.region?.color }}>
                   {hotspotRegion.count}
                 </div>
-                <div className="text-xs text-neutral-500 mt-1">
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">
                   {hotspotRegion.region?.name.split('/')[0].trim() || 'Most active'}
                 </div>
               </div>
 
-              {/* M3+ Events */}
-              <div className={`card p-4 ${m3PlusCount >= 3 ? 'ring-1 ring-white/20' : ''}`}>
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Target className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">M3+ Events</span>
+              {/* M3+ Events - Hidden on smallest screens, shown from sm */}
+              <div className={`card p-3 sm:p-4 hidden sm:block ${m3PlusCount >= 3 ? 'ring-1 ring-white/20' : ''}`}>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">M3+</span>
                 </div>
-                <div className="text-2xl font-light">{m3PlusCount}</div>
-                <div className="text-xs text-neutral-500 mt-1">significant quakes</div>
+                <div className="text-xl sm:text-2xl font-light">{m3PlusCount}</div>
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">significant</div>
               </div>
 
-              {/* Avg Depth */}
-              <div className="card p-4">
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Layers className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">Avg Depth</span>
+              {/* Avg Depth - Hidden on smallest screens, shown from sm */}
+              <div className="card p-3 sm:p-4 hidden sm:block">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Depth</span>
                 </div>
-                <div className="text-2xl font-light">{formatDepth(avgDepth)}</div>
-                <div className="text-xs text-neutral-500 mt-1">{getDepthDescription(avgDepth)}</div>
+                <div className="text-xl sm:text-2xl font-light">{formatDepth(avgDepth)}</div>
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">{getDepthDescription(avgDepth)}</div>
               </div>
 
-              {/* Strongest Today */}
-              <div className="card p-4">
-                <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-xs uppercase tracking-wider">Strongest Today</span>
+              {/* Strongest Today - Hidden on smallest screens, shown from lg */}
+              <div className="card p-3 sm:p-4 hidden lg:block">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-neutral-500 mb-1.5 sm:mb-2">
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Today</span>
                 </div>
                 <div 
-                  className="text-2xl font-light"
+                  className="text-xl sm:text-2xl font-light"
                   style={{ color: strongestToday ? getMagnitudeColor(strongestToday.magnitude) : undefined }}
                 >
                   {strongestToday?.magnitude.toFixed(1) || '—'}
                 </div>
-                <div className="text-xs text-neutral-500 mt-1" suppressHydrationWarning>
+                <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate" suppressHydrationWarning>
                   {strongestToday ? formatDistanceToNow(strongestToday.time, { addSuffix: true }) : 'None yet'}
                 </div>
               </div>
