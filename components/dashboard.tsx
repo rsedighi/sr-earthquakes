@@ -56,6 +56,10 @@ const TAB_ROUTES: Record<TabId, string> = {
 
 // Forum category type
 export type ForumCategory = 'earthquake' | 'general' | 'neighborhood' | 'preparedness' | 'science';
+
+// Time filter type (moved from hero-header.tsx during cleanup)
+export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
+
 import { formatDepth, formatDepthDeep, formatRadius, kmToMiles, getDepthDescription } from '@/lib/units';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
@@ -65,7 +69,6 @@ import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
 import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
 import { NavBar } from './dashboard/components/nav-bar';
-import { TimeFilter } from './dashboard/components/hero-header';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -405,6 +408,19 @@ function HeroQuake({
           isRecent ? 'ring-1 ring-green-500/30' : ''
         }`}
       >
+        {/* Card label - explains what this card shows */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <Zap className="w-3 h-3 text-neutral-500" />
+          <span className="text-[10px] sm:text-xs uppercase tracking-wider text-neutral-500 font-medium">
+            Latest Notable Quake
+          </span>
+          {isRecent && (
+            <span className="px-1.5 py-0.5 text-[10px] rounded bg-green-500/20 text-green-400 border border-green-500/30">
+              Just now
+            </span>
+          )}
+        </div>
+        
         <div className="flex items-center gap-3 sm:gap-4">
           {/* Magnitude Badge */}
           <div 
@@ -829,9 +845,9 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               onSetCity={() => setShowCitySelector(true)}
             />
 
-            {/* MAIN CONTENT: Map + Feed Side by Side */}
-            <div className="grid lg:grid-cols-5 gap-3 sm:gap-4">
-              {/* Map - Takes 3/5 on large screens */}
+            {/* MAIN CONTENT: Map + Feed Side by Side (Feed first on mobile for better UX) */}
+            <div className="flex flex-col-reverse lg:grid lg:grid-cols-5 gap-3 sm:gap-4">
+              {/* Map - Takes 3/5 on large screens, appears second on mobile */}
               <section className="lg:col-span-3 card overflow-hidden">
                 <div className="p-2.5 sm:p-3 border-b border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 sm:gap-2">

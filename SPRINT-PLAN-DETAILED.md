@@ -2154,14 +2154,17 @@ MODIFIED FILES:
 │   └── Stats grid (7 widgets)          # Responsive grid below map
 ```
 
-### 📋 Cleanup Needed:
+### ✅ Cleanup Completed (December 20, 2025):
 ```
-Files that may be unused after refactor (kept inline in dashboard.tsx instead):
-├── components/dashboard/components/hero-header.tsx
-├── components/dashboard/components/earthquake-feed.tsx
-├── components/dashboard/components/key-stats.tsx
-├── components/dashboard/components/city-personalization.tsx
-├── components/ui/collapsible-section.tsx
+Files removed (~1,101 lines of dead code):
+├── components/dashboard/components/hero-header.tsx (361 lines) ✅ Deleted
+├── components/dashboard/components/earthquake-feed.tsx (212 lines) ✅ Deleted
+├── components/dashboard/components/key-stats.tsx (358 lines) ✅ Deleted
+├── components/dashboard/components/city-personalization.tsx (90 lines) ✅ Deleted
+├── components/ui/collapsible-section.tsx (80 lines) ✅ Deleted
+└── components/ui/ directory ✅ Removed (empty)
+
+Note: TimeFilter type from hero-header.tsx was moved inline to dashboard.tsx
 ```
 
 ---
@@ -2205,12 +2208,11 @@ Files that may be unused after refactor (kept inline in dashboard.tsx instead):
   - Visual hierarchy with icons and color-coded sections
 - ✅ City selector improvements - integrated in hero section
 
-**Files created during iteration (may need cleanup):**
-- `components/dashboard/components/city-personalization.tsx` (unused)
-- `components/dashboard/components/earthquake-feed.tsx` (unused)
-- `components/dashboard/components/key-stats.tsx` (unused)
-- `components/dashboard/components/hero-header.tsx` (unused)
-- `components/ui/collapsible-section.tsx` (unused)
+**Technical Debt Cleanup (December 20, 2025):**
+- ✅ Removed 5 unused component files (~1,101 lines of dead code)
+- ✅ Moved `TimeFilter` type inline to `dashboard.tsx`
+- ✅ Removed empty `components/ui/` directory
+- ✅ Build verified passing after cleanup
 
 ---
 
@@ -2276,5 +2278,15 @@ For non-critical time displays, you can use `suppressHydrationWarning`:
 
 ---
 
-*Last updated: December 20, 2025 (Sprint 2.3 AI Summary Loading State completed)*
+--- 
+### Stretch Goals:
+
+1. ** A fully built out storefront: **  selling curated earthquake gear. 
+
+2. ** Rebranded 3rd party purchase: **
+  Customers essentially buy through us, but we make it known that we are making the purchase on their behalf on the commerce platform where this item is sold. But we make the purchase for them easy. 
+
+---
+
+*Last updated: December 20, 2025 (Technical debt cleanup - removed ~1,101 lines of unused code)*
 
