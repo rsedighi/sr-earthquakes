@@ -27,6 +27,26 @@
 - ✅ Fixed mobile gap issue (spacer was inside header)
 - ✅ Build passing, deployed to Netlify
 
+### ⚠️ Known Issues & Lessons Learned
+
+**HeroHeader Hydration Error (December 20, 2025):**
+- Attempted to implement actionable HeroHeader with `Date.now()` for time filtering
+- Caused hydration mismatch: server rendered `<section>` but client expected `<div>`
+- Root cause: Using `Date.now()` during SSR produces different values on server vs client
+- **Solution attempted:** `mounted` state pattern with `useEffect` to defer time calculations
+- **Outcome:** Reverted changes due to persistent caching issues in Safari
+- **Lesson:** Time-based calculations in React must be client-only. Use skeleton loaders during SSR.
+
+```typescript
+// ❌ BAD - Causes hydration mismatch
+const minutesSince = (Date.now() - earthquake.timestamp) / 60000;
+
+// ✅ GOOD - Defer to client-side only
+const [mounted, setMounted] = useState(false);
+useEffect(() => setMounted(true), []);
+const minutesSince = mounted ? (Date.now() - earthquake.timestamp) / 60000 : 0;
+```
+
 ---
 
 # 🔴 Sprint 1: Critical Performance & P0 Fixes
@@ -1229,7 +1249,28 @@ export default function HistoryTab() {
 
 **Priority:** 🔴 Critical  
 **Estimate:** 5 story points  
-**Assignee:** TBD
+**Assignee:** TBD  
+**Status:** 🔴 Attempted, Reverted (Hydration Issues)
+
+### Implementation Attempt (December 20, 2025)
+
+**What was tried:**
+- Created `HeroHeader` component with actionable Datadog-style design
+- Showed most recent earthquake prominently with "Just Now" urgency indicator
+- Added quick filter buttons (Last Hour, Last 6 Hours, Today, This Week)
+- Made all stats clickable for drill-down filtering
+- Created `KeyStats`, `EarthquakeFeed`, and `CityPersonalization` components
+
+**Why it was reverted:**
+- Hydration errors from `Date.now()` usage in SSR
+- Time-based filtering caused server/client HTML mismatch
+- Browser caching made debugging difficult (Safari showed stale content)
+
+**Next steps:**
+1. Re-implement with proper client-only time handling
+2. Use skeleton loaders during SSR (show loading state until mounted)
+3. Test thoroughly in incognito/private browsing to avoid cache issues
+4. Consider using `suppressHydrationWarning` for time-sensitive displays
 
 ### Current Problem
 
@@ -1532,6 +1573,20 @@ export function EarthquakeFeed({
 - [ ] Stats in collapsible section
 - [ ] Page feels less overwhelming
 - [ ] Above-the-fold content is focused
+- [ ] **No hydration errors** (critical - verify with React DevTools)
+- [ ] Works correctly in Safari, Chrome, Firefox
+- [ ] Test in incognito to avoid cache issues
+
+### User Requirements (from feedback)
+
+> "Most people who come to the site are coming after an earthquake. While it's nice to see big number of quakes, and the biggest one recently, it's not telling me anything about the most recent ones people might be visiting the site for."
+
+**Key features requested:**
+1. Most recent earthquake shown prominently ("Just Now" urgency)
+2. Quick browse of 3-5 most recent earthquakes
+3. Quick filter buttons: "Last hour," "Last 6 hours," "Today"
+4. All numbers clickable → drill down to filtered view
+5. "Datadog-style" - everything feels useful and clickable
 
 ---
 
@@ -2044,10 +2099,78 @@ MODIFIED FILES:
 
 **Sprint 2 (In Progress):**
 - ✅ Mobile navigation completely rebuilt
-- ✅ Hydration issues resolved
-- ⏳ Progressive disclosure (hero header, collapsible sections) - pending
+- ✅ Hydration issues in NavBar resolved
+- 🔴 Progressive disclosure (hero header) - attempted, reverted due to hydration errors
 - ⏳ AI Summary improvements - pending
 - ⏳ City selector improvements - pending
+
+**Untracked files created (may need cleanup):**
+- `components/dashboard/components/city-personalization.tsx`
+- `components/dashboard/components/earthquake-feed.tsx`
+- `components/dashboard/components/key-stats.tsx`
+- `components/ui/` (directory)
+
+---
+
+# 🔧 Technical Notes
+
+## Avoiding Hydration Errors in Next.js
+
+### Problem: Time-Based Displays
+
+Any component that uses `Date.now()`, `new Date()`, or `formatDistanceToNow()` during render will cause hydration mismatches because:
+- Server renders at time T1
+- Client hydrates at time T2
+- T1 ≠ T2, so HTML doesn't match
+
+### Solution Pattern: Client-Only Time Rendering
+
+```typescript
+'use client';
+
+import { useState, useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+
+function TimeAgo({ timestamp }: { timestamp: number }) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // During SSR and initial render, show placeholder
+  if (!mounted) {
+    return <span className="text-neutral-500">...</span>;
+  }
+  
+  // After hydration, show actual time
+  return (
+    <span>{formatDistanceToNow(timestamp, { addSuffix: true })}</span>
+  );
+}
+```
+
+### Alternative: Suppress Hydration Warning
+
+For non-critical time displays, you can use `suppressHydrationWarning`:
+
+```typescript
+<time 
+  dateTime={new Date(timestamp).toISOString()}
+  suppressHydrationWarning
+>
+  {formatDistanceToNow(timestamp, { addSuffix: true })}
+</time>
+```
+
+**Note:** This only suppresses the warning, it doesn't fix the flash of incorrect content.
+
+### Best Practices
+
+1. **Use skeleton loaders** during SSR for time-sensitive content
+2. **Group time calculations** in a single `useMemo` that depends on `mounted` state
+3. **Test in incognito mode** to avoid browser cache issues
+4. **Consider using `<time>` elements** with `dateTime` attribute for SEO
 
 ---
 

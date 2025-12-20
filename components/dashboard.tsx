@@ -65,6 +65,7 @@ import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
 import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
 import { NavBar } from './dashboard/components/nav-bar';
+import { TimeFilter } from './dashboard/components/hero-header';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -153,11 +154,225 @@ function deduplicateEarthquakes(earthquakes: Earthquake[]): Earthquake[] {
   return result;
 }
 
+// Collapsible Alert Banner - Collapsed by default
+function CollapsibleAlert({
+  hotspotRegion,
+  aiSummary,
+  isLoadingAiSummary,
+}: {
+  hotspotRegion: {
+    isElevated: boolean;
+    multiplier: number;
+    count: number;
+    region: { name: string; faultLine?: string } | null | undefined;
+  };
+  aiSummary: string | null;
+  isLoadingAiSummary: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const severityColor = hotspotRegion.multiplier >= 5 
+    ? 'red' 
+    : hotspotRegion.multiplier >= 3 
+      ? 'orange' 
+      : 'yellow';
+  
+  return (
+    <div className={`rounded-xl border overflow-hidden ${
+      severityColor === 'red' 
+        ? 'border-red-500/40 bg-red-500/5' 
+        : severityColor === 'orange' 
+          ? 'border-orange-500/40 bg-orange-500/5' 
+          : 'border-yellow-500/40 bg-yellow-500/5'
+    }`}>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
+      >
+        <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
+          severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
+        }`} />
+        <span className={`font-medium text-sm ${
+          severityColor === 'red' ? 'text-red-300' : severityColor === 'orange' ? 'text-orange-300' : 'text-yellow-300'
+        }`}>
+          Elevated Seismic Activity
+        </span>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-neutral-400">
+          {hotspotRegion.multiplier.toFixed(0)}× typical
+        </span>
+        <div className="flex-1" />
+        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {/* Expandable content */}
+      <div className={`grid transition-all duration-200 ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4 border-t border-white/5 pt-3">
+            {isLoadingAiSummary ? (
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
+                <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse" />
+              </div>
+            ) : aiSummary ? (
+              <p className="text-sm text-neutral-300">{aiSummary}</p>
+            ) : (
+              <p className="text-sm text-neutral-400">
+                {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical earthquake rate with {hotspotRegion.count} earthquakes this week.
+              </p>
+            )}
+            <div className="flex items-center gap-4 mt-3">
+              <Link 
+                href="/history"
+                className={`text-xs hover:underline ${
+                  severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
+                }`}
+              >
+                View Historical Analysis →
+              </Link>
+              <Link 
+                href="/learn"
+                className={`text-xs hover:underline ${
+                  severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
+                }`}
+              >
+                Learn About Swarms →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Hero Section - Most Recent Notable Earthquake + Set Your City
+function HeroQuake({
+  earthquakes,
+  onViewDetails,
+  myCity,
+  myCityStats,
+  myCityLoaded,
+  onSetCity,
+}: {
+  earthquakes: Earthquake[];
+  onViewDetails: (eq: Earthquake) => void;
+  myCity: { cityName: string; areaCode?: string } | null;
+  myCityStats: { nearbyThisWeek: number; isElevated: boolean } | null;
+  myCityLoaded: boolean;
+  onSetCity: () => void;
+}) {
+  // Find most recent M2.0+ earthquake
+  const notableQuake = useMemo(() => {
+    return earthquakes.find(eq => eq.magnitude >= 2.0) || earthquakes[0];
+  }, [earthquakes]);
+  
+  const locationContext = notableQuake ? getLocationContext(notableQuake.latitude, notableQuake.longitude) : null;
+  
+  if (!notableQuake) return null;
+  
+  const isRecent = Date.now() - notableQuake.timestamp < 60 * 60 * 1000; // Within last hour
+  
+  return (
+    <div className="grid md:grid-cols-3 gap-4">
+      {/* Most Recent Notable Earthquake - Takes 2/3 */}
+      <button
+        onClick={() => onViewDetails(notableQuake)}
+        className={`md:col-span-2 card p-5 text-left group transition-all hover:bg-white/[0.03] ${
+          isRecent ? 'ring-1 ring-green-500/30' : ''
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          {/* Magnitude Badge */}
+          <div 
+            className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
+            style={{ 
+              backgroundColor: getMagnitudeColor(notableQuake.magnitude) + '20',
+              border: `2px solid ${getMagnitudeColor(notableQuake.magnitude)}50`,
+            }}
+          >
+            <span 
+              className="text-2xl font-light"
+              style={{ color: getMagnitudeColor(notableQuake.magnitude) }}
+            >
+              {notableQuake.magnitude.toFixed(1)}
+            </span>
+          </div>
+          
+          {/* Details */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {isRecent && (
+                <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Just now
+                </span>
+              )}
+              <span className="text-xs text-neutral-500" suppressHydrationWarning>
+                {formatDistanceToNow(notableQuake.time, { addSuffix: true })}
+              </span>
+              {notableQuake.felt && notableQuake.felt > 0 && (
+                <span className="text-xs text-amber-400">• {notableQuake.felt} felt reports</span>
+              )}
+            </div>
+            <h2 className="text-lg font-semibold text-white truncate group-hover:text-white/90">
+              {locationContext?.formattedLocation || notableQuake.place?.split(',')[0] || 'Bay Area'}
+            </h2>
+            <p className="text-sm text-neutral-500 truncate">
+              {getMagnitudeLabel(notableQuake.magnitude)} earthquake • {notableQuake.place}
+            </p>
+          </div>
+          
+          {/* Arrow */}
+          <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-neutral-400 flex-shrink-0 transition-colors" />
+        </div>
+      </button>
+      
+      {/* Set Your City Widget - Takes 1/3 */}
+      <button
+        onClick={onSetCity}
+        className="card p-5 text-left group transition-all hover:bg-white/[0.03]"
+      >
+        {myCityLoaded && myCity ? (
+          <div className="h-full flex flex-col">
+            <div className="flex items-center gap-2 mb-2">
+              <House className="w-4 h-4 text-neutral-500" />
+              <span className="text-xs text-neutral-500 uppercase tracking-wider">Your City</span>
+              <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Change →</span>
+            </div>
+            <div className="flex-1 flex items-center gap-3">
+              <span className="font-mono text-xl font-bold px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20">
+                {myCity.areaCode || '—'}
+              </span>
+              <div>
+                <div className="font-medium text-white">{myCity.cityName}</div>
+                <div className={`text-sm ${myCityStats?.isElevated ? 'text-amber-400' : 'text-neutral-500'}`}>
+                  {myCityStats?.nearbyThisWeek || 0} quakes nearby
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center gap-3 py-2">
+            <div className="w-14 h-14 rounded-xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center">
+              <House className="w-6 h-6 text-neutral-500" />
+            </div>
+            <div className="text-center">
+              <div className="font-medium text-white">Set Your City</div>
+              <div className="text-xs text-neutral-500">Get personalized alerts</div>
+            </div>
+          </div>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function Dashboard({ historicalSummary, initialTab = 'live', forumCategory, forumThread }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
   const [showQuickReport, setShowQuickReport] = useState(false);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(null);
   
   // Tab is controlled by route props
   const activeTab = initialTab;
@@ -364,6 +579,26 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     return realtimeQuakes.filter(eq => now - eq.timestamp < 24 * 60 * 60 * 1000);
   }, [realtimeQuakes]);
   
+  // Filter earthquakes based on time filter
+  const filteredQuakes = useMemo(() => {
+    if (!timeFilter) return realtimeQuakes;
+    
+    const now = Date.now();
+    switch (timeFilter) {
+      case 'hour':
+        return realtimeQuakes.filter(eq => eq.timestamp > now - 3600000);
+      case '6hours':
+        return realtimeQuakes.filter(eq => eq.timestamp > now - 21600000);
+      case 'today':
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        return realtimeQuakes.filter(eq => eq.timestamp > todayStart.getTime());
+      case 'week':
+      default:
+        return realtimeQuakes;
+    }
+  }, [realtimeQuakes, timeFilter]);
+  
   // Fetch AI summary when elevated activity is detected
   useEffect(() => {
     if (!hotspotRegion.isElevated || aiSummary || isLoadingAiSummary) return;
@@ -444,311 +679,138 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6 space-y-4">
         
-        {/* Hero CTA - Recent Earthquakes (Main Call to Action) */}
         {activeTab === 'live' && (
-          <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 border border-white/10">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-[0.03]">
-              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <defs>
-                  <pattern id="seismic-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <circle cx="10" cy="10" r="1" fill="currentColor"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#seismic-pattern)"/>
-              </svg>
-            </div>
-            
-            <div className="relative p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                {/* Left: Latest Earthquake Info */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  {/* Magnitude Circle - Animated Pulse */}
-                  <div className="relative flex-shrink-0">
-                    <div 
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center font-light text-3xl sm:text-4xl"
-                      style={{ 
-                        backgroundColor: largestRecent ? getMagnitudeColor(largestRecent.magnitude) + '20' : 'rgba(255,255,255,0.1)',
-                        color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : '#888',
-                        border: `2px solid ${largestRecent ? getMagnitudeColor(largestRecent.magnitude) + '40' : 'rgba(255,255,255,0.1)'}`
-                      }}
-                    >
-                      {largestRecent?.magnitude.toFixed(1) || '—'}
-                    </div>
-                    {last24Hours.length > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-neutral-900 animate-pulse" />
-                    )}
+          <>
+            {/* COLLAPSIBLE ALERT BANNER - Collapsed by default */}
+            {hotspotRegion.isElevated && (
+              <CollapsibleAlert
+                hotspotRegion={hotspotRegion}
+                aiSummary={aiSummary}
+                isLoadingAiSummary={isLoadingAiSummary}
+              />
+            )}
+
+            {/* HERO SECTION - Most Recent Notable Earthquake */}
+            <HeroQuake
+              earthquakes={realtimeQuakes}
+              onViewDetails={setDetailEarthquake}
+              myCity={myCity}
+              myCityStats={myCityStats}
+              myCityLoaded={myCityLoaded}
+              onSetCity={() => setShowCitySelector(true)}
+            />
+
+            {/* MAIN CONTENT: Map + Feed Side by Side */}
+            <div className="grid lg:grid-cols-5 gap-4">
+              {/* Map - Takes 3/5 on large screens */}
+              <section className="lg:col-span-3 card overflow-hidden">
+                <div className="p-3 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Map className="w-4 h-4 text-neutral-500" />
+                    <span className="text-sm font-medium">Bay Area • Live</span>
                   </div>
-                  
-                  {/* Text Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-lg sm:text-xl font-semibold text-white">Recent Earthquakes</h2>
-                      <span className="px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
-                        Live
-                      </span>
-                    </div>
-                    <p className="text-sm text-neutral-400 mb-2">
-                      <span className="text-white font-medium">{realtimeQuakes.length}</span> earthquakes in the Bay Area this week
-                      {last24Hours.length > 0 && (
-                        <span> • <span className="text-neutral-300">{last24Hours.length} in last 24h</span></span>
-                      )}
-                    </p>
-                    {largestRecent && (
-                      <p className="text-xs text-neutral-500 truncate">
-                        Largest: M{largestRecent.magnitude.toFixed(1)} {largestRecent.place} • {formatDistanceToNow(largestRecent.time, { addSuffix: true })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Right: CTA Button */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      const feedSection = document.getElementById('earthquake-feed');
-                      if (feedSection) {
-                        feedSection.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-black font-semibold rounded-xl hover:bg-neutral-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Activity className="w-4 h-4" />
-                    View All Quakes
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <a
+                  <a 
                     href="https://earthquake.usgs.gov/earthquakes/map/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 rounded-xl border border-white/10 transition-colors"
+                    className="text-xs text-neutral-500 hover:text-white flex items-center gap-1"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    USGS
+                    USGS <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
-              </div>
-            </div>
-          </section>
-        )}
-        
-        {/* Alert Banner - Show if elevated activity in any region */}
-        {hotspotRegion.isElevated && (
-          <div className={`rounded-xl p-4 flex items-start gap-4 animate-slide-up border ${
-            hotspotRegion.multiplier >= 5 
-              ? 'border-red-500/40 bg-red-500/10' 
-              : hotspotRegion.multiplier >= 3 
-                ? 'border-orange-500/40 bg-orange-500/10' 
-                : 'border-yellow-500/40 bg-yellow-500/10'
-          }`}>
-            <div className={`p-2 rounded-lg ${
-              hotspotRegion.multiplier >= 5 
-                ? 'bg-red-500/20' 
-                : hotspotRegion.multiplier >= 3 
-                  ? 'bg-orange-500/20' 
-                  : 'bg-yellow-500/20'
-            }`}>
-              <AlertTriangle className={`w-5 h-5 ${
-                hotspotRegion.multiplier >= 5 
-                  ? 'text-red-400' 
-                  : hotspotRegion.multiplier >= 3 
-                    ? 'text-orange-400' 
-                    : 'text-yellow-400'
-              }`} />
-            </div>
-            <div className="flex-1">
-              <h3 className={`font-semibold ${
-                hotspotRegion.multiplier >= 5 
-                  ? 'text-red-300' 
-                  : hotspotRegion.multiplier >= 3 
-                    ? 'text-orange-300' 
-                    : 'text-yellow-300'
-              }`}>
-                Elevated Seismic Activity
-              </h3>
-              {isLoadingAiSummary ? (
-                <div className="mt-2 space-y-2">
-                  <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
-                  <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse" />
-                  <div className="h-4 w-5/6 bg-white/10 rounded animate-pulse" />
-                </div>
-              ) : aiSummary ? (
-                <div className="text-sm text-neutral-300 mt-1 space-y-2">
-                  <p>{aiSummary}</p>
-                  <p className="text-neutral-400">
-                    <Link 
-                      href="/history"
-                      className={`hover:underline underline-offset-2 ${
-                        hotspotRegion.multiplier >= 5 
-                          ? 'text-red-400 hover:text-red-300' 
-                          : hotspotRegion.multiplier >= 3 
-                            ? 'text-orange-400 hover:text-orange-300' 
-                            : 'text-yellow-400 hover:text-yellow-300'
-                      }`}
-                    >
-                      View Historical Analysis →
-                    </Link>
-                    <span className="mx-2">•</span>
-                    <Link 
-                      href="/learn"
-                      className={`hover:underline underline-offset-2 ${
-                        hotspotRegion.multiplier >= 5 
-                          ? 'text-red-400 hover:text-red-300' 
-                          : hotspotRegion.multiplier >= 3 
-                            ? 'text-orange-400 hover:text-orange-300' 
-                            : 'text-yellow-400 hover:text-yellow-300'
-                      }`}
-                    >
-                      Learn About Swarms →
-                    </Link>
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-neutral-300 mt-1">
-                  {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical weekly earthquake rate
-                  with {hotspotRegion.count} earthquakes this week.
-                  {hotspotRegion.region?.faultLine && ` Activity is centered along the ${hotspotRegion.region.faultLine}. `}
-                  Similar swarm events have occurred many times before in this region.{' '}
-                  <Link 
-                    href="/history"
-                    className={`hover:underline underline-offset-2 ${
-                      hotspotRegion.multiplier >= 5 
-                        ? 'text-red-400 hover:text-red-300' 
-                        : hotspotRegion.multiplier >= 3 
-                          ? 'text-orange-400 hover:text-orange-300' 
-                          : 'text-yellow-400 hover:text-yellow-300'
-                    }`}
-                  >
-                    Explore past events
-                  </Link>
-                  {' '}or{' '}
-                  <Link 
-                    href="/learn"
-                    className={`hover:underline underline-offset-2 ${
-                      hotspotRegion.multiplier >= 5 
-                        ? 'text-red-400 hover:text-red-300' 
-                        : hotspotRegion.multiplier >= 3 
-                          ? 'text-orange-400 hover:text-orange-300' 
-                          : 'text-yellow-400 hover:text-yellow-300'
-                    }`}
-                  >
-                    learn about swarms
-                  </Link>.
-                </p>
-              )}
-            </div>
-            <a 
-              href="https://earthquake.usgs.gov/earthquakes/eventpage/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-neutral-400 hover:text-white text-sm flex items-center gap-1 flex-shrink-0"
-            >
-              USGS <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        )}
+                <LeafletMap 
+                  earthquakes={realtimeQuakes}
+                  selectedEarthquake={selectedEarthquake}
+                  onSelectEarthquake={setSelectedEarthquake}
+                  className="min-h-[400px] lg:min-h-[500px]"
+                />
+              </section>
 
-        {activeTab === 'live' && (
-          <>
-            {/* Key Stats - Row 1 */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard
-                label="This Week"
-                value={realtimeQuakes.length}
-                subtext="earthquakes in Bay Area"
-                icon={<Activity className="w-4 h-4" />}
-                trend={activityTrend}
-              />
-              <StatCard
-                label="In Last 24h"
-                value={last24Hours.length}
-                subtext="recent activity"
-                icon={<Clock className="w-4 h-4" />}
-              />
-              <StatCard
-                label="Largest"
-                value={largestRecent?.magnitude.toFixed(1) || '—'}
-                subtext={largestRecent ? getMagnitudeLabel(largestRecent.magnitude) : 'No data'}
-                icon={<Zap className="w-4 h-4" />}
-                highlight={Boolean(largestRecent && largestRecent.magnitude >= 3)}
-              />
-              <StatCard
-                label="Hotspot"
-                value={hotspotRegion.count}
-                subtext={hotspotRegion.region?.name.split('/')[0].trim() || 'Most active'}
-                icon={<Flame className="w-4 h-4" />}
-                highlight={hotspotRegion.isElevated}
-                regionColor={hotspotRegion.region?.color}
-              />
-            </div>
-            
-            {/* Key Stats - Row 2 */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <StatCard
-                label="M3+ Events"
-                value={m3PlusCount}
-                subtext="significant quakes"
-                icon={<Target className="w-4 h-4" />}
-                highlight={m3PlusCount >= 3}
-              />
-              <StatCard
-                label="Avg Depth"
-                value={formatDepth(avgDepth)}
-                subtext={getDepthDescription(avgDepth)}
-                icon={<Layers className="w-4 h-4" />}
-              />
-              <StatCard
-                label="Strongest Today"
-                value={strongestToday?.magnitude.toFixed(1) || '—'}
-                subtext={strongestToday ? formatDistanceToNow(strongestToday.time, { addSuffix: true }) : 'None yet'}
-                icon={<Sparkles className="w-4 h-4" />}
-              />
-              {/* Configurable My City Widget - Made Prominent */}
-              {(() => {
-                // Look up area code from available cities (handles legacy stored data without areaCode)
-                const cityAreaCode = myCity?.areaCode || availableCities.find(c => c.name === myCity?.cityName)?.areaCode || '';
+              {/* Feed - Takes 2/5 on large screens */}
+              <section id="earthquake-feed" className="lg:col-span-2 card p-0 flex flex-col max-h-[560px]">
+                <div className="p-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-neutral-500" />
+                    <span className="text-sm font-medium">Recent Quakes</span>
+                    <span className="text-xs text-neutral-500">{realtimeQuakes.length} this week</span>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    {last24Hours.length} in 24h
+                  </span>
+                </div>
                 
-                return (
-                  <button
-                    onClick={() => setShowCitySelector(true)}
-                    className={`card p-4 w-full h-full text-left group relative overflow-hidden transition-all hover:bg-white/[0.04] ${
-                      myCityLoaded && myCity && myCityStats?.isElevated ? 'border-white/20 bg-white/[0.04]' : ''
-                    }`}
-                  >
-                    {myCityLoaded && myCity ? (
-                      <>
-                        {/* Area Code Badge - Large and Prominent */}
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="font-mono text-lg font-bold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/20">
-                            {cityAreaCode}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs uppercase tracking-wider text-neutral-400 truncate">{myCity.cityName}</div>
-                            <div className="text-[10px] text-neutral-600">Your City</div>
-                          </div>
-                          <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">Change ›</span>
-                        </div>
-                        <div className={`text-3xl font-light ${myCityStats?.isElevated ? 'text-white' : ''}`}>
-                          {myCityStats?.nearbyThisWeek || 0}
-                        </div>
-                        <div className="text-xs text-neutral-500 mt-1">
-                          {myCityStats?.isElevated ? 'Elevated activity' : 'quakes nearby'}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full gap-2 py-2">
-                        <div className="w-12 h-12 rounded-lg bg-white/10 border border-dashed border-white/30 flex items-center justify-center">
-                          <House className="w-6 h-6 text-neutral-400" />
-                        </div>
-                        <span className="text-sm font-medium text-neutral-300">Select Your City</span>
-                        <span className="text-xs text-neutral-500">Tap to personalize</span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })()}
+                <div className="flex-1 overflow-y-auto scrollbar-thin">
+                  {isLoading ? (
+                    <div className="p-4 space-y-3">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="h-16 skeleton rounded-lg" />
+                      ))}
+                    </div>
+                  ) : realtimeQuakes.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+                      No earthquakes recorded this week
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {deduplicateEarthquakes(realtimeQuakes.slice(0, 20)).map((eq, i) => (
+                        <CompactEarthquakeRow 
+                          key={eq.id} 
+                          earthquake={eq} 
+                          isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
+                          isSelected={selectedEarthquake?.id === eq.id}
+                          onClick={() => {
+                            setSelectedEarthquake(eq);
+                            setDetailEarthquake(eq);
+                          }}
+                        />
+                      ))}
+                      {realtimeQuakes.length > 20 && (
+                        <button 
+                          onClick={() => setShowAllQuakes(true)}
+                          className="w-full py-3 text-xs text-neutral-500 hover:text-white transition-colors"
+                        >
+                          View all {realtimeQuakes.length} earthquakes →
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {/* COMPACT STATS BAR */}
+            <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/5 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
+                <Activity className="w-3.5 h-3.5 text-neutral-500" />
+                <span className="text-sm font-medium">{realtimeQuakes.length}</span>
+                <span className="text-xs text-neutral-500">week</span>
+              </div>
+              <div className="w-px h-6 bg-white/10 flex-shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
+                <Clock className="w-3.5 h-3.5 text-neutral-500" />
+                <span className="text-sm font-medium">{last24Hours.length}</span>
+                <span className="text-xs text-neutral-500">24h</span>
+              </div>
+              <div className="w-px h-6 bg-white/10 flex-shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-lg flex-shrink-0">
+                <Zap className="w-3.5 h-3.5 text-neutral-500" />
+                <span className="text-sm font-medium" style={{ color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : undefined }}>
+                  M{largestRecent?.magnitude.toFixed(1) || '—'}
+                </span>
+                <span className="text-xs text-neutral-500">largest</span>
+              </div>
+              <div className="flex-1" />
+              <a 
+                href="https://earthquake.usgs.gov/earthquakes/eventpage/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-500 hover:text-white transition-colors flex-shrink-0"
+              >
+                USGS Data <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
             
             {/* City Selector Modal */}
@@ -849,94 +911,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </div>
             )}
 
-            {/* Ad Banner - Between stats and map */}
-            <AdBanner 
-              slot="YOUR_AD_SLOT_1" 
-              format="auto" 
-              className="rounded-xl"
-            />
-
-            {/* Map Section */}
-            <section className="card overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-white/5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold">Live Earthquake Map</h2>
-                    <p className="text-sm text-neutral-500 mt-0.5">San Francisco Bay Area • Last 7 days</p>
-                  </div>
-                  <a 
-                    href="https://earthquake.usgs.gov/earthquakes/map/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-neutral-400 hover:text-white flex items-center gap-1"
-                  >
-                    Full USGS Map <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-              <LeafletMap 
-                earthquakes={realtimeQuakes}
-                selectedEarthquake={selectedEarthquake}
-                onSelectEarthquake={setSelectedEarthquake}
-                className="min-h-[450px]"
-              />
-            </section>
-
-            {/* Active Discussions Widget - Community Highlight */}
+            {/* Active Discussions Widget */}
             <ActiveDiscussionsWidget />
-
-            {/* Recent Activity Feed - Primary Content */}
-            <section id="earthquake-feed" className="scroll-mt-32">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-neutral-400" />
-                    Earthquake Feed
-                  </h2>
-                  <p className="text-sm text-neutral-500 mt-0.5">All seismic activity in the Bay Area</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white/5 rounded-full border border-white/10">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    {last24Hours.length} in 24h
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-20 skeleton rounded-xl" />
-                  ))
-                ) : realtimeQuakes.length === 0 ? (
-                  <div className="text-center py-12 text-neutral-500">
-                    No earthquakes recorded this week
-                  </div>
-                ) : (
-                  <>
-                    {deduplicateEarthquakes(showAllQuakes ? realtimeQuakes : realtimeQuakes.slice(0, 10)).map((eq, i) => (
-                      <EarthquakeRow 
-                        key={`${eq.id}-${i}`} 
-                        earthquake={eq} 
-                        isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
-                        isSelected={selectedEarthquake?.id === eq.id}
-                        onClick={() => setDetailEarthquake(eq)}
-                        onMapSelect={() => setSelectedEarthquake(selectedEarthquake?.id === eq.id ? null : eq)}
-                      />
-                    ))}
-                    {realtimeQuakes.length > 10 && !showAllQuakes && (
-                      <button 
-                        onClick={() => setShowAllQuakes(true)}
-                        className="w-full py-3 text-sm text-neutral-400 hover:text-white transition-colors flex items-center justify-center gap-2"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                        Show {realtimeQuakes.length - 10} more
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
           </>
         )}
 
@@ -1928,6 +1904,58 @@ function LearnSection() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Compact earthquake row for side-by-side layout
+function CompactEarthquakeRow({ 
+  earthquake, 
+  isNew,
+  isSelected,
+  onClick,
+}: { 
+  earthquake: Earthquake; 
+  isNew?: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
+}) {
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
+  
+  return (
+    <button 
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors
+        ${isNew ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}
+        ${isSelected ? 'bg-white/[0.06]' : ''}`}
+      onClick={onClick}
+    >
+      {/* Magnitude */}
+      <div 
+        className="text-lg font-light tabular-nums w-10 text-center flex-shrink-0"
+        style={{ color: getMagnitudeColor(earthquake.magnitude) }}
+      >
+        {earthquake.magnitude.toFixed(1)}
+      </div>
+
+      {/* Details */}
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-white truncate">
+          {locationContext.formattedLocation || earthquake.place?.split(',')[0] || 'Bay Area'}
+        </div>
+        <div className="text-xs text-neutral-500 flex items-center gap-2">
+          <span suppressHydrationWarning>
+            {formatDistanceToNow(earthquake.time, { addSuffix: true })}
+          </span>
+          {earthquake.felt && earthquake.felt > 0 && (
+            <span className="text-amber-500/80">• {earthquake.felt} felt</span>
+          )}
+        </div>
+      </div>
+
+      {/* New indicator */}
+      {isNew && (
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+      )}
+    </button>
   );
 }
 
