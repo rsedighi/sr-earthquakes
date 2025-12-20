@@ -762,7 +762,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   }, [hotspotRegion.isElevated, hotspotRegion.regionId, hotspotRegion.count, hotspotRegion.multiplier, largestRecent?.magnitude, realtimeQuakes, currentSwarm, aiSummary, isLoadingAiSummary]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
@@ -776,7 +776,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </div>
               <div className="min-w-0">
                 <h1 className="font-semibold text-sm sm:text-lg truncate">Bay Area Quake Tracker</h1>
-                <p className="text-[10px] sm:text-xs text-neutral-500 truncate hidden xs:block">Live earthquake monitoring for the SF Bay Area</p>
+                <p className="text-[10px] sm:text-xs text-neutral-500 truncate">Live earthquake monitoring for the SF Bay Area</p>
               </div>
             </div>
             
@@ -806,7 +806,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 md:pb-6 space-y-3 sm:space-y-4 overflow-x-hidden">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 md:pb-6 space-y-3 sm:space-y-4">
         
         {activeTab === 'live' && (
           <>
