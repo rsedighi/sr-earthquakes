@@ -72,11 +72,13 @@ export function useRealtimeEarthquakes({
     setError(null);
 
     try {
-      // Add cache-busting for real-time data
-      const response = await fetch(`/api/earthquakes?feed=${feed}`, {
+      // Add cache-busting for real-time data with timestamp
+      const timestamp = Date.now();
+      const response = await fetch(`/api/earthquakes?feed=${feed}&_=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
         },
       });
       

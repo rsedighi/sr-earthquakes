@@ -58,7 +58,15 @@ export function useHistoricalEarthquakes({
         felt: feltOnly.toString(),
       });
 
-      const response = await fetch(`/api/earthquakes/historical?${params}`);
+      // Add cache-busting timestamp
+      params.set('_', Date.now().toString());
+      const response = await fetch(`/api/earthquakes/historical?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch recent earthquake data');

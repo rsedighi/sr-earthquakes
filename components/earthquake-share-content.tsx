@@ -450,6 +450,26 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
             earthquakeId={earthquake.id}
             earthquakePlace={earthquake.place}
           />
+          
+          {/* Forum Discussion Link */}
+          <div className="mt-4 p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-5 h-5 text-purple-400" />
+                <div>
+                  <p className="text-sm font-medium text-white">Join the Forum Discussion</p>
+                  <p className="text-xs text-neutral-400">Extended discussion with the community</p>
+                </div>
+              </div>
+              <Link
+                href={`/?tab=community`}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors text-sm font-medium"
+              >
+                Open Forum
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
         </div>
         
         {/* What This Means Section */}
