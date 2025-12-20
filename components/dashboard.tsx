@@ -154,7 +154,31 @@ function deduplicateEarthquakes(earthquakes: Earthquake[]): Earthquake[] {
   return result;
 }
 
-// Collapsible Alert Banner - Collapsed by default
+// Parse AI summary into structured sections
+function parseAiSummary(summary: string): { headline: string; details: string; context: string } | null {
+  if (!summary) return null;
+  
+  // Split by sentences (handling multiple punctuation patterns)
+  const sentences = summary
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  
+  if (sentences.length === 0) return null;
+  
+  // First sentence is the headline (current situation)
+  const headline = sentences[0] || '';
+  
+  // Middle sentences are details (historical context)
+  const details = sentences.slice(1, -1).join(' ');
+  
+  // Last sentence is context/call-to-action
+  const context = sentences.length > 1 ? sentences[sentences.length - 1] : '';
+  
+  return { headline, details, context };
+}
+
+// Collapsible Alert Banner - Collapsed by default, with structured AI summary
 function CollapsibleAlert({
   hotspotRegion,
   aiSummary,
@@ -176,6 +200,9 @@ function CollapsibleAlert({
     : hotspotRegion.multiplier >= 3 
       ? 'orange' 
       : 'yellow';
+  
+  // Parse summary into sections
+  const parsedSummary = useMemo(() => parseAiSummary(aiSummary || ''), [aiSummary]);
   
   return (
     <div className={`rounded-xl border overflow-hidden ${
@@ -201,41 +228,138 @@ function CollapsibleAlert({
           {hotspotRegion.multiplier.toFixed(0)}× typical
         </span>
         <div className="flex-1" />
+        <span className="text-xs text-neutral-500 hidden sm:inline">
+          {isExpanded ? 'Hide details' : 'View AI summary'}
+        </span>
         <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
       </button>
       
       {/* Expandable content */}
-      <div className={`grid transition-all duration-200 ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+      <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 border-t border-white/5 pt-3">
+          <div className="px-4 pb-4 border-t border-white/5 pt-4 space-y-3">
             {isLoadingAiSummary ? (
-              <div className="space-y-2">
-                <div className="h-4 w-full bg-white/10 rounded animate-pulse" />
-                <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse" />
+              // Structured skeleton loader matching final layout
+              <div className="space-y-3 animate-pulse">
+                {/* Headline skeleton */}
+                <div className="flex items-start gap-3 p-3 bg-white/[0.03] rounded-lg border border-white/5">
+                  <div className="w-5 h-5 rounded bg-amber-500/20 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-full bg-white/10 rounded" />
+                    <div className="h-4 w-2/3 bg-white/10 rounded" />
+                  </div>
+                </div>
+                
+                {/* Details skeleton */}
+                <div className="flex items-start gap-3 p-3 bg-white/[0.03] rounded-lg border border-white/5">
+                  <div className="w-5 h-5 rounded bg-blue-500/20 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-full bg-white/10 rounded" />
+                    <div className="h-4 w-5/6 bg-white/10 rounded" />
+                    <div className="h-4 w-3/4 bg-white/10 rounded" />
+                  </div>
+                </div>
+                
+                {/* Context skeleton */}
+                <div className="flex items-start gap-3 p-3 bg-white/[0.03] rounded-lg border border-white/5">
+                  <div className="w-5 h-5 rounded bg-neutral-500/20 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-full bg-white/10 rounded" />
+                    <div className="h-4 w-1/2 bg-white/10 rounded" />
+                  </div>
+                </div>
               </div>
-            ) : aiSummary ? (
-              <p className="text-sm text-neutral-300">{aiSummary}</p>
+            ) : parsedSummary ? (
+              // Structured summary with visual hierarchy
+              <div className="space-y-3">
+                {/* Headline - Current Situation (most prominent) */}
+                <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+                  severityColor === 'red' 
+                    ? 'bg-red-500/10 border-red-500/20' 
+                    : severityColor === 'orange' 
+                      ? 'bg-orange-500/10 border-orange-500/20' 
+                      : 'bg-amber-500/10 border-amber-500/20'
+                }`}>
+                  <Activity className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                    severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-amber-400'
+                  }`} />
+                  <p className={`text-sm leading-relaxed font-medium ${
+                    severityColor === 'red' ? 'text-red-100' : severityColor === 'orange' ? 'text-orange-100' : 'text-amber-100'
+                  }`}>
+                    {parsedSummary.headline}
+                  </p>
+                </div>
+                
+                {/* Details - Historical Context (informative) */}
+                {parsedSummary.details && (
+                  <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-lg border border-blue-500/15">
+                    <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-100/90 leading-relaxed">
+                      {parsedSummary.details}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Context - Call to Action (helpful) */}
+                {parsedSummary.context && (
+                  <div className="flex items-start gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                    <Sparkles className="w-5 h-5 text-neutral-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-neutral-300/90 leading-relaxed">
+                      {parsedSummary.context}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
-              <p className="text-sm text-neutral-400">
-                {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical earthquake rate with {hotspotRegion.count} earthquakes this week.
-              </p>
+              // Fallback when no AI summary available
+              <div className="space-y-3">
+                <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+                  severityColor === 'red' 
+                    ? 'bg-red-500/10 border-red-500/20' 
+                    : severityColor === 'orange' 
+                      ? 'bg-orange-500/10 border-orange-500/20' 
+                      : 'bg-amber-500/10 border-amber-500/20'
+                }`}>
+                  <Activity className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                    severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-amber-400'
+                  }`} />
+                  <p className={`text-sm leading-relaxed ${
+                    severityColor === 'red' ? 'text-red-100' : severityColor === 'orange' ? 'text-orange-100' : 'text-amber-100'
+                  }`}>
+                    {hotspotRegion.region?.name || 'The Bay Area'} is experiencing {hotspotRegion.multiplier.toFixed(1)}× the typical earthquake rate with {hotspotRegion.count} earthquakes this week.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                  <Info className="w-5 h-5 text-neutral-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-neutral-300/90 leading-relaxed">
+                    This type of elevated activity is common along the {hotspotRegion.region?.faultLine || 'local fault system'}. Similar patterns have occurred many times in the past 15 years without producing damaging earthquakes.
+                  </p>
+                </div>
+              </div>
             )}
-            <div className="flex items-center gap-4 mt-3">
+            
+            {/* Quick links */}
+            <div className="flex items-center gap-3 pt-2">
               <Link 
                 href="/history"
-                className={`text-xs hover:underline ${
-                  severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
+                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                  severityColor === 'red' 
+                    ? 'bg-red-500/10 text-red-300 hover:bg-red-500/20' 
+                    : severityColor === 'orange' 
+                      ? 'bg-orange-500/10 text-orange-300 hover:bg-orange-500/20' 
+                      : 'bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
                 }`}
               >
-                View Historical Analysis →
+                <BarChart3 className="w-3 h-3" />
+                Historical Analysis
               </Link>
               <Link 
                 href="/learn"
-                className={`text-xs hover:underline ${
-                  severityColor === 'red' ? 'text-red-400' : severityColor === 'orange' ? 'text-orange-400' : 'text-yellow-400'
-                }`}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-neutral-300 hover:bg-white/10 transition-colors"
               >
-                Learn About Swarms →
+                <HelpCircle className="w-3 h-3" />
+                Learn About Swarms
               </Link>
             </div>
           </div>

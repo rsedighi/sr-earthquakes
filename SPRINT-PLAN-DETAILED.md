@@ -1868,15 +1868,28 @@ export function TabNavigation({ activeTab }: TabNavigationProps) {
 
 ---
 
-## 2.3 — Fix AI Summary Loading State
+## 2.3 — Fix AI Summary Loading State ✅ COMPLETED
 
-**Issue:** 2-3 second delay with no visual placeholder, text is a blob  
-**Files to Modify:**
-- `components/dashboard/components/ai-summary.tsx` (new)
-- New component to replace inline AI summary
+**Issue:** 2-3 second delay with no visual placeholder, text is a blob of text people gloss over. if you check the site constantly, it's not clear if the text is new info, or old info.  
+**Files Modified:**
+- `components/dashboard.tsx` (updated CollapsibleAlert component inline)
 
 **Priority:** 🟡 Medium  
-**Estimate:** 2 story points
+**Estimate:** 2 story points  
+**Status:** ✅ COMPLETED December 20, 2025
+
+### Actual Implementation (December 20, 2025)
+
+Instead of creating a separate component, we improved the existing `CollapsibleAlert` inline in `dashboard.tsx`:
+
+**Key Changes:**
+1. **Structured skeleton loader** - 3-section skeleton that matches the final layout
+2. **Summary parsing** - New `parseAiSummary()` function splits AI text into headline/details/context
+3. **Visual hierarchy** - Each section has distinct styling:
+   - **Headline** (Activity icon) - Severity-colored background, describes current situation
+   - **Details** (Info icon) - Blue background, historical context
+   - **Context** (Sparkles icon) - Neutral background, call-to-action
+4. **Better quick links** - Pill-style buttons instead of plain text links
 
 ### Implementation
 
@@ -2066,7 +2079,7 @@ export function AISummary({ earthquakes, className = '' }: AISummaryProps) {
 ### Acceptance Criteria
 
 - [ ] Skeleton loader appears immediately when loading
-- [ ] No layout shift when content loads
+- [ ] No layout shift when content loads (stays collapsed but with Call to action to click to learn more)
 - [ ] Summary is structured with visual hierarchy (icons, colors)
 - [ ] Each piece of info is clearly separated
 - [ ] Collapsible to reduce clutter
@@ -2186,7 +2199,10 @@ Files that may be unused after refactor (kept inline in dashboard.tsx instead):
   - Map + Feed side-by-side layout
   - Full stats grid (7 widgets) below map
   - Set Your City integrated in hero
-- ⏳ AI Summary visual improvements - partial (structured in collapsible)
+- ✅ **AI Summary visual improvements COMPLETED** - December 20, 2025
+  - Structured skeleton loader (3 sections)
+  - Summary parsing into headline/details/context
+  - Visual hierarchy with icons and color-coded sections
 - ✅ City selector improvements - integrated in hero section
 
 **Files created during iteration (may need cleanup):**
@@ -2260,5 +2276,5 @@ For non-critical time displays, you can use `suppressHydrationWarning`:
 
 ---
 
-*Last updated: December 20, 2025 (Sprint 2.1 Progressive Disclosure completed)*
+*Last updated: December 20, 2025 (Sprint 2.3 AI Summary Loading State completed)*
 
