@@ -31,6 +31,7 @@ import {
   FileText,
   Globe,
   MessageCircle,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -542,6 +543,31 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
       };
     }
   }, [showCitySelector]);
+
+  // Lock body scroll when all quakes modal is open and handle escape key
+  useEffect(() => {
+    if (showAllQuakes) {
+      const scrollY = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${scrollY}px`;
+      
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setShowAllQuakes(false);
+      };
+      document.addEventListener('keydown', handleEscape);
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [showAllQuakes]);
   
   // Historical earthquakes loaded on-demand (lazy loading)
   const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);
@@ -879,10 +905,20 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                     <span className="text-xs sm:text-sm font-medium truncate">Recent Quakes</span>
                     <span className="text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">{realtimeQuakes.length}</span>
                   </div>
-                  <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    {last24Hours.length} in 24h
-                  </span>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      {last24Hours.length} in 24h
+                    </span>
+                    {realtimeQuakes.length > 20 && (
+                      <button
+                        onClick={() => setShowAllQuakes(true)}
+                        className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                      >
+                        View All
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto scrollbar-thin">
@@ -1369,6 +1405,62 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           breadcrumb="Recent Earthquakes"
           allEarthquakes={allHistoricalQuakes}
         />
+      )}
+
+      {/* All Earthquakes Modal */}
+      {showAllQuakes && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowAllQuakes(false)}
+        >
+          <div 
+            className="bg-neutral-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Activity className="w-5 h-5 text-neutral-400" />
+                <div>
+                  <h3 className="text-lg font-semibold">All Earthquakes</h3>
+                  <p className="text-sm text-neutral-500">{realtimeQuakes.length} earthquakes this week</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAllQuakes(false)}
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Earthquake List */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <div className="divide-y divide-white/5">
+                {deduplicateEarthquakes(realtimeQuakes).map((eq, i) => (
+                  <CompactEarthquakeRow 
+                    key={eq.id} 
+                    earthquake={eq} 
+                    isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
+                    isSelected={selectedEarthquake?.id === eq.id}
+                    onClick={() => {
+                      setSelectedEarthquake(eq);
+                      setDetailEarthquake(eq);
+                      setShowAllQuakes(false);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-white/10 flex-shrink-0">
+              <p className="text-xs text-neutral-500 text-center">
+                Data from USGS • Updated every 10 seconds
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
