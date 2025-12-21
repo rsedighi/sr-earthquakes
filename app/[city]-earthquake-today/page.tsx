@@ -48,7 +48,8 @@ interface CityTodayPageProps {
 }
 
 // Extract city name from slug like "san-francisco-earthquake-today" -> "san-francisco"
-function extractCitySlug(fullSlug: string): string | null {
+function extractCitySlug(fullSlug: string | undefined): string | null {
+  if (!fullSlug) return null;
   const match = fullSlug.match(/^(.+)-earthquake-today$/);
   return match ? match[1] : null;
 }
@@ -96,7 +97,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: CityTodayPageProps): Promise<Metadata> {
-  const { city: fullSlug } = await params;
+  const resolvedParams = await params;
+  const fullSlug = resolvedParams?.city;
   const citySlug = extractCitySlug(fullSlug);
   
   if (!citySlug || !CITY_SLUGS.includes(citySlug)) {
@@ -144,7 +146,8 @@ export async function generateMetadata({ params }: CityTodayPageProps): Promise<
 }
 
 export default async function CityEarthquakeTodayPage({ params }: CityTodayPageProps) {
-  const { city: fullSlug } = await params;
+  const resolvedParams = await params;
+  const fullSlug = resolvedParams?.city;
   const citySlug = extractCitySlug(fullSlug);
   
   if (!citySlug || !CITY_SLUGS.includes(citySlug)) {
