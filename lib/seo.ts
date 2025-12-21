@@ -130,46 +130,134 @@ export function generateEarthquakeArticleSchema(earthquake: {
   timestamp: number;
   depth: number;
   region: string;
+  felt?: number | null;
+  latitude?: number;
+  longitude?: number;
 }) {
   const date = new Date(earthquake.timestamp);
   const regionInfo = REGIONS.find(r => r.id === earthquake.region);
+  const location = earthquake.place.split(',')[0] || regionInfo?.name || 'Bay Area';
+  
+  // Generate breaking headline based on magnitude
+  let headline: string;
+  if (earthquake.magnitude >= 5.0) {
+    headline = `BREAKING: M${earthquake.magnitude.toFixed(1)} Earthquake Shakes ${location}, California`;
+  } else if (earthquake.magnitude >= 4.0) {
+    headline = `M${earthquake.magnitude.toFixed(1)} Earthquake Strikes ${location}, California - Felt Across Bay Area`;
+  } else if (earthquake.magnitude >= 3.0) {
+    headline = `M${earthquake.magnitude.toFixed(1)} Earthquake Recorded Near ${location} - Did You Feel It?`;
+  } else {
+    headline = `M${earthquake.magnitude.toFixed(1)} Earthquake ${earthquake.place}`;
+  }
+  
+  // Generate rich description
+  const feltText = earthquake.felt ? ` Felt by ${earthquake.felt} people.` : '';
+  const description = `A magnitude ${earthquake.magnitude.toFixed(1)} earthquake was recorded ${earthquake.place} at ${earthquake.depth.toFixed(1)}km depth on ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.${feltText} View seismic data, location map, and community reports.`;
   
   return {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
-    headline: `M${earthquake.magnitude.toFixed(1)} Earthquake Strikes ${earthquake.place}`,
-    description: `A magnitude ${earthquake.magnitude.toFixed(1)} earthquake was recorded ${earthquake.place} at ${earthquake.depth.toFixed(1)}km depth. View details, location, and analysis.`,
-    image: `${baseUrl}/earthquake/${earthquake.id}/opengraph-image`,
+    '@id': `${baseUrl}/earthquake/${earthquake.id}#article`,
+    headline,
+    alternativeHeadline: `M${earthquake.magnitude.toFixed(1)} Earthquake ${earthquake.place}`,
+    description,
+    articleBody: `A ${earthquake.magnitude >= 3.0 ? 'notable' : 'minor'} magnitude ${earthquake.magnitude.toFixed(1)} earthquake occurred ${earthquake.place} at a depth of ${earthquake.depth.toFixed(1)} kilometers. The earthquake was recorded by the USGS seismic network.${feltText}${regionInfo ? ` This event occurred in the ${regionInfo.name} region along the ${regionInfo.faultLine}.` : ''}`,
+    image: {
+      '@type': 'ImageObject',
+      url: `${baseUrl}/earthquake/${earthquake.id}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     datePublished: date.toISOString(),
     dateModified: new Date().toISOString(),
     author: {
       '@type': 'Organization',
       name: 'Bay Tremor',
       url: baseUrl,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/android-chrome-512x512.png`,
+      },
     },
     publisher: {
       '@type': 'Organization',
       name: 'Bay Tremor',
+      url: baseUrl,
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `${baseUrl}/earthquake/${earthquake.id}`,
     },
+    isAccessibleForFree: true,
+    inLanguage: 'en-US',
+    copyrightYear: new Date().getFullYear(),
+    copyrightHolder: {
+      '@type': 'Organization',
+      name: 'Bay Tremor',
+    },
+    // Speakable specification for Google Assistant
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['.earthquake-headline', '.earthquake-summary', 'h1'],
+    },
+    // Geographic targeting
+    contentLocation: earthquake.latitude && earthquake.longitude ? {
+      '@type': 'Place',
+      name: earthquake.place,
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: earthquake.latitude,
+        longitude: earthquake.longitude,
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressRegion: 'California',
+        addressCountry: 'US',
+      },
+    } : undefined,
+    // Keywords for discoverability
     keywords: [
       'earthquake',
+      'earthquake today',
+      'bay area earthquake',
       earthquake.place,
+      location,
       regionInfo?.name || '',
-      regionInfo?.county || '',
-      'California',
+      regionInfo?.county ? `${regionInfo.county} County earthquake` : '',
+      regionInfo?.faultLine || '',
+      'California earthquake',
       'seismic activity',
-      'Bay Area',
       `magnitude ${earthquake.magnitude.toFixed(1)}`,
-    ].filter(Boolean),
+      'USGS earthquake',
+      'did you feel it',
+    ].filter(Boolean).join(', '),
+    // Article section for categorization
+    articleSection: 'Earthquake News',
+    // Word count estimate
+    wordCount: 150,
   };
+}
+
+// Generate breaking news headline for social sharing
+export function generateEarthquakeHeadline(magnitude: number, place: string): string {
+  const location = place.split(',')[0] || 'Bay Area';
+  
+  if (magnitude >= 5.0) {
+    return `🚨 BREAKING: M${magnitude.toFixed(1)} Earthquake Shakes ${location}`;
+  } else if (magnitude >= 4.0) {
+    return `⚠️ M${magnitude.toFixed(1)} Earthquake Strikes Near ${location}`;
+  } else if (magnitude >= 3.0) {
+    return `M${magnitude.toFixed(1)} Earthquake Near ${location} - Did You Feel It?`;
+  } else if (magnitude >= 2.5) {
+    return `Minor M${magnitude.toFixed(1)} Earthquake Detected Near ${location}`;
+  }
+  return `M${magnitude.toFixed(1)} Earthquake Near ${location}`;
 }
 
 // LocalBusiness Schema for regional pages

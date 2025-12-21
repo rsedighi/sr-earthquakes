@@ -16,12 +16,20 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/'],
       },
       {
+        userAgent: 'Googlebot-News',
+        allow: '/',
+        disallow: ['/api/'],
+      },
+      {
         userAgent: 'Bingbot',
         allow: '/',
         disallow: ['/api/'],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: [
+      `${baseUrl}/sitemap.xml`,
+      `${baseUrl}/news-sitemap.xml`,
+    ],
     host: baseUrl,
   };
 }

@@ -205,6 +205,9 @@ export default async function EarthquakePage({
     timestamp: earthquake.timestamp,
     depth: earthquake.depth,
     region: earthquake.region,
+    felt: earthquake.felt,
+    latitude: earthquake.latitude,
+    longitude: earthquake.longitude,
   });
   
   const breadcrumbSchema = generateBreadcrumbSchema([
