@@ -6,6 +6,7 @@ import { Earthquake } from '@/lib/types';
 import { AddressSearch, getDistanceKm } from './leaflet-map';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
+import { EarthquakeExplorer } from './earthquake-explorer';
 import { format, formatDistanceToNow } from 'date-fns';
 import { 
   MapPin, 
@@ -109,6 +110,9 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
   const [showTimeFilters, setShowTimeFilters] = useState(false);
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   
+  // Earthquake Explorer filtered results
+  const [explorerFilteredEarthquakes, setExplorerFilteredEarthquakes] = useState<Earthquake[]>([]);
+  
   // Initialize visitor ID and load saved addresses from MongoDB
   useEffect(() => {
     const vid = getVisitorId();
@@ -206,9 +210,16 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
   const currentTimeFilter = TIME_FILTERS.find(f => f.id === timeFilterId) || TIME_FILTERS[5]; // default to 1 week
   
   // Filter earthquakes based on settings
+  // Use explorer results if available, otherwise use legacy filtering
   const filteredEarthquakes = useMemo(() => {
     if (!userLocation) return [];
     
+    // If explorer has filtered results, use those
+    if (explorerFilteredEarthquakes.length > 0) {
+      return explorerFilteredEarthquakes;
+    }
+    
+    // Otherwise, use legacy filtering (fallback for when explorer is initializing)
     let filtered = historicalEarthquakes;
     
     // Filter by time range
@@ -233,7 +244,7 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
     
     // Sort by time (most recent first)
     return filtered.sort((a, b) => b.timestamp - a.timestamp);
-  }, [historicalEarthquakes, userLocation, searchRadiusMiles, showOnlyFelt, currentTimeFilter]);
+  }, [historicalEarthquakes, userLocation, searchRadiusMiles, showOnlyFelt, currentTimeFilter, explorerFilteredEarthquakes]);
   
   // Calculate statistics
   const stats = useMemo(() => {
@@ -328,6 +339,23 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
           <span>Your address is saved for your next visit</span>
+        </div>
+      )}
+      
+      {/* NEW: Earthquake Explorer - Datadog-style filtering */}
+      {userLocation && (
+        <div className="animate-fade-in">
+          <EarthquakeExplorer
+            earthquakes={historicalEarthquakes}
+            userLocation={userLocation}
+            onResultsChange={setExplorerFilteredEarthquakes}
+            getDistance={(eq) => kmToMiles(getDistanceKm(
+              userLocation.lat,
+              userLocation.lon,
+              eq.latitude,
+              eq.longitude
+            ))}
+          />
         </div>
       )}
       
