@@ -9,8 +9,6 @@ import {
   BarChart3,
   History,
   BookOpen,
-  Menu,
-  X,
   FileText,
   HelpCircle,
   Globe,
@@ -48,7 +46,6 @@ interface NavBarProps {
 }
 
 export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [regionsOpen, setRegionsOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -56,12 +53,9 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
     return currentPath.startsWith(href);
   };
 
-  const primaryItems = NAV_ITEMS.filter(item => item.primary);
-  const secondaryItems = NAV_ITEMS.filter(item => !item.primary);
-
   return (
     <>
-      {/* Desktop Navigation */}
+      {/* Desktop Navigation - Hidden on mobile, mobile nav handled at Dashboard root level */}
       <nav className="hidden md:block border-t border-white/5 bg-neutral-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-12">
@@ -144,129 +138,6 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
           </div>
         </div>
       </nav>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-neutral-900/95 backdrop-blur-md border-t border-white/10">
-        <div className="flex items-center justify-around px-2 py-1 safe-area-bottom">
-          {primaryItems.map(item => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
-                  active ? 'text-white' : 'text-neutral-500'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : ''}`} />
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-          
-          {/* More Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
-              secondaryItems.some(item => isActive(item.href)) ? 'text-white' : 'text-neutral-500'
-            }`}
-          >
-            <Menu className={`w-5 h-5 ${secondaryItems.some(item => isActive(item.href)) ? 'text-blue-400' : ''}`} />
-            <span className="text-[10px] font-medium">More</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Drawer - Portal to body */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[100]">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          {/* Drawer */}
-          <div className="absolute bottom-0 left-0 right-0 bg-neutral-900 rounded-t-3xl border-t border-white/10">
-            <div className="flex items-center justify-between p-4 border-b border-white/5">
-              <h3 className="font-semibold text-white">More Options</h3>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-4 space-y-2 pb-8 max-h-[60vh] overflow-y-auto">
-              {/* Secondary Nav Items */}
-              {secondaryItems.map(item => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                      active
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'text-neutral-300 hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                );
-              })}
-              
-              {/* Divider */}
-              <div className="border-t border-white/10 my-4" />
-              
-              {/* About & FAQ */}
-              <Link
-                href="/about"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="font-medium">About</span>
-              </Link>
-              <Link
-                href="/faq"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
-              >
-                <HelpCircle className="w-5 h-5" />
-                <span className="font-medium">FAQ</span>
-              </Link>
-              
-              {/* Regions Section */}
-              <div className="pt-2">
-                <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Regions
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {REGIONS.slice(0, 6).map(region => (
-                    <Link
-                      key={region.id}
-                      href={`/region/${region.id}`}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-2 p-3 rounded-lg text-neutral-300 hover:bg-white/5 transition-all"
-                    >
-                      <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-white/20 text-white">
-                        {region.areaCode}
-                      </span>
-                      <span className="text-sm truncate">{region.name.split('/')[0].trim()}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -31,7 +31,10 @@ import {
   FileText,
   Globe,
   MessageCircle,
+  Menu,
   X,
+  History,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -517,6 +520,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   const [showAllQuakes, setShowAllQuakes] = useState(false);
   const [showQuickReport, setShowQuickReport] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Tab is controlled by route props
   const activeTab = initialTab;
@@ -568,6 +572,31 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
       };
     }
   }, [showAllQuakes]);
+
+  // Lock body scroll when mobile menu is open and handle escape key
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${scrollY}px`;
+      
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setMobileMenuOpen(false);
+      };
+      document.addEventListener('keydown', handleEscape);
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        window.scrollTo(0, scrollY);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [mobileMenuOpen]);
   
   // Historical earthquakes loaded on-demand (lazy loading)
   const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);
@@ -1458,6 +1487,148 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <p className="text-xs text-neutral-500 text-center">
                 Data from USGS • Updated every 10 seconds
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Mobile Bottom Navigation - Rendered at root level for proper fixed positioning */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-neutral-950/95 to-neutral-900/90 backdrop-blur-xl border-t border-white/20 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-around px-2 py-1 pb-safe safe-area-bottom">
+          {[
+            { id: 'live', label: 'Live', href: '/', icon: Activity, primary: true },
+            { id: 'neighborhood', label: 'My Area', href: '/my-area', icon: MapPin, primary: true },
+            { id: 'community', label: 'Discuss', href: '/community', icon: MessageCircle, primary: true },
+          ].map(item => {
+            const Icon = item.icon;
+            const active = TAB_ROUTES[activeTab] === item.href || (item.href === '/' && TAB_ROUTES[activeTab] === '/');
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
+                  active 
+                    ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
+                    : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : ''}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+          
+          {/* More Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
+              ['history', 'compare', 'learn'].includes(activeTab)
+                ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
+                : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
+            }`}
+          >
+            <Menu className={`w-5 h-5 transition-colors ${['history', 'compare', 'learn'].includes(activeTab) ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : ''}`} />
+            <span className="text-[10px] font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[100] flex items-end">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="relative w-full max-h-[85vh] bg-gradient-to-b from-neutral-900/98 to-neutral-950/98 backdrop-blur-xl rounded-t-3xl border-t border-white/20 shadow-[0_-8px_32px_rgba(0,0,0,0.6)] flex flex-col animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-center justify-between p-4 border-b border-white/5 flex-shrink-0">
+              <h3 className="font-semibold text-white">More Options</h3>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-2 pb-8 overflow-y-auto flex-1">
+              {/* Secondary Nav Items */}
+              {[
+                { id: 'history', label: 'History', href: '/history', icon: History },
+                { id: 'compare', label: 'Compare', href: '/compare', icon: BarChart3 },
+                { id: 'learn', label: 'Learn', href: '/learn', icon: BookOpen },
+              ].map(item => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+                      active
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'text-neutral-300 hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+              
+              {/* Divider */}
+              <div className="border-t border-white/10 my-4" />
+              
+              {/* About & FAQ */}
+              <Link
+                href="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="font-medium">About</span>
+              </Link>
+              <Link
+                href="/faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+              >
+                <HelpCircle className="w-5 h-5" />
+                <span className="font-medium">FAQ</span>
+              </Link>
+              
+              {/* Regions Section */}
+              <div className="pt-2">
+                <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                  Regions
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'san-francisco', name: 'San Francisco', areaCode: '415' },
+                    { id: 'berkeley-oakland', name: 'Berkeley / Oakland', areaCode: '510' },
+                    { id: 'santa-clara', name: 'Santa Clara', areaCode: '408' },
+                    { id: 'sf-peninsula', name: 'SF Peninsula', areaCode: '650' },
+                    { id: 'marin', name: 'Marin', areaCode: '415' },
+                    { id: 'san-ramon', name: 'San Ramon', areaCode: '925' },
+                  ].map(region => (
+                    <Link
+                      key={region.id}
+                      href={`/region/${region.id}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 p-3 rounded-lg text-neutral-300 hover:bg-white/5 transition-all"
+                    >
+                      <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-white/20 text-white">
+                        {region.areaCode}
+                      </span>
+                      <span className="text-sm truncate">{region.name.split('/')[0].trim()}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
