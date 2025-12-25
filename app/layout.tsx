@@ -154,6 +154,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
+        {/* Impact.com Site Verification */}
+        <meta name="impact-site-verification" value="f0b61dfc-b575-4c4c-ab15-c6c6df6d9cff" />
+        
         {/* Google AdSense */}
         <script
           async
