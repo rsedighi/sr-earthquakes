@@ -40,3 +40,4 @@ export default function LatestPage() {
   redirect('/today');
 }
 
+

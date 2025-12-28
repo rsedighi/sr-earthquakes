@@ -2290,3 +2290,376 @@ For non-critical time displays, you can use `suppressHydrationWarning`:
 
 *Last updated: December 20, 2025 (Technical debt cleanup - removed ~1,101 lines of unused code)*
 
+
+
+CRITICAL FEEDBACK: 
+
+Let me continue exploring the site to complete my analysis:
+
+[3 tools called]
+
+Now I have a comprehensive understanding of Bay Tremor. Here is my **highly constructive critical analysis**:
+
+---
+
+# 🔬 Bay Tremor — Comprehensive Critical Analysis
+
+## Executive Summary
+
+**Bay Tremor** is a well-architected Bay Area earthquake tracking application with solid fundamentals. However, there are significant opportunities for improvement in design polish, feature completeness, performance optimization, and user engagement. Below I detail issues ranked by impact.
+
+---
+
+## 1. DESIGN CRITIQUE 🎨
+
+### Critical Issues
+
+#### A. **Typography & Font Rendering Problem** ⚠️ HIGH PRIORITY
+Looking at the browser snapshot, I notice text like "Di cu" (Discuss), "Hi tory" (History), "Sei mic" (Seismic), "Re ource" (Resources) - **letters are being dropped**. This appears to be a font rendering/ligature issue with Geist Sans that's causing characters to disappear.
+
+```21:28:app/globals.css
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+```
+
+**Problem**: The `font-feature-settings: "rlig" 1, "calt" 1;` combined with Geist may be causing this. This is a **critical UX bug**.
+
+#### B. **Generic Dark Theme — "AI Slop" Aesthetic** 
+The dark theme is functional but extremely safe/generic:
+- `#0a0a0a` background with `white/5`, `white/10` borders is the most common AI-generated dark palette
+- No unique brand color or accent that makes Bay Tremor memorable
+- The color scheme is indistinguishable from hundreds of other dark-mode apps
+- Gradients like `from-purple-500/20 to-blue-500/20` are overused tropes
+
+**Recommendation**: Develop a distinctive visual identity. Consider:
+- A warm amber/orange accent (earthquake = seismic energy) 
+- Earth tones or tectonic plate-inspired gradients
+- A distinctive secondary color beyond the magnitude color scale
+
+#### C. **Inconsistent Visual Hierarchy**
+- Stats cards are visually undifferentiated from other cards
+- The "Elevated Seismic Activity" AI summary banner competes visually with the earthquake feed
+- Too many competing sections on the homepage creating cognitive overload
+
+#### D. **Logo/Brand Mark is Weak**
+The `BayAreaLogo` component with "seismic-bridge" variant exists but the header just shows generic text. There's no distinctive favicon or brand identity visible in the UI that would make this memorable.
+
+### Moderate Issues
+
+#### E. **Tab Navigation Text Truncation**
+Mobile tabs show "Di cu" instead of proper truncation with ellipsis. The CSS doesn't handle overflow gracefully.
+
+#### F. **Animation Overuse**
+- `animate-pulse-gentle` on the Live indicator is good
+- `animate-ping` on earthquake markers is excessive and distracting
+- Too many simultaneous animations create visual noise
+
+#### G. **Map Legend is Too Subtle**
+The magnitude legend in the bottom-left corner (`bg-black/70`) has poor contrast and is easily missed.
+
+---
+
+## 2. PERFORMANCE CRITIQUE ⚡
+
+### Critical Issues
+
+#### A. **Aggressive Polling — 10-Second Refresh Interval** ⚠️
+
+```55:59:hooks/use-realtime-earthquakes.ts
+export function useRealtimeEarthquakes({
+  feed = 'all_day',
+  refreshInterval = 10000, // 10 seconds for near-real-time updates
+  enabled = true,
+}: UseRealtimeEarthquakesOptions = {}): UseRealtimeEarthquakesResult {
+```
+
+**Problem**: Polling every 10 seconds is:
+- Wasteful (earthquakes rarely happen every 10 seconds)
+- Bad for mobile battery life
+- Unnecessary load on USGS servers
+- Creates network overhead
+
+**Evidence from logs**: The API is being hammered constantly:
+```
+GET /api/earthquakes?feed=all_week&_=1766214288202 200 in 165ms
+```
+
+**Better Approach**: Use exponential backoff with Pusher for real-time push notifications (you already have Pusher configured but aren't using it effectively for this).
+
+#### B. **Leaflet CSS Loaded at Runtime**
+
+```61:69:components/leaflet-map.tsx
+      // Add Leaflet CSS via link tag
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+```
+
+**Problem**: Loading external CSS at runtime causes:
+- Layout shift/FOUC
+- Render blocking
+- External dependency on unpkg.com availability
+
+**Fix**: Import Leaflet CSS in your global CSS or bundle it.
+
+#### C. **Massive Dashboard Component (2100+ lines)**
+
+```1:200:components/dashboard.tsx
+'use client';
+
+import { useState, useMemo, useEffect, useCallback } from 'react';
+```
+
+The `dashboard.tsx` file is 2113 lines of client-side code. This is:
+- A maintenance nightmare
+- Slow to parse and hydrate
+- Impossible to optimize with React Server Components
+
+**Fix**: Break into smaller, lazy-loaded components per tab.
+
+#### D. **No Image Optimization**
+The map markers use inline SVG which is good, but the OpenGraph images are generated server-side without any caching strategy visible.
+
+#### E. **Double Data Fetching**
+The dashboard fetches both `useRealtimeEarthquakes` AND `useHistoricalEarthquakes` immediately, even though historical data isn't needed on the Live tab.
+
+```204:211:components/dashboard.tsx
+  // Recent earthquake data (since Dec 8, 2025) - supplements the historical data
+  const {
+    earthquakes: recentQuakes,
+    isLoading: isLoadingRecent,
+  } = useHistoricalEarthquakes({
+    minMagnitude: 0.1,
+    autoFetch: true,
+  });
+```
+
+---
+
+## 3. FEATURES CRITIQUE 🛠️
+
+### Missing Critical Features
+
+#### A. **No Push Notifications / Alerts**
+For an earthquake tracker, the #1 expected feature is **"Alert me when an earthquake happens near me"**. This is completely missing. Users have to actively check the site.
+
+**Current state**: The "Did You Feel It?" button just links to a page, doesn't register intent.
+
+#### B. **No User Accounts / Persistence Beyond LocalStorage**
+The "My Neighborhood" feature stores addresses in MongoDB per visitor ID, but:
+- No user accounts
+- No cross-device sync
+- Visitor ID is lost if localStorage is cleared
+- No email alerts or SMS notifications
+
+#### C. **No ShakeAlert Integration**
+You link to ShakeAlert in the footer but don't integrate the actual early warning system. This is a massive missed opportunity.
+
+#### D. **Community Features are Superficial**
+The forum exists but:
+- No moderation tools
+- No verification for "Did you feel it?" reports
+- Comments are plain text with no rich formatting
+- No geographic tagging of reports
+
+### Underutilized Features
+
+#### E. **AI Summary is Buried**
+The OpenAI-generated seismic summary is genuinely useful but only appears when "elevated activity" is detected. This should be:
+- Always available on demand
+- Sharable
+- More prominent
+
+#### F. **Swarm Detection is Technical**
+Great feature, but "swarm" is jargon. Consider:
+- More accessible terminology ("Cluster of earthquakes")
+- Visual timeline of swarm progression
+- Push alerts when swarms start
+
+#### G. **Region Comparison is Hidden**
+The compare feature requires navigating to a separate tab. Power users would benefit from:
+- Quick comparison widgets on the homepage
+- Side-by-side historical charts
+
+---
+
+## 4. USEFULNESS / UX CRITIQUE 🎯
+
+### Critical UX Problems
+
+#### A. **Information Overload on Homepage**
+The Live tab shows:
+1. Status stats (4 cards)
+2. AI summary
+3. City selector
+4. Ad banner
+5. Interactive map
+6. Active discussions widget
+7. Earthquake feed (10+ items)
+8. Ad banner
+9. Footer with 4 columns
+
+**This is too much.** Users don't know where to look first. The cognitive load is extremely high.
+
+**Recommendation**: Implement progressive disclosure. Show map + recent earthquakes by default, let users expand for more.
+
+#### B. **No Clear Value Proposition Above the Fold**
+When you land on the page, you see:
+- Generic header
+- Tabs
+- Stats that require context to understand
+
+**Missing**: A clear headline like "65 earthquakes in the Bay Area this week. Here's what you need to know."
+
+#### C. **The "Select Your City" Widget is Confusing**
+It shows area codes (925, 510, 415) which most users won't recognize. The widget says "Tap to personalize" but doesn't explain the benefit.
+
+#### D. **Mobile Experience Concerns**
+- The tab bar with 6 tabs will be cramped on mobile
+- The map controls may be hard to use on touch devices
+- No clear mobile-first design decisions visible
+
+#### E. **No Onboarding Flow**
+First-time visitors get no guidance:
+- What is this site for?
+- What should I do first?
+- How do I get alerts?
+
+### Moderate UX Issues
+
+#### F. **Earthquake Detail Modal is Feature-Rich but Overwhelming**
+The `earthquake-detail-modal.tsx` is 819 lines with:
+- Magnitude badge
+- Severity banner
+- Share buttons (6 platforms)
+- Map
+- 6 metric cards
+- Region info
+- Comments section
+- Nearby earthquakes (expandable)
+- Similar earthquakes (expandable)
+- "What This Means" section
+- Footer with USGS link
+
+**This modal is a page in disguise.** Consider linking to a full `/earthquake/[id]` page instead.
+
+#### G. **No Offline Support**
+An earthquake tracker is most useful **when the network is down**. No service worker, no offline capabilities.
+
+---
+
+## 5. CODE QUALITY & ARCHITECTURE 🏗️
+
+### Positives ✅
+- TypeScript throughout
+- Good SEO implementation with JSON-LD schemas
+- Server components used appropriately for data loading
+- Proper use of `server-only` for sensitive operations
+- Good logging with structured data
+- Datadog RUM integration
+
+### Negatives ❌
+
+#### A. **Duplicated Distance Calculations**
+`getDistanceKm` is defined in at least 3 files:
+- `leaflet-map.tsx`
+- `my-neighborhood.tsx`  
+- `earthquake-detail-modal.tsx`
+
+Should be in a shared `lib/geo.ts`.
+
+#### B. **Inconsistent Type Definitions**
+`Earthquake` type is well-defined, but other types like `TrendingEarthquake`, `ForumThread` have inline definitions.
+
+#### C. **Magic Numbers Everywhere**
+```javascript
+refreshInterval: 10000, // 10 seconds
+const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+const searchRadiusMiles = 15;
+```
+
+These should be named constants in a config file.
+
+#### D. **No Test Files Visible**
+No `__tests__` directory, no `.test.ts` files. Zero visible test coverage.
+
+---
+
+## 6. SEO & DISCOVERABILITY 📈
+
+### Positives ✅
+- Comprehensive metadata in layout.tsx
+- JSON-LD structured data (WebSite, Organization, FAQ, Event schemas)
+- Canonical URLs
+- OpenGraph images
+- RSS feed
+- Sitemap generation
+
+### Areas for Improvement
+
+#### A. **No Blog/Content Marketing**
+For SEO, you need indexable content. Consider:
+- Weekly earthquake roundup posts
+- Educational articles about Bay Area faults
+- Historical earthquake anniversary posts
+
+#### B. **Region/City Pages Need More Content**
+The `/region/[id]` and `/city/[slug]` pages exist but appear to be mostly data-driven with minimal unique content.
+
+---
+
+## 7. MONETIZATION CRITIQUE 💰
+
+### Current State
+- Google AdSense integration with 2 ad slots
+- Ads are placed between content sections
+
+### Problems
+- Ads use placeholder slot IDs (`YOUR_AD_SLOT_1`)
+- No premium/ad-free tier
+- No sponsored content guidelines
+- Ad placement may violate AdSense policies (needs review)
+
+---
+
+## 🎯 PRIORITY RECOMMENDATIONS
+
+### P0 — Fix Immediately
+1. **Fix the font rendering bug** (missing letters in navigation)
+2. **Reduce polling interval** to 60+ seconds with Pusher for real-time
+3. **Add push notification opt-in** ("Alert me for M3+ near me")
+
+### P1 — Next Sprint
+4. **Break up the Dashboard component** into smaller pieces
+5. **Simplify homepage** — progressive disclosure
+6. **Import Leaflet CSS properly** — no runtime loading
+7. **Add onboarding flow** for first-time users
+
+### P2 — Future Roadmap
+8. **User accounts** for cross-device sync
+9. **ShakeAlert integration** for early warning
+10. **Offline support** with service workers
+11. **Distinctive brand identity** — escape the generic dark theme
+12. **Test suite** — at least critical path testing
+
+---
+
+## Final Assessment
+
+| Category | Grade | Notes |
+|----------|-------|-------|
+| **Design** | C+ | Functional but generic; font rendering bug is critical |
+| **Performance** | C | Over-polling; monolithic components; runtime CSS loading |
+| **Features** | B- | Good breadth; missing push notifications is a major gap |
+| **Usefulness** | B | Valuable data, but UX friction reduces utility |
+| **Code Quality** | B | Good TypeScript usage; needs tests and refactoring |
+| **SEO** | A- | Strong technical SEO; needs content strategy |
+
+**Overall: B-** — A solid foundation with clear product-market fit, but needs significant polish to compete with established earthquake trackers and to justify user retention.

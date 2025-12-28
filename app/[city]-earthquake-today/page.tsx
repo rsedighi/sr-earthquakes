@@ -5,7 +5,7 @@ import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Radio, TrendingUp } 
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { BAY_AREA_LANDMARKS, REGIONS } from '@/lib/regions';
-import { generateBreadcrumbSchema } from '@/lib/seo';
+import { generateBreadcrumbSchema, generateCityPlaceSchema } from '@/lib/seo';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
@@ -110,38 +110,85 @@ export async function generateMetadata({ params }: CityTodayPageProps): Promise<
     l => l.type === 'city' && l.name.toLowerCase() === cityName.toLowerCase()
   );
   
-  const title = `${cityName} Earthquake Today | Live Updates - Bay Tremor`;
-  const description = `Did you feel an earthquake in ${cityName}? See all earthquakes near ${cityName}, ${cityData?.county || 'California'} today. Real-time USGS seismic data and live updates.`;
+  // Find region for fault line info
+  const region = cityData ? REGIONS.find(r => {
+    const { minLat, maxLat, minLon, maxLon } = r.bounds;
+    return cityData.lat >= minLat && cityData.lat <= maxLat && 
+           cityData.lon >= minLon && cityData.lon <= maxLon;
+  }) : null;
+  
+  const title = `${cityName} Earthquake Today | Live Seismic Activity & Alerts`;
+  const description = `🔴 LIVE: Did you feel an earthquake in ${cityName}? Track all earthquakes near ${cityName}, ${cityData?.county || 'California'} today. Real-time USGS data, magnitude, depth & maps. Updated every minute.`;
+  const pageUrl = `${baseUrl}/${citySlug}-earthquake-today`;
   
   return {
     title,
     description,
+    // Focused keywords for this city
     keywords: [
+      `${cityName.toLowerCase()} earthquake`,
       `${cityName.toLowerCase()} earthquake today`,
       `earthquake ${cityName.toLowerCase()}`,
-      `${cityName.toLowerCase()} earthquake just now`,
       `did i feel an earthquake ${cityName.toLowerCase()}`,
       `earthquake near ${cityName.toLowerCase()}`,
-      `${cityName.toLowerCase()} california earthquake`,
-      `${cityData?.county?.toLowerCase() || 'bay area'} earthquake today`,
-      'bay area earthquake',
-      'earthquake today',
-      'did you feel it',
-    ],
+      `${cityData?.county?.toLowerCase() || 'bay area'} earthquake`,
+      region?.faultLine?.toLowerCase() || '',
+    ].filter(Boolean),
+    // Attribution
+    authors: [{ name: 'Bay Tremor', url: baseUrl }],
+    creator: 'Bay Tremor',
+    publisher: 'Bay Tremor',
+    // Robots - full settings
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    // Open Graph - complete
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `${baseUrl}/${citySlug}-earthquake-today`,
+      url: pageUrl,
+      siteName: 'Bay Tremor',
+      locale: 'en_US',
+      images: [
+        {
+          url: `${baseUrl}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: `${cityName} Earthquake Tracker - Live seismic activity map`,
+        },
+      ],
     },
+    // Twitter - complete
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      site: '@baytremor',
+      creator: '@baytremor',
+      images: [{
+        url: `${baseUrl}/og-image.png`,
+        alt: `${cityName} Earthquake Tracker`,
+      }],
     },
+    // Canonical URL
     alternates: {
-      canonical: `${baseUrl}/${citySlug}-earthquake-today`,
+      canonical: pageUrl,
     },
+    // Geo tags for local SEO
+    other: cityData ? {
+      'geo.region': 'US-CA',
+      'geo.placename': cityName,
+      'geo.position': `${cityData.lat};${cityData.lon}`,
+      'ICBM': `${cityData.lat}, ${cityData.lon}`,
+    } : {},
   };
 }
 
@@ -199,21 +246,27 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
     { name: cityName, url: `${baseUrl}/${citySlug}-earthquake-today` },
   ]);
   
+  // City Place schema for local SEO
+  const cityPlaceSchema = generateCityPlaceSchema(
+    { name: cityData.name, county: cityData.county, lat: cityData.lat, lon: cityData.lon },
+    region?.faultLine
+  );
+  
   const cityEarthquakeSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: `${cityName} Earthquake Today`,
-    description: `Real-time earthquake updates for ${cityName}, California`,
+    name: `${cityName} Earthquake Today - Live Seismic Activity`,
+    description: `Real-time earthquake tracking for ${cityName}, ${cityData.county} County, California. Live USGS data updated every minute.`,
     url: `${baseUrl}/${citySlug}-earthquake-today`,
     dateModified: new Date().toISOString(),
-    about: {
-      '@type': 'City',
-      name: cityName,
-      containedInPlace: {
-        '@type': 'State',
-        name: 'California',
-      },
+    datePublished: new Date().toISOString(),
+    inLanguage: 'en-US',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Bay Tremor',
+      url: baseUrl,
     },
+    about: cityPlaceSchema,
     mainEntity: mostRecent ? {
       '@type': 'Event',
       name: `M${mostRecent.magnitude.toFixed(1)} Earthquake near ${cityName}`,
@@ -228,6 +281,10 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         },
       },
     } : undefined,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'header p'],
+    },
   };
   
   return (
@@ -236,7 +293,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([breadcrumbSchema, cityEarthquakeSchema]),
+          __html: JSON.stringify([breadcrumbSchema, cityPlaceSchema, cityEarthquakeSchema]),
         }}
       />
       

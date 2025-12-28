@@ -404,3 +404,4 @@ The Earthquake Explorer makes powerful data analysis accessible to everyone. By 
 
 The key insight: **Power doesn't have to be complicated**. With thoughtful UI/UX design, we can give everyday people the same analytical capabilities that data scientists enjoy.
 
+

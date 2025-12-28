@@ -25,3 +25,4 @@ export default async function CommunityPage() {
 
 export const revalidate = 3600;
 
+

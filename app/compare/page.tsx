@@ -25,3 +25,4 @@ export default async function ComparePage() {
 
 export const revalidate = 3600;
 
+

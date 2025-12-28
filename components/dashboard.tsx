@@ -72,6 +72,7 @@ import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
 import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
+import { AffiliateRecommendations } from './affiliate-recommendations';
 import { NavBar } from './dashboard/components/nav-bar';
 
 // Dynamically import Leaflet map to avoid SSR issues
@@ -1180,6 +1181,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
 
             {/* Active Discussions Widget */}
             <ActiveDiscussionsWidget />
+
+            {/* Affiliate Recommendations - Earthquake Preparedness */}
+            <AffiliateRecommendations 
+              context="homepage"
+              limit={3}
+            />
           </>
         )}
 
@@ -1416,6 +1423,10 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             </p>
             <p className="text-xs text-neutral-700 mt-4">
               © {new Date().getFullYear()} Bay Tremor. Built for the Bay Area community.
+            </p>
+            <p className="text-[10px] text-neutral-700 mt-3 max-w-lg mx-auto">
+              Affiliate Disclosure: Some links on this site are affiliate links. As an Amazon Associate, 
+              Bay Tremor earns from qualifying purchases at no extra cost to you. This helps us keep the site free.
             </p>
           </div>
         </footer>

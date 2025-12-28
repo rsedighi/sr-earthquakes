@@ -660,3 +660,4 @@ useEffect(() => {
 
 Ready to make earthquake data accessible! 🚀
 
+

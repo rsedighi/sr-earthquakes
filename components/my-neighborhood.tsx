@@ -7,6 +7,7 @@ import { AddressSearch, getDistanceKm } from './leaflet-map';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { EarthquakeExplorer } from './earthquake-explorer';
+import { AffiliateRecommendations } from './affiliate-recommendations';
 import { format, formatDistanceToNow } from 'date-fns';
 import { 
   MapPin, 
@@ -518,6 +519,14 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
                 onClick={() => setSelectedEarthquake(stats.largestFelt)}
               />
             </div>
+          )}
+
+          {/* Affiliate Recommendations - Protect Your Home */}
+          {stats.total > 0 && (
+            <AffiliateRecommendations 
+              context="my-area"
+              limit={3}
+            />
           )}
           
             {/* Earthquake List */}

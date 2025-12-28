@@ -226,3 +226,4 @@ The synchronization with USGS is now **millisecond-accurate** at the API level -
 
 🎉 **Your app is now as real-time as it can be without WebSockets!**
 
+

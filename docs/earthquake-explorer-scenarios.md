@@ -481,3 +481,4 @@ Time: 20-30 minutes
 
 These scenarios show how the Earthquake Explorer serves everyone from tech novices to data enthusiasts, making earthquake data accessible and actionable for real-world needs.
 
+

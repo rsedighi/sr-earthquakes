@@ -357,11 +357,51 @@ export function generateGeoShapeSchema() {
   };
 }
 
+// Service Schema - describes the earthquake monitoring service (helps Google understand what you offer)
+export function generateServiceSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'Bay Area Earthquake Tracker',
+    alternateName: 'Bay Tremor Earthquake Monitoring',
+    description: 'Real-time earthquake tracking and seismic activity monitoring for the San Francisco Bay Area. Live USGS data updated every minute with interactive maps and swarm detection.',
+    provider: {
+      '@type': 'Organization',
+      name: 'Bay Tremor',
+      url: baseUrl,
+    },
+    serviceType: 'Earthquake Monitoring',
+    areaServed: {
+      '@type': 'State',
+      name: 'California',
+      containedInPlace: {
+        '@type': 'Country',
+        name: 'United States',
+      },
+    },
+    audience: {
+      '@type': 'Audience',
+      audienceType: 'Bay Area Residents',
+    },
+    availableChannel: {
+      '@type': 'ServiceChannel',
+      serviceUrl: baseUrl,
+      serviceType: 'Web Application',
+    },
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+  };
+}
+
 // Generate all homepage schemas combined
 export function generateHomepageSchemas() {
   return [
     generateWebsiteSchema(),
     generateOrganizationSchema(),
+    generateServiceSchema(),
     generateGeoShapeSchema(),
   ];
 }
@@ -397,6 +437,43 @@ export function getCityData(citySlug: string) {
       region?.faultLine || '',
       'Bay Area earthquakes',
     ].filter(Boolean),
+  };
+}
+
+// City-specific Place schema for local SEO
+export function generateCityPlaceSchema(cityData: {
+  name: string;
+  county: string;
+  lat: number;
+  lon: number;
+}, faultLine?: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'City',
+    name: cityData.name,
+    url: `${baseUrl}/${cityData.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`,
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: cityData.lat,
+      longitude: cityData.lon,
+    },
+    containedInPlace: [
+      {
+        '@type': 'AdministrativeArea',
+        name: `${cityData.county} County`,
+      },
+      {
+        '@type': 'AdministrativeArea',
+        name: 'San Francisco Bay Area',
+      },
+      {
+        '@type': 'State',
+        name: 'California',
+      },
+    ],
+    description: faultLine 
+      ? `${cityData.name} is located in ${cityData.county} County, California, near the ${faultLine}. Monitor earthquake activity in real-time.`
+      : `${cityData.name} is located in ${cityData.county} County in the San Francisco Bay Area. Monitor earthquake activity in real-time.`,
   };
 }
 

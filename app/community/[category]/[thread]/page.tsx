@@ -59,3 +59,4 @@ export default async function ThreadPage({ params }: Props) {
 
 export const revalidate = 3600;
 
+

@@ -75,3 +75,4 @@ export function generateStaticParams() {
 
 export const revalidate = 3600;
 
+

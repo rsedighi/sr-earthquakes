@@ -749,9 +749,21 @@ function ThreadView({ slug, category }: { slug: string; category: ForumCategory 
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Failed to post reply');
+      }
+
+      // Immediately add the post to local state (optimistic update)
+      // This ensures the post appears right away without waiting for Pusher
+      if (data.post) {
+        setPosts(prev => {
+          // Avoid duplicates (in case Pusher also delivers it)
+          if (prev.some(p => p._id === data.post._id)) return prev;
+          return [...prev, data.post];
+        });
+        setTotalPosts(prev => prev + 1);
       }
 
       setSubmitSuccess(true);

@@ -416,3 +416,4 @@ Wide:         > 1440px  → Three columns, expanded everything
 
 This mockup shows the complete user experience from search to results, with all the data exploration capabilities in place. The interface is designed to be intuitive for beginners while providing power features for advanced users.
 
+

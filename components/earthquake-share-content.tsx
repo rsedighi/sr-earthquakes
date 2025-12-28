@@ -29,6 +29,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { CommentThread } from './comment-thread';
+import { AffiliateRecommendations } from './affiliate-recommendations';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { getRegionById, getLocationContext } from '@/lib/regions';
 import { formatDepth, getDepthDescription } from '@/lib/units';
@@ -432,6 +433,15 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
             </div>
           </div>
         )}
+
+        {/* Affiliate Recommendations - Be Prepared */}
+        <div className="p-4 border-b border-white/10">
+          <AffiliateRecommendations 
+            context="post-earthquake"
+            earthquakeMagnitude={earthquake.magnitude}
+            limit={3}
+          />
+        </div>
         
         {/* Community Comments Section - PROMINENT */}
         <div className="bg-gradient-to-b from-amber-500/10 to-neutral-900 p-6" id="comments">

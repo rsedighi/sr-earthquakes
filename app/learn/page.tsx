@@ -25,3 +25,4 @@ export default async function LearnPage() {
 
 export const revalidate = 3600;
 
+
