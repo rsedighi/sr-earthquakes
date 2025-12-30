@@ -325,8 +325,6 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
               eq.latitude,
               eq.longitude
             ))}
-            searchRadiusMiles={searchRadiusMiles}
-            onSearchRadiusChange={setSearchRadiusMiles}
           />
         </div>
       )}
