@@ -14,14 +14,10 @@ import {
   Users, 
   Clock,
   Activity,
-  History,
   AlertCircle,
   Home,
-  Ruler,
   ChevronRight,
-  Loader2,
-  Filter,
-  CheckCircle
+  Loader2
 } from 'lucide-react';
 
 // Convert km to miles
@@ -29,24 +25,6 @@ function kmToMiles(km: number): number {
   return km * 0.621371;
 }
 
-// Time filter options
-const TIME_FILTERS = [
-  { id: '1h', label: '1 hour', ms: 60 * 60 * 1000 },
-  { id: '6h', label: '6 hours', ms: 6 * 60 * 60 * 1000 },
-  { id: '12h', label: '12 hours', ms: 12 * 60 * 60 * 1000 },
-  { id: '24h', label: '24 hours', ms: 24 * 60 * 60 * 1000 },
-  { id: '48h', label: '48 hours', ms: 48 * 60 * 60 * 1000 },
-  { id: '1w', label: '1 week', ms: 7 * 24 * 60 * 60 * 1000 },
-  { id: '2w', label: '2 weeks', ms: 14 * 24 * 60 * 60 * 1000 },
-  { id: '1m', label: '1 month', ms: 30 * 24 * 60 * 60 * 1000 },
-  { id: '3m', label: '3 months', ms: 90 * 24 * 60 * 60 * 1000 },
-  { id: '6m', label: '6 months', ms: 180 * 24 * 60 * 60 * 1000 },
-  { id: '1y', label: '1 year', ms: 365 * 24 * 60 * 60 * 1000 },
-  { id: '2y', label: '2 years', ms: 2 * 365 * 24 * 60 * 60 * 1000 },
-  { id: '5y', label: '5 years', ms: 5 * 365 * 24 * 60 * 60 * 1000 },
-  { id: '10y', label: '10 years', ms: 10 * 365 * 24 * 60 * 60 * 1000 },
-  { id: 'all', label: 'All time', ms: Infinity },
-] as const;
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -64,6 +42,7 @@ const LeafletMap = dynamic(
 interface MyNeighborhoodProps {
   // Historical earthquakes - ideally 10 years of data
   historicalEarthquakes: Earthquake[];
+  isLoadingHistorical?: boolean;
   className?: string;
 }
 
@@ -95,7 +74,7 @@ interface SavedAddress {
   lastSearchAt: string;
 }
 
-export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeighborhoodProps) {
+export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = false, className = '' }: MyNeighborhoodProps) {
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lon: number;
@@ -106,9 +85,6 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
   const [visitorId, setVisitorId] = useState<string>('');
   
   const [searchRadiusMiles, setSearchRadiusMiles] = useState(15); // miles
-  const [showOnlyFelt, setShowOnlyFelt] = useState(true);
-  const [timeFilterId, setTimeFilterId] = useState<string>('1w');
-  const [showTimeFilters, setShowTimeFilters] = useState(false);
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   
   // Earthquake Explorer filtered results
@@ -207,45 +183,27 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
     });
   };
   
-  // Get the current time filter
-  const currentTimeFilter = TIME_FILTERS.find(f => f.id === timeFilterId) || TIME_FILTERS[5]; // default to 1 week
-  
-  // Filter earthquakes based on settings
-  // Use explorer results if available, otherwise use legacy filtering
+  // Filter earthquakes - use explorer results as the single source of truth
   const filteredEarthquakes = useMemo(() => {
     if (!userLocation) return [];
     
-    // If explorer has filtered results, use those
+    // Use explorer filtered results if available
     if (explorerFilteredEarthquakes.length > 0) {
       return explorerFilteredEarthquakes;
     }
     
-    // Otherwise, use legacy filtering (fallback for when explorer is initializing)
-    let filtered = historicalEarthquakes;
-    
-    // Filter by time range
-    const now = Date.now();
-    const cutoffTime = currentTimeFilter.ms === Infinity ? 0 : now - currentTimeFilter.ms;
-    filtered = filtered.filter(eq => eq.timestamp >= cutoffTime);
-    
-    // Filter by distance from user location (convert miles to km for calculation)
+    // Fallback: basic distance filtering when explorer is initializing
     const searchRadiusKm = searchRadiusMiles / 0.621371;
-    filtered = filtered.filter(eq => {
-      const distance = getDistanceKm(
-        userLocation.lat, userLocation.lon,
-        eq.latitude, eq.longitude
-      );
-      return distance <= searchRadiusKm;
-    });
-    
-    // Filter to only felt earthquakes if enabled
-    if (showOnlyFelt) {
-      filtered = filtered.filter(eq => eq.felt && eq.felt > 0);
-    }
-    
-    // Sort by time (most recent first)
-    return filtered.sort((a, b) => b.timestamp - a.timestamp);
-  }, [historicalEarthquakes, userLocation, searchRadiusMiles, showOnlyFelt, currentTimeFilter, explorerFilteredEarthquakes]);
+    return historicalEarthquakes
+      .filter(eq => {
+        const distance = getDistanceKm(
+          userLocation.lat, userLocation.lon,
+          eq.latitude, eq.longitude
+        );
+        return distance <= searchRadiusKm;
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [historicalEarthquakes, userLocation, searchRadiusMiles, explorerFilteredEarthquakes]);
   
   // Calculate statistics
   const stats = useMemo(() => {
@@ -285,16 +243,16 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+      {/* Page Header */}
+      <header className="flex items-center gap-3" role="banner" aria-label="My Neighborhood page header">
+        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center" aria-hidden="true">
           <Home className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold">My Neighborhood</h2>
-          <p className="text-sm text-neutral-500">Find earthquakes people felt near your address</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-white">My Neighborhood</h1>
+          <p className="text-sm text-neutral-400">Find earthquakes people felt near your address</p>
         </div>
-      </div>
+      </header>
       
       {/* Address Search */}
       <AddressSearch
@@ -343,8 +301,19 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
         </div>
       )}
       
-      {/* NEW: Earthquake Explorer - Datadog-style filtering */}
-      {userLocation && (
+      {/* Historical Data Loading Indicator */}
+      {userLocation && isLoadingHistorical && (
+        <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-pulse">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+          <div>
+            <p className="text-sm font-medium text-blue-100">Loading historical earthquake data...</p>
+            <p className="text-xs text-blue-400/70">This may take a moment for 10+ years of data</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Earthquake Explorer - Unified filtering interface */}
+      {userLocation && !isLoadingHistorical && (
         <div className="animate-fade-in">
           <EarthquakeExplorer
             earthquakes={historicalEarthquakes}
@@ -356,95 +325,9 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
               eq.latitude,
               eq.longitude
             ))}
+            searchRadiusMiles={searchRadiusMiles}
+            onSearchRadiusChange={setSearchRadiusMiles}
           />
-        </div>
-      )}
-      
-      {/* Controls */}
-      {userLocation && (
-        <div className="space-y-4 animate-fade-in">
-          {/* Main Controls Row */}
-          <div className="grid grid-cols-3 gap-4">
-            {/* Radius Control */}
-            <div className="space-y-2">
-              <label className="text-xs text-neutral-500 flex items-center gap-1">
-                <Ruler className="w-3 h-3" /> Search Radius
-              </label>
-              <select
-                value={searchRadiusMiles}
-                onChange={(e) => setSearchRadiusMiles(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500/50"
-              >
-                <option value={5}>5 miles</option>
-                <option value={10}>10 miles</option>
-                <option value={15}>15 miles</option>
-                <option value={25}>25 miles</option>
-                <option value={50}>50 miles</option>
-              </select>
-            </div>
-            
-            {/* Time Range Button */}
-            <div className="space-y-2">
-              <label className="text-xs text-neutral-500 flex items-center gap-1">
-                <History className="w-3 h-3" /> Time Period
-              </label>
-              <button
-                onClick={() => setShowTimeFilters(!showTimeFilters)}
-                className={`w-full px-3 py-2 bg-white/5 border rounded-lg text-sm text-left flex items-center justify-between transition-colors
-                  ${showTimeFilters ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/10'}`}
-              >
-                <span>{currentTimeFilter.label}</span>
-                <Filter className="w-3 h-3 text-neutral-500" />
-              </button>
-            </div>
-            
-            {/* Felt Filter */}
-            <div className="space-y-2">
-              <label className="text-xs text-neutral-500 flex items-center gap-1">
-                <Users className="w-3 h-3" /> Show
-              </label>
-              <select
-                value={showOnlyFelt ? 'felt' : 'all'}
-                onChange={(e) => setShowOnlyFelt(e.target.value === 'felt')}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-blue-500/50"
-              >
-                <option value="felt">Felt earthquakes</option>
-                <option value="all">All earthquakes</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* Time Filter Overlay */}
-          {showTimeFilters && (
-            <div className="p-4 bg-neutral-900/80 border border-white/10 rounded-xl animate-fade-in">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">Show earthquakes from:</span>
-                <button 
-                  onClick={() => setShowTimeFilters(false)}
-                  className="text-xs text-neutral-500 hover:text-white"
-                >
-                  Close
-                </button>
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                {TIME_FILTERS.map(filter => (
-                  <button
-                    key={filter.id}
-                    onClick={() => {
-                      setTimeFilterId(filter.id);
-                      setShowTimeFilters(false);
-                    }}
-                    className={`px-3 py-2 text-xs rounded-lg transition-colors
-                      ${timeFilterId === filter.id 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white'}`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
       
@@ -454,19 +337,18 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
           earthquakes={filteredEarthquakes}
           userLocation={userLocation}
           searchRadius={searchRadiusMiles / 0.621371}
-          showOnlyFelt={showOnlyFelt}
           className="h-[400px]"
         />
         {filteredEarthquakes.length > 0 && (
           <div className="bg-neutral-900/80 px-4 py-2 text-xs text-neutral-400 flex items-center justify-between">
-            <span>Showing {filteredEarthquakes.length} earthquakes from {currentTimeFilter.label}</span>
+            <span>Showing {filteredEarthquakes.length} earthquakes</span>
             <span>within {searchRadiusMiles} miles</span>
           </div>
         )}
       </div>
       
       {/* Results */}
-      {userLocation && (
+      {userLocation && !isLoadingHistorical && (
         <div className="space-y-6 animate-fade-in">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -501,7 +383,7 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
             <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10">
               <h4 className="font-medium text-neutral-200 mb-2">Your Neighborhood Summary</h4>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                {generateNeighborhoodInsight(stats, searchRadiusMiles, currentTimeFilter.label, userLocation.address)}
+                {generateNeighborhoodInsight(stats, searchRadiusMiles, userLocation.address)}
               </p>
             </div>
           )}
@@ -569,12 +451,20 @@ export function MyNeighborhood({ historicalEarthquakes, className = '' }: MyNeig
       
       {/* Empty State */}
       {!userLocation && !isLoadingFromStorage && (
-        <div className="text-center py-12 text-neutral-500">
-          <MapPin className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="font-medium">Enter your address above</p>
-          <p className="text-sm mt-1">
-            See earthquakes people felt near your home over the last 10 years
+        <div className="text-center py-8 sm:py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+            <MapPin className="w-8 h-8 text-blue-400" />
+          </div>
+          <h3 className="text-lg font-medium text-white mb-2">Enter your address to get started</h3>
+          <p className="text-sm text-neutral-400 max-w-md mx-auto mb-6">
+            See earthquakes people have felt near your home over the last 10+ years.
+            Your address is saved locally for quick access on future visits.
           </p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-neutral-500">
+            <span className="px-3 py-1.5 bg-white/5 rounded-full">10+ years of data</span>
+            <span className="px-3 py-1.5 bg-white/5 rounded-full">Felt reports</span>
+            <span className="px-3 py-1.5 bg-white/5 rounded-full">Distance filtering</span>
+          </div>
         </div>
       )}
       
@@ -727,16 +617,15 @@ function generateNeighborhoodInsight(
     mostRecent: Earthquake | null;
   },
   radiusMiles: number,
-  timeLabel: string,
   address: string
 ): string {
   const locationName = address.split(',')[0];
   
   if (stats.total === 0) {
-    return `Great news! No significant earthquakes have been recorded within ${radiusMiles} miles of ${locationName} in the ${timeLabel}.`;
+    return `Great news! No significant earthquakes have been recorded within ${radiusMiles} miles of ${locationName} matching your filters.`;
   }
   
-  let insight = `Within ${radiusMiles} miles of ${locationName}, there have been ${stats.total} earthquakes in the ${timeLabel}`;
+  let insight = `Within ${radiusMiles} miles of ${locationName}, there have been ${stats.total} earthquakes matching your filters`;
   
   if (stats.feltCount > 0) {
     insight += `, ${stats.feltCount} of which were felt by people`;

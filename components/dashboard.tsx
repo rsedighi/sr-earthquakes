@@ -1197,6 +1197,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         {activeTab === 'neighborhood' && (
           <MyNeighborhood 
             historicalEarthquakes={allHistoricalQuakes}
+            isLoadingHistorical={historicalLoading}
           />
         )}
 
