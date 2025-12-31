@@ -6,6 +6,12 @@
  * - Standard fields (level, message, timestamp)
  * - Context (service, env, version)
  * - Custom attributes for filtering and alerting
+ * 
+ * Log levels (set LOG_LEVEL env var):
+ * - error: Only errors
+ * - warn: Errors and warnings  
+ * - info: Errors, warnings, and info (default in production)
+ * - debug: All logs including debug (default in development)
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -57,6 +63,22 @@ interface StructuredLog {
 const SERVICE_NAME = 'baytremor';
 const ENV = process.env.NODE_ENV || 'development';
 const VERSION = process.env.NEXT_PUBLIC_VERSION || '1.0.0';
+
+// Log level priority (higher = more important)
+const LOG_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+// Get configured log level - default to 'warn' (use LOG_LEVEL=debug for verbose logs)
+const CONFIGURED_LOG_LEVEL: LogLevel = 
+  (process.env.LOG_LEVEL as LogLevel) || 'warn';
+
+function shouldLog(level: LogLevel): boolean {
+  return LOG_PRIORITY[level] >= LOG_PRIORITY[CONFIGURED_LOG_LEVEL];
+}
 
 function formatError(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
@@ -121,20 +143,25 @@ function outputLog(log: StructuredLog): void {
 
 export const logger = {
   debug: (message: string, context?: LogContext) => {
-    if (ENV === 'development') {
+    if (shouldLog('debug')) {
       outputLog(createLog('debug', message, context));
     }
   },
   
   info: (message: string, context?: LogContext) => {
-    outputLog(createLog('info', message, context));
+    if (shouldLog('info')) {
+      outputLog(createLog('info', message, context));
+    }
   },
   
   warn: (message: string, context?: LogContext) => {
-    outputLog(createLog('warn', message, context));
+    if (shouldLog('warn')) {
+      outputLog(createLog('warn', message, context));
+    }
   },
   
   error: (message: string, context?: LogContext) => {
+    // Always log errors
     outputLog(createLog('error', message, context));
   },
 };

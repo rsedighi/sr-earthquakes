@@ -74,6 +74,7 @@ import { AdBanner } from './ad-banner';
 import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
 import { AffiliateRecommendations } from './affiliate-recommendations';
 import { NavBar } from './dashboard/components/nav-bar';
+import { QuickReportModal } from './quick-report-modal';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -1435,8 +1436,16 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
       
       {/* Quick Report Floating Button - Only on Live tab */}
       {activeTab === 'live' && (
-        <QuickReportButton href="/community" />
+        <QuickReportButton onClick={() => setShowQuickReport(true)} />
       )}
+
+      {/* Quick Report Modal */}
+      <QuickReportModal
+        isOpen={showQuickReport}
+        onClose={() => setShowQuickReport(false)}
+        earthquakes={realtimeQuakes}
+        userLocation={myCity ? { lat: myCity.lat, lon: myCity.lon } : null}
+      />
 
       {/* Earthquake Detail Modal */}
       {detailEarthquake && (
