@@ -51,6 +51,7 @@ function LeafletMapInner({
   className = '',
   initialRegion,
 }: LeafletMapProps) {
+  // All useState hooks at the top
   const [hoveredQuake, setHoveredQuake] = useState<Earthquake | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [leaflet, setLeaflet] = useState<{
@@ -62,6 +63,13 @@ function LeafletMapInner({
     useMap: typeof import('react-leaflet').useMap;
     L: typeof import('leaflet');
   } | null>(null);
+  const [activeRegion, setActiveRegion] = useState(() => {
+    if (initialRegion && REGION_PRESETS.some(p => p.id === initialRegion)) {
+      return initialRegion;
+    }
+    return 'all';
+  });
+  const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
 
   // Dynamically import leaflet modules
   useEffect(() => {
@@ -104,17 +112,6 @@ function LeafletMapInner({
       mounted = false;
     };
   }, []);
-
-  // State for selected region preset - use initialRegion if provided and matches a preset
-  const [activeRegion, setActiveRegion] = useState(() => {
-    if (initialRegion && REGION_PRESETS.some(p => p.id === initialRegion)) {
-      return initialRegion;
-    }
-    return 'all';
-  });
-  
-  // State for magnitude filter on map
-  const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
 
   // Filter earthquakes based on settings
   const displayedQuakes = useMemo(() => {
