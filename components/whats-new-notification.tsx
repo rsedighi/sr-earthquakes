@@ -18,6 +18,15 @@ import {
 
 const STORAGE_KEY = 'baytremor-whats-new-dismissed-v3';
 
+// Auto-expire this notification after 5 days from launch
+// Update this date whenever you want to show a new "What's New" notification
+// Format: new Date('YYYY-MM-DDTHH:MM:SS') or simply add days to a launch date
+const NOTIFICATION_LAUNCH_DATE = new Date('2026-02-03'); // Today's launch
+const NOTIFICATION_EXPIRES_DAYS = 5;
+const NOTIFICATION_EXPIRES_AT = new Date(
+  NOTIFICATION_LAUNCH_DATE.getTime() + NOTIFICATION_EXPIRES_DAYS * 24 * 60 * 60 * 1000
+);
+
 const updates = [
   {
     icon: MessageSquare,
@@ -58,6 +67,13 @@ export function WhatsNewNotification() {
   const [hasAnimatedIn, setHasAnimatedIn] = useState(false);
 
   useEffect(() => {
+    // Check if notification has expired (past the 5-day window)
+    const now = new Date();
+    if (now > NOTIFICATION_EXPIRES_AT) {
+      // Notification has expired - don't show to anyone
+      return;
+    }
+
     // Check if user has already dismissed this notification
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (!dismissed) {
