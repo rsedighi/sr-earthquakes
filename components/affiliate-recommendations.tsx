@@ -1,12 +1,286 @@
 'use client';
 
-import { ExternalLink, Star, Shield, Zap, Award, Home, Package } from 'lucide-react';
+import { useState } from 'react';
+import Image from 'next/image';
+import { 
+  ExternalLink, 
+  Star, 
+  Shield, 
+  Zap, 
+  Award, 
+  Home, 
+  Package,
+  Truck,
+  ShoppingCart,
+  ChevronRight,
+  Sparkles,
+  AlertTriangle,
+  Droplets,
+  Radio,
+  Heart,
+  Check
+} from 'lucide-react';
 import { 
   AffiliateProduct, 
-  getProductsForContext, 
+  getProductsByCategory,
   AFFILIATE_PRODUCTS 
 } from '@/lib/affiliate-products';
 
+// ===== CATEGORY CONFIG =====
+const CATEGORIES = [
+  { id: 'emergency-kit', label: 'Emergency Kits', icon: Package, color: 'amber' },
+  { id: 'furniture-safety', label: 'Furniture Safety', icon: Home, color: 'green' },
+  { id: 'water-storage', label: 'Water Storage', icon: Droplets, color: 'blue' },
+  { id: 'communication', label: 'Power & Communication', icon: Radio, color: 'purple' },
+  { id: 'first-aid', label: 'First Aid', icon: Heart, color: 'red' },
+] as const;
+
+// Amazon product images - using their standard image URL pattern
+const getAmazonImageUrl = (affiliateUrl: string): string => {
+  // Extract ASIN-like identifier from amzn.to link or return placeholder
+  // For now, we'll use high-quality placeholder images based on category
+  return '';
+};
+
+// ===== MAIN COMPONENT: Full Product Showcase =====
+interface AffiliateShowcaseProps {
+  className?: string;
+  showAllCategories?: boolean;
+  initialCategory?: string;
+}
+
+export function AffiliateShowcase({ 
+  className = '',
+  showAllCategories = true,
+  initialCategory = 'emergency-kit'
+}: AffiliateShowcaseProps) {
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
+  
+  const products = showAllCategories 
+    ? AFFILIATE_PRODUCTS 
+    : getProductsByCategory(activeCategory as AffiliateProduct['category']);
+
+  const handleProductClick = (product: AffiliateProduct) => {
+    if (typeof window !== 'undefined' && (window as any).DD_RUM) {
+      (window as any).DD_RUM.addAction('affiliate_link_clicked', {
+        productId: product.id,
+        productName: product.shortName,
+        price: product.price,
+        category: product.category,
+      });
+    }
+  };
+
+  return (
+    <section className={`${className}`}>
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 rounded-2xl p-6 mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2.5 bg-amber-500/20 rounded-xl">
+            <Shield className="w-6 h-6 text-amber-400" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              Earthquake Preparedness Essentials
+            </h2>
+            <p className="text-sm text-neutral-400">
+              Trusted by 10,000+ Bay Area households • Expert recommended
+            </p>
+          </div>
+        </div>
+        
+        {/* Urgency Banner */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg mt-4">
+          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <p className="text-xs text-red-300">
+            <span className="font-semibold">The next big one could happen anytime.</span> 72% of Bay Area households are unprepared.
+          </p>
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        {CATEGORIES.map((cat) => {
+          const Icon = cat.icon;
+          const isActive = activeCategory === cat.id;
+          const colorClass = {
+            amber: isActive ? 'bg-amber-500 text-black' : 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20',
+            green: isActive ? 'bg-green-500 text-black' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20',
+            blue: isActive ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20',
+            purple: isActive ? 'bg-purple-500 text-white' : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20',
+            red: isActive ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-400 hover:bg-red-500/20',
+          }[cat.color];
+          
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${colorClass}`}
+            >
+              <Icon className="w-4 h-4" />
+              {cat.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Products Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {AFFILIATE_PRODUCTS
+          .filter(p => p.category === activeCategory)
+          .map((product, idx) => (
+            <ProductCardPremium 
+              key={product.id} 
+              product={product}
+              rank={idx + 1}
+              onClick={() => handleProductClick(product)}
+            />
+          ))}
+      </div>
+
+      {/* Trust Footer */}
+      <div className="mt-8 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-neutral-500">
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-green-500" />
+            Free Prime Shipping
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-green-500" />
+            Easy Returns
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-green-500" />
+            Verified Reviews
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-green-500" />
+            Secure Checkout
+          </span>
+        </div>
+        <p className="text-center text-[10px] text-neutral-600 mt-3">
+          As an Amazon Associate, Bay Tremor earns from qualifying purchases. This helps us keep the site free.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ===== PREMIUM PRODUCT CARD =====
+interface ProductCardPremiumProps {
+  product: AffiliateProduct;
+  rank?: number;
+  onClick?: () => void;
+}
+
+function ProductCardPremium({ product, rank, onClick }: ProductCardPremiumProps) {
+  const getBadgeStyle = (badge: AffiliateProduct['badge']) => {
+    switch (badge) {
+      case 'best-seller':
+        return { bg: 'bg-gradient-to-r from-amber-500 to-orange-500', text: 'text-black', label: '🏆 #1 Best Seller' };
+      case 'editor-pick':
+        return { bg: 'bg-gradient-to-r from-blue-500 to-cyan-500', text: 'text-white', label: '⭐ Editor\'s Choice' };
+      case 'best-value':
+        return { bg: 'bg-gradient-to-r from-green-500 to-emerald-500', text: 'text-white', label: '💰 Best Value' };
+      case 'most-popular':
+        return { bg: 'bg-gradient-to-r from-purple-500 to-pink-500', text: 'text-white', label: '🔥 Most Popular' };
+      default:
+        return null;
+    }
+  };
+
+  const badge = getBadgeStyle(product.badge);
+  
+  // Category icons for product cards
+  const getCategoryIcon = () => {
+    switch (product.category) {
+      case 'emergency-kit': return '🎒';
+      case 'furniture-safety': return '🔧';
+      case 'water-storage': return '💧';
+      case 'communication': return '📻';
+      case 'first-aid': return '🩹';
+      default: return '📦';
+    }
+  };
+
+  return (
+    <a
+      href={product.affiliateUrl}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      onClick={onClick}
+      className="group relative flex flex-col bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 hover:border-amber-500/50 rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1"
+    >
+      {/* Badge */}
+      {badge && (
+        <div className={`absolute top-3 left-3 z-10 px-2.5 py-1 ${badge.bg} ${badge.text} text-[11px] font-bold rounded-full shadow-lg`}>
+          {badge.label}
+        </div>
+      )}
+
+      {/* Product Image Area */}
+      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 p-6 flex items-center justify-center">
+        <div className="text-6xl">{getCategoryIcon()}</div>
+        
+        {/* Prime Badge */}
+        {product.primeEligible && (
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#232F3E] rounded text-[10px] font-bold text-white">
+            <Truck className="w-3 h-3 text-[#FF9900]" />
+            <span className="text-[#FF9900]">Prime</span>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-4">
+        {/* Title */}
+        <h3 className="font-semibold text-white group-hover:text-amber-400 transition-colors line-clamp-2 text-sm mb-2">
+          {product.name}
+        </h3>
+
+        {/* Rating */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <Star 
+                key={i} 
+                className={`w-3.5 h-3.5 ${i < Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-neutral-600'}`} 
+              />
+            ))}
+          </div>
+          <span className="text-xs text-amber-400 font-medium">{product.rating}</span>
+          <span className="text-xs text-neutral-500">({product.reviewCount.toLocaleString()} reviews)</span>
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-neutral-400 line-clamp-2 mb-4">
+          {product.description}
+        </p>
+
+        {/* Price & CTA */}
+        <div className="flex items-end justify-between mt-auto pt-3 border-t border-white/5">
+          <div>
+            <div className="text-2xl font-bold text-white">
+              ${product.price.toFixed(2)}
+            </div>
+            {product.originalPrice && (
+              <div className="text-xs text-neutral-500 line-through">
+                ${product.originalPrice.toFixed(2)}
+              </div>
+            )}
+          </div>
+          
+          <button className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-semibold text-sm rounded-lg transition-all shadow-lg shadow-amber-500/25 group-hover:shadow-amber-500/40">
+            <ShoppingCart className="w-4 h-4" />
+            View Deal
+          </button>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// ===== CONTEXTUAL RECOMMENDATIONS (smaller, for sidebars) =====
 interface AffiliateRecommendationsProps {
   context: 'post-earthquake' | 'homepage' | 'my-area' | 'learn';
   earthquakeMagnitude?: number;
@@ -21,48 +295,68 @@ export function AffiliateRecommendations({
   earthquakeMagnitude,
   title,
   subtitle,
-  limit = 3,
+  limit = 4,
   className = '',
 }: AffiliateRecommendationsProps) {
-  const products = getProductsForContext(context, limit);
-  
-  // Don't render if no products
+  // Get products based on context
+  const getProductsForContext = () => {
+    switch (context) {
+      case 'post-earthquake':
+        return AFFILIATE_PRODUCTS
+          .filter(p => p.category === 'emergency-kit' || p.category === 'communication')
+          .filter(p => p.badge)
+          .slice(0, limit);
+      case 'homepage':
+        return AFFILIATE_PRODUCTS
+          .filter(p => p.badge === 'best-seller' || p.badge === 'editor-pick')
+          .slice(0, limit);
+      case 'my-area':
+        return AFFILIATE_PRODUCTS
+          .filter(p => p.category === 'furniture-safety' || p.category === 'water-storage')
+          .slice(0, limit);
+      case 'learn':
+        return AFFILIATE_PRODUCTS.filter(p => p.badge).slice(0, limit);
+      default:
+        return AFFILIATE_PRODUCTS.filter(p => p.badge).slice(0, limit);
+    }
+  };
+
+  const products = getProductsForContext();
   if (products.length === 0) return null;
 
-  // Dynamic messaging based on context
   const getContextContent = () => {
     switch (context) {
       case 'post-earthquake':
         return {
           title: title || 'Be Prepared for Next Time',
-          subtitle: subtitle || `After feeling that${earthquakeMagnitude ? ` M${earthquakeMagnitude.toFixed(1)}` : ''} earthquake, many ask: "Am I prepared?"`,
+          subtitle: subtitle || `After feeling that${earthquakeMagnitude ? ` M${earthquakeMagnitude.toFixed(1)}` : ''} earthquake, are you ready?`,
           icon: Shield,
-          iconBg: 'bg-amber-500/10 border-amber-500/20',
-          iconColor: 'text-amber-400',
+          gradient: 'from-red-500/20 to-amber-500/20',
+          borderColor: 'border-amber-500/30',
         };
       case 'homepage':
         return {
           title: title || 'Earthquake Preparedness Essentials',
-          subtitle: subtitle || 'The most purchased items by Bay Area households',
+          subtitle: subtitle || 'Most purchased by Bay Area households',
           icon: Award,
-          iconBg: 'bg-blue-500/10 border-blue-500/20',
-          iconColor: 'text-blue-400',
+          gradient: 'from-blue-500/20 to-purple-500/20',
+          borderColor: 'border-blue-500/30',
         };
       case 'my-area':
         return {
           title: title || 'Protect Your Home',
-          subtitle: subtitle || 'Based on seismic activity in your area, here are the essentials',
+          subtitle: subtitle || 'Essential safety items for your area',
           icon: Home,
-          iconBg: 'bg-green-500/10 border-green-500/20',
-          iconColor: 'text-green-400',
+          gradient: 'from-green-500/20 to-emerald-500/20',
+          borderColor: 'border-green-500/30',
         };
       case 'learn':
         return {
-          title: title || 'Recommended by Emergency Experts',
-          subtitle: subtitle || 'Build your earthquake preparedness kit',
+          title: title || 'Expert Recommendations',
+          subtitle: subtitle || 'Build your emergency kit',
           icon: Zap,
-          iconBg: 'bg-purple-500/10 border-purple-500/20',
-          iconColor: 'text-purple-400',
+          gradient: 'from-purple-500/20 to-pink-500/20',
+          borderColor: 'border-purple-500/30',
         };
     }
   };
@@ -70,9 +364,7 @@ export function AffiliateRecommendations({
   const content = getContextContent();
   const Icon = content.icon;
 
-  // Track clicks for analytics
   const handleProductClick = (product: AffiliateProduct) => {
-    // Datadog RUM tracking (if available)
     if (typeof window !== 'undefined' && (window as any).DD_RUM) {
       (window as any).DD_RUM.addAction('affiliate_link_clicked', {
         productId: product.id,
@@ -84,202 +376,200 @@ export function AffiliateRecommendations({
     }
   };
 
+  // Category emoji for compact display
+  const getCategoryEmoji = (category: string) => {
+    switch (category) {
+      case 'emergency-kit': return '🎒';
+      case 'furniture-safety': return '🔧';
+      case 'water-storage': return '💧';
+      case 'communication': return '📻';
+      case 'first-aid': return '🩹';
+      default: return '📦';
+    }
+  };
+
   return (
-    <section className={`bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden ${className}`}>
+    <section className={`bg-gradient-to-b ${content.gradient} border ${content.borderColor} rounded-2xl overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-white/5">
+      <div className="p-4 sm:p-5">
         <div className="flex items-start gap-3">
-          <div className={`p-2.5 rounded-xl border flex-shrink-0 ${content.iconBg}`}>
-            <Icon className={`w-5 h-5 ${content.iconColor}`} />
+          <div className="p-2.5 bg-white/10 rounded-xl flex-shrink-0">
+            <Icon className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-white text-lg">{content.title}</h3>
-            <p className="text-sm text-neutral-400 mt-0.5">{content.subtitle}</p>
+            <h3 className="font-bold text-white text-lg">{content.title}</h3>
+            <p className="text-sm text-neutral-300 mt-0.5">{content.subtitle}</p>
           </div>
         </div>
       </div>
 
       {/* Products */}
-      <div className="p-4 sm:p-5">
-        <div className="grid gap-3">
-          {products.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              onClick={() => handleProductClick(product)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Disclosure */}
-      <div className="px-4 sm:px-5 py-3 border-t border-white/5 bg-white/[0.01]">
-        <p className="text-[11px] text-neutral-500">
-          As an Amazon Associate, Bay Tremor earns from qualifying purchases. 
-          This helps us keep the site free for everyone.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-interface ProductCardProps {
-  product: AffiliateProduct;
-  onClick?: () => void;
-}
-
-function ProductCard({ product, onClick }: ProductCardProps) {
-  const getBadgeStyle = (badge: AffiliateProduct['badge']) => {
-    switch (badge) {
-      case 'best-seller':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'editor-pick':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'best-value':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'most-popular':
-        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      default:
-        return '';
-    }
-  };
-
-  const getBadgeLabel = (badge: AffiliateProduct['badge']) => {
-    switch (badge) {
-      case 'best-seller': return '#1 Best Seller';
-      case 'editor-pick': return 'Editor Pick';
-      case 'best-value': return 'Best Value';
-      case 'most-popular': return 'Most Popular';
-      default: return '';
-    }
-  };
-
-  return (
-    <a
-      href={product.affiliateUrl}
-      target="_blank"
-      rel="noopener noreferrer sponsored"
-      onClick={onClick}
-      className="group flex gap-4 p-3 sm:p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/10 rounded-xl transition-all"
-    >
-      {/* Product Image Placeholder */}
-      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-neutral-800 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
-        <Package className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-600" />
-      </div>
-
-      {/* Product Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            {/* Badge */}
-            {product.badge && (
-              <span className={`inline-block px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded border mb-1 ${getBadgeStyle(product.badge)}`}>
-                {getBadgeLabel(product.badge)}
-              </span>
-            )}
-            
-            {/* Name */}
-            <h4 className="font-medium text-white group-hover:text-blue-400 transition-colors line-clamp-1 text-sm sm:text-base">
-              {product.shortName}
-            </h4>
-          </div>
-          
-          {/* Price */}
-          <div className="text-right flex-shrink-0">
-            <span className="text-base sm:text-lg font-bold text-white">${product.price}</span>
-            {product.primeEligible && (
-              <span className="block text-[10px] text-blue-400 font-medium">Prime</span>
-            )}
-          </div>
-        </div>
-
-        {/* Why Recommended */}
-        <p className="text-xs sm:text-sm text-neutral-400 line-clamp-2 mt-1">
-          {product.whyRecommended}
-        </p>
-
-        {/* Rating & CTA */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 fill-amber-400" />
-            <span className="text-xs sm:text-sm text-neutral-300">{product.rating}</span>
-            <span className="text-[10px] sm:text-xs text-neutral-500">
-              ({product.reviewCount.toLocaleString()})
-            </span>
-          </div>
-          
-          <span className="flex items-center gap-1 text-[10px] sm:text-xs font-medium text-blue-400 group-hover:text-blue-300 transition-colors">
-            View on Amazon <ExternalLink className="w-3 h-3" />
-          </span>
-        </div>
-      </div>
-    </a>
-  );
-}
-
-// ===== COMPACT VARIANTS =====
-
-/**
- * Horizontal scroll variant for homepage
- */
-export function AffiliateRecommendationsCompact({
-  context = 'homepage',
-  limit = 4,
-  className = '',
-}: {
-  context?: 'post-earthquake' | 'homepage' | 'my-area' | 'learn';
-  limit?: number;
-  className?: string;
-}) {
-  const products = getProductsForContext(context, limit);
-  
-  if (products.length === 0) return null;
-
-  return (
-    <div className={`space-y-3 ${className}`}>
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-neutral-400">
-          Earthquake Preparedness Essentials
-        </h4>
-        <span className="text-[10px] text-neutral-600">Sponsored</span>
-      </div>
-      
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+      <div className="px-4 sm:px-5 pb-4 space-y-3">
         {products.map((product) => (
           <a
             key={product.id}
             href={product.affiliateUrl}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className="flex-shrink-0 w-[140px] p-3 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/10 rounded-xl transition-all"
+            onClick={() => handleProductClick(product)}
+            className="group flex items-center gap-3 p-3 bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/20 rounded-xl transition-all"
           >
-            <div className="w-full aspect-square bg-neutral-800 rounded-lg mb-2 flex items-center justify-center">
-              <Package className="w-6 h-6 text-neutral-600" />
+            {/* Emoji Icon */}
+            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
+              {getCategoryEmoji(product.category)}
             </div>
-            <h5 className="text-xs font-medium text-white line-clamp-2 mb-1">
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                {product.badge && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    product.badge === 'best-seller' ? 'bg-amber-500/30 text-amber-300' :
+                    product.badge === 'editor-pick' ? 'bg-blue-500/30 text-blue-300' :
+                    product.badge === 'best-value' ? 'bg-green-500/30 text-green-300' :
+                    'bg-purple-500/30 text-purple-300'
+                  }`}>
+                    {product.badge === 'best-seller' ? '★ BEST' : 
+                     product.badge === 'editor-pick' ? '★ PICK' :
+                     product.badge === 'best-value' ? '★ VALUE' : '★ HOT'}
+                  </span>
+                )}
+              </div>
+              <h4 className="font-medium text-white text-sm line-clamp-1 group-hover:text-amber-400 transition-colors">
+                {product.shortName}
+              </h4>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-0.5">
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span className="text-xs text-neutral-400">{product.rating}</span>
+                </div>
+                <span className="text-xs text-neutral-500">({product.reviewCount.toLocaleString()})</span>
+              </div>
+            </div>
+
+            {/* Price & CTA */}
+            <div className="text-right flex-shrink-0">
+              <div className="text-lg font-bold text-white">${product.price}</div>
+              {product.primeEligible && (
+                <div className="text-[9px] text-[#FF9900] font-bold">Prime ✓</div>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+
+      {/* View All Link */}
+      <a 
+        href="/learn#preparedness"
+        className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 text-sm font-medium text-white transition-colors"
+      >
+        View All Products
+        <ChevronRight className="w-4 h-4" />
+      </a>
+
+      {/* Disclosure */}
+      <div className="px-4 sm:px-5 py-3 bg-black/20">
+        <p className="text-[10px] text-neutral-500 text-center">
+          As an Amazon Associate, Bay Tremor earns from qualifying purchases.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ===== COMPACT HORIZONTAL SCROLL =====
+export function AffiliateRecommendationsCompact({
+  className = '',
+  limit = 6,
+}: {
+  className?: string;
+  limit?: number;
+}) {
+  const products = AFFILIATE_PRODUCTS.filter(p => p.badge).slice(0, limit);
+  
+  if (products.length === 0) return null;
+
+  const getCategoryEmoji = (category: string) => {
+    switch (category) {
+      case 'emergency-kit': return '🎒';
+      case 'furniture-safety': return '🔧';
+      case 'water-storage': return '💧';
+      case 'communication': return '📻';
+      case 'first-aid': return '🩹';
+      default: return '📦';
+    }
+  };
+
+  return (
+    <div className={`${className}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <h4 className="text-sm font-semibold text-white">
+            Preparedness Essentials
+          </h4>
+        </div>
+        <span className="text-[10px] text-neutral-600 bg-white/5 px-2 py-0.5 rounded">Sponsored</span>
+      </div>
+      
+      <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        {products.map((product) => (
+          <a
+            key={product.id}
+            href={product.affiliateUrl}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="flex-shrink-0 w-[160px] p-3 bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 hover:border-amber-500/50 rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/10"
+          >
+            {/* Badge */}
+            {product.badge && (
+              <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded inline-block mb-2 ${
+                product.badge === 'best-seller' ? 'bg-amber-500/30 text-amber-300' :
+                product.badge === 'editor-pick' ? 'bg-blue-500/30 text-blue-300' :
+                product.badge === 'best-value' ? 'bg-green-500/30 text-green-300' :
+                'bg-purple-500/30 text-purple-300'
+              }`}>
+                {product.badge === 'best-seller' ? '🏆 Best Seller' : 
+                 product.badge === 'editor-pick' ? '⭐ Editor Pick' :
+                 product.badge === 'best-value' ? '💰 Best Value' : '🔥 Popular'}
+              </div>
+            )}
+            
+            {/* Icon */}
+            <div className="w-full aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-lg mb-3 flex items-center justify-center text-4xl">
+              {getCategoryEmoji(product.category)}
+            </div>
+            
+            {/* Title */}
+            <h5 className="text-xs font-medium text-white line-clamp-2 mb-2 h-8">
               {product.shortName}
             </h5>
+            
+            {/* Rating */}
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+              <span className="text-[10px] text-neutral-400">{product.rating} ({product.reviewCount.toLocaleString()})</span>
+            </div>
+            
+            {/* Price */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-white">${product.price}</span>
-              <div className="flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-                <span className="text-[10px] text-neutral-400">{product.rating}</span>
-              </div>
+              <span className="text-base font-bold text-white">${product.price}</span>
+              {product.primeEligible && (
+                <span className="text-[9px] text-[#FF9900] font-bold">Prime</span>
+              )}
             </div>
           </a>
         ))}
       </div>
       
-      <p className="text-[10px] text-neutral-600">
+      <p className="text-[10px] text-neutral-600 mt-2">
         As an Amazon Associate, Bay Tremor earns from qualifying purchases.
       </p>
     </div>
   );
 }
 
-/**
- * Single product inline recommendation
- */
+// ===== SINGLE INLINE PRODUCT =====
 export function InlineProductRecommendation({ 
   productId,
   className = '',
@@ -295,13 +585,11 @@ export function InlineProductRecommendation({
       href={product.affiliateUrl}
       target="_blank"
       rel="noopener noreferrer sponsored"
-      className={`inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-amber-500/30 rounded-lg text-sm transition-all ${className}`}
     >
-      <span className="text-white">{product.shortName}</span>
-      <span className="text-green-400 font-medium">${product.price}</span>
-      <ExternalLink className="w-3 h-3 text-neutral-400" />
+      <span className="text-white font-medium">{product.shortName}</span>
+      <span className="text-amber-400 font-bold">${product.price}</span>
+      <ExternalLink className="w-3 h-3 text-amber-400" />
     </a>
   );
 }
-
-

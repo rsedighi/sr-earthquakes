@@ -405,7 +405,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
           {stats.total > 0 && (
             <AffiliateRecommendations 
               context="my-area"
-              limit={3}
+              limit={6}
             />
           )}
           

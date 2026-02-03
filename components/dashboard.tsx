@@ -73,7 +73,7 @@ import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
 import { CommunityWidget } from './bay-tremor-community';
 import { QuickReportButton } from './community-hub';
-import { AffiliateRecommendations } from './affiliate-recommendations';
+import { AffiliateRecommendations, AffiliateShowcase } from './affiliate-recommendations';
 import { NavBar } from './dashboard/components/nav-bar';
 import { QuickReportModal } from './quick-report-modal';
 
@@ -1615,11 +1615,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             {/* Active Discussions Widget */}
             <CommunityWidget />
 
-            {/* Affiliate Recommendations - Earthquake Preparedness */}
-            <AffiliateRecommendations 
-              context="homepage"
-              limit={3}
-            />
+            {/* Affiliate Products - Full Showcase */}
+            <AffiliateShowcase />
           </>
         )}
 
