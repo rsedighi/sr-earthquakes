@@ -757,30 +757,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   const [dismissedFeltPrompts, setDismissedFeltPrompts] = useState<Set<string>>(new Set());
   const [showFirstVisitPrompt, setShowFirstVisitPrompt] = useState(false);
   
-  // Check if this is a first visit (show city prompt after short delay)
-  useEffect(() => {
-    // Only check on client side and on live tab
-    if (typeof window === 'undefined' || initialTab !== 'live') return;
-    
-    const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
-    const hasCitySet = localStorage.getItem('baytremor-my-city');
-    
-    // Show prompt if: never seen it AND no city set AND data has loaded
-    if (!hasSeenPrompt && !hasCitySet && !isLoading) {
-      // Delay to let user see the page first
-      const timer = setTimeout(() => {
-        setShowFirstVisitPrompt(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [initialTab, isLoading]);
-  
-  // Handle first-visit prompt dismiss
-  const handleFirstVisitDismiss = useCallback(() => {
-    setShowFirstVisitPrompt(false);
-    localStorage.setItem('baytremor-seen-welcome', 'true');
-  }, []);
-  
   // Tab is controlled by route props
   const activeTab = initialTab;
   const [showCitySelector, setShowCitySelector] = useState(false);
@@ -912,6 +888,30 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
       }
     }
   }, [realtimeQuakes, isLoading, seenQuakeIds, dismissedFeltPrompts, feltPromptQuake]);
+
+  // Check if this is a first visit (show city prompt after short delay)
+  useEffect(() => {
+    // Only check on client side and on live tab
+    if (typeof window === 'undefined' || initialTab !== 'live') return;
+    
+    const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
+    const hasCitySet = localStorage.getItem('baytremor-my-city');
+    
+    // Show prompt if: never seen it AND no city set AND data has loaded
+    if (!hasSeenPrompt && !hasCitySet && !isLoading) {
+      // Delay to let user see the page first
+      const timer = setTimeout(() => {
+        setShowFirstVisitPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [initialTab, isLoading]);
+  
+  // Handle first-visit prompt dismiss
+  const handleFirstVisitDismiss = useCallback(() => {
+    setShowFirstVisitPrompt(false);
+    localStorage.setItem('baytremor-seen-welcome', 'true');
+  }, []);
 
   // Recent earthquake data (since Dec 8, 2025) - supplements the historical data
   const {
