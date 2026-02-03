@@ -41,12 +41,14 @@ function ProductImage({
   src, 
   alt, 
   className = '',
-  size = 'md'
+  size = 'md',
+  priority = false
 }: { 
   src: string; 
   alt: string; 
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  priority?: boolean;
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +81,9 @@ function ProductImage({
         className={`absolute inset-0 w-full h-full object-contain p-3 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onLoad={() => setIsLoading(false)}
         onError={() => setHasError(true)}
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
+        decoding={priority ? "sync" : "async"}
+        fetchPriority={priority ? "high" : "auto"}
       />
     </div>
   );
@@ -177,6 +181,7 @@ export function AffiliateShowcase({
               product={product}
               rank={idx + 1}
               onClick={() => handleProductClick(product)}
+              priority={idx < 3} // Load first 3 images immediately
             />
           ))}
       </div>
@@ -214,9 +219,10 @@ interface ProductCardPremiumProps {
   product: AffiliateProduct;
   rank?: number;
   onClick?: () => void;
+  priority?: boolean;
 }
 
-function ProductCardPremium({ product, rank, onClick }: ProductCardPremiumProps) {
+function ProductCardPremium({ product, rank, onClick, priority = false }: ProductCardPremiumProps) {
   const getBadgeStyle = (badge: AffiliateProduct['badge']) => {
     switch (badge) {
       case 'best-seller':
@@ -256,6 +262,7 @@ function ProductCardPremium({ product, rank, onClick }: ProductCardPremiumProps)
           alt={product.name}
           size="md"
           className="rounded-t-2xl"
+          priority={priority}
         />
         
         {/* Prime Badge */}
@@ -444,7 +451,8 @@ export function AffiliateRecommendations({
                 src={product.imageUrl}
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-contain p-1"
-                loading="lazy"
+                loading="eager"
+                decoding="async"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
@@ -560,7 +568,8 @@ export function AffiliateRecommendationsCompact({
                 src={product.imageUrl}
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-contain p-2"
-                loading="lazy"
+                loading="eager"
+                decoding="async"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
