@@ -70,7 +70,6 @@ import { MyNeighborhood } from './my-neighborhood';
 import { HistoricalSwarms } from './historical-swarms';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
-import { AdBanner } from './ad-banner';
 import { CommunityWidget } from './bay-tremor-community';
 import { QuickReportButton } from './community-hub';
 import { AffiliateRecommendations, AffiliateShowcase } from './affiliate-recommendations';
@@ -1734,13 +1733,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         {activeTab === 'learn' && (
           <LearnSection />
         )}
-
-        {/* Ad Banner - Above footer */}
-        <AdBanner 
-          slot="YOUR_AD_SLOT_2" 
-          format="auto" 
-          className="rounded-xl mt-8"
-        />
 
         {/* Footer */}
         <footer className="border-t border-white/5 mt-12 pt-8 pb-12">
