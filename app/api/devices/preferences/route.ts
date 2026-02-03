@@ -30,6 +30,9 @@ export async function PUT(request: NextRequest) {
     }
     
     const client = await clientPromise;
+    if (!client) {
+      throw new Error('Failed to connect to database');
+    }
     const db = client.db('earthquake-tracker');
     const devicesCollection = db.collection('devices');
     
