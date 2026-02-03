@@ -71,7 +71,8 @@ import { HistoricalSwarms } from './historical-swarms';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { AdBanner } from './ad-banner';
-import { CommunityHub, ActiveDiscussionsWidget, QuickReportButton } from './community-hub';
+import { CommunityWidget } from './bay-tremor-community';
+import { QuickReportButton } from './community-hub';
 import { AffiliateRecommendations } from './affiliate-recommendations';
 import { NavBar } from './dashboard/components/nav-bar';
 import { QuickReportModal } from './quick-report-modal';
@@ -1612,7 +1613,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             )}
 
             {/* Active Discussions Widget */}
-            <ActiveDiscussionsWidget />
+            <CommunityWidget />
 
             {/* Affiliate Recommendations - Earthquake Preparedness */}
             <AffiliateRecommendations 
@@ -1622,9 +1623,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           </>
         )}
 
-        {activeTab === 'community' && (
-          <CommunityHub initialCategory={forumCategory} initialThread={forumThread} />
-        )}
+        {/* Community tab is now a standalone page at /community */}
 
         {activeTab === 'neighborhood' && (
           <MyNeighborhood 

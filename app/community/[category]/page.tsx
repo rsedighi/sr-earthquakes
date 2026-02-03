@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
-import { Dashboard } from '@/components/dashboard';
-import { generateHistoricalSummary } from '@/lib/server-data';
-import { DashboardLoading } from '@/components/dashboard-loading';
+import { BayTremorCommunity } from '@/components/bay-tremor-community';
+import { NavBar } from '@/components/dashboard/components/nav-bar';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
@@ -40,13 +39,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = CATEGORY_DESCRIPTIONS[category as ForumCategory];
   
   return {
-    title: name,
+    title: `${name} | r/baytremor`,
     description,
     openGraph: {
-      title: `${name} | Bay Tremor Community`,
+      title: `${name} | r/baytremor Community`,
       description,
     },
   };
+}
+
+function CommunityLoading() {
+  return (
+    <div className="min-h-screen animate-pulse">
+      <div className="h-32 bg-gradient-to-r from-orange-600/50 to-amber-500/50" />
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-40 bg-neutral-800/50 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default async function CategoryPage({ params }: Props) {
@@ -56,16 +70,13 @@ export default async function CategoryPage({ params }: Props) {
     notFound();
   }
   
-  const summary = generateHistoricalSummary();
-  
   return (
-    <Suspense fallback={<DashboardLoading />}>
-      <Dashboard 
-        historicalSummary={summary} 
-        initialTab="community"
-        forumCategory={category as ForumCategory}
-      />
-    </Suspense>
+    <>
+      <NavBar currentPath={`/community/${category}`} />
+      <Suspense fallback={<CommunityLoading />}>
+        <BayTremorCommunity />
+      </Suspense>
+    </>
   );
 }
 
@@ -73,6 +84,4 @@ export function generateStaticParams() {
   return VALID_CATEGORIES.map((category) => ({ category }));
 }
 
-export const revalidate = 3600;
-
-
+export const revalidate = 60;

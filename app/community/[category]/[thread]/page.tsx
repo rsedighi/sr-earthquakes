@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
-import { Dashboard } from '@/components/dashboard';
-import { generateHistoricalSummary } from '@/lib/server-data';
-import { DashboardLoading } from '@/components/dashboard-loading';
+import { ThreadDetailView } from '@/components/bay-tremor-community';
+import { NavBar } from '@/components/dashboard/components/nav-bar';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { Loader2 } from 'lucide-react';
 
 // Valid forum categories
 const VALID_CATEGORIES = ['earthquake', 'general', 'neighborhood', 'preparedness', 'science'] as const;
@@ -27,13 +27,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .join(' ');
   
   return {
-    title: threadTitle,
-    description: `Discussion thread in the Bay Tremor community forum.`,
+    title: `${threadTitle} | r/baytremor`,
+    description: `Discussion thread in the r/baytremor community.`,
     openGraph: {
-      title: `${threadTitle} | Bay Tremor Community`,
-      description: `Join the discussion in the Bay Tremor earthquake community.`,
+      title: `${threadTitle} | r/baytremor`,
+      description: `Join the discussion in the Bay Area earthquake community.`,
     },
   };
+}
+
+function ThreadLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+    </div>
+  );
 }
 
 export default async function ThreadPage({ params }: Props) {
@@ -43,20 +51,14 @@ export default async function ThreadPage({ params }: Props) {
     notFound();
   }
   
-  const summary = generateHistoricalSummary();
-  
   return (
-    <Suspense fallback={<DashboardLoading />}>
-      <Dashboard 
-        historicalSummary={summary} 
-        initialTab="community"
-        forumCategory={category as ForumCategory}
-        forumThread={thread}
-      />
-    </Suspense>
+    <>
+      <NavBar currentPath={`/community/${category}/${thread}`} />
+      <Suspense fallback={<ThreadLoading />}>
+        <ThreadDetailView slug={thread} category={category as ForumCategory} />
+      </Suspense>
+    </>
   );
 }
 
-export const revalidate = 3600;
-
-
+export const revalidate = 60;
