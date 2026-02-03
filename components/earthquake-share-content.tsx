@@ -439,7 +439,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
           <AffiliateRecommendations 
             context="post-earthquake"
             earthquakeMagnitude={earthquake.magnitude}
-            limit={3}
+            limit={6}
           />
         </div>
         
