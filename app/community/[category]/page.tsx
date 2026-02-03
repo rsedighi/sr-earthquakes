@@ -39,10 +39,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = CATEGORY_DESCRIPTIONS[category as ForumCategory];
   
   return {
-    title: `${name} | r/baytremor`,
+    title: `${name} | Bay Tremor Community`,
     description,
     openGraph: {
-      title: `${name} | r/baytremor Community`,
+      title: `${name} | Bay Tremor Community`,
       description,
     },
   };

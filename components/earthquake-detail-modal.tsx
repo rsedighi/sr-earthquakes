@@ -32,6 +32,7 @@ import {
   Copy,
   Check,
   MessageSquare,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { CommentThread } from './comment-thread';
 
@@ -104,6 +105,7 @@ export function EarthquakeDetailModal({
   const [showAllSimilar, setShowAllSimilar] = useState(false);
   const [sortNearbyBy, setSortNearbyBy] = useState<'distance' | 'time' | 'magnitude'>('distance');
   const [copied, setCopied] = useState(false);
+  const [isLoadingShare, setIsLoadingShare] = useState(false);
   
   // Handle ESC key press and lock body scroll
   useEffect(() => {
@@ -160,6 +162,83 @@ export function EarthquakeDetailModal({
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
   const nextdoorShareUrl = `https://nextdoor.com/share/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}`;
   const smsShareUrl = `sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+  
+  // Fetch share image for iOS sharing with beautiful card
+  const fetchShareImage = useCallback(async (): Promise<File | null> => {
+    try {
+      const imageUrl = `/api/earthquake/${earthquake.id}/share-image`;
+      const response = await fetch(imageUrl);
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch share image');
+        return null;
+      }
+      
+      const blob = await response.blob();
+      const filename = `earthquake-${earthquake.id}-M${earthquake.magnitude.toFixed(1)}.png`;
+      
+      return new File([blob], filename, { type: 'image/png' });
+    } catch (error) {
+      console.warn('Error fetching share image:', error);
+      return null;
+    }
+  }, [earthquake.id, earthquake.magnitude]);
+  
+  // Enhanced share handler with image support for iOS
+  const handleShare = useCallback(async () => {
+    if (!navigator.share) {
+      // Fallback for browsers without Web Share API
+      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    
+    setIsLoadingShare(true);
+    
+    try {
+      // Try to share with image first (Web Share API Level 2)
+      const shareData: ShareData = {
+        title: shareTitle,
+        text: shareText,
+        url: shareUrl,
+      };
+      
+      // Check if the browser supports sharing files
+      const canShareFiles = 'canShare' in navigator && navigator.canShare;
+      
+      if (canShareFiles) {
+        // Fetch the beautiful share card image
+        const shareImage = await fetchShareImage();
+        
+        if (shareImage) {
+          const shareDataWithFile = {
+            ...shareData,
+            files: [shareImage],
+          };
+          
+          // Check if the device can share this specific data (with file)
+          if (navigator.canShare(shareDataWithFile)) {
+            await navigator.share(shareDataWithFile);
+            setIsLoadingShare(false);
+            return;
+          }
+        }
+      }
+      
+      // Fallback to sharing without image
+      await navigator.share(shareData);
+    } catch (err) {
+      // User cancelled or error - fallback to copy
+      if ((err as Error).name !== 'AbortError') {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } finally {
+      setIsLoadingShare(false);
+    }
+  }, [shareTitle, shareText, shareUrl, fetchShareImage]);
   
   // Copy link handler
   const handleCopyLink = async () => {
@@ -375,37 +454,30 @@ export function EarthquakeDetailModal({
         
         {/* Share This Earthquake - Prominent Section */}
         <div className="bg-neutral-900 bg-gradient-to-r from-emerald-500/30 via-blue-500/30 to-purple-500/30 border-x border-white/10 p-5">
-          {/* Main Share Button - Native Share */}
+          {/* Main Share Button - Native Share with Image Card */}
           <button
-            onClick={async () => {
-              if (navigator.share) {
-                try {
-                  await navigator.share({
-                    title: shareTitle,
-                    text: shareText,
-                    url: shareUrl,
-                  });
-                } catch (err) {
-                  // User cancelled or error - fallback to copy
-                  if ((err as Error).name !== 'AbortError') {
-                    await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }
-                }
-              } else {
-                // Fallback for browsers without Web Share API
-                await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }
-            }}
-            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group"
+            onClick={handleShare}
+            disabled={isLoadingShare}
+            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 disabled:from-emerald-600 disabled:via-teal-600 disabled:to-cyan-600 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:scale-100 shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group"
           >
-            <Share2 className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
-            <span className="text-lg font-bold text-white">Share This Earthquake</span>
-            <MessageSquare className="w-5 h-5 text-white/80" />
+            {isLoadingShare ? (
+              <>
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <span className="text-lg font-bold text-white">Preparing Share Card...</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
+                <span className="text-lg font-bold text-white">Share This Earthquake</span>
+                <ImageIcon className="w-5 h-5 text-white/80" />
+              </>
+            )}
           </button>
+          
+          {/* Hint about the share card */}
+          <p className="text-xs text-neutral-400 text-center mb-4">
+            📸 Includes a beautiful share card image for social media
+          </p>
           
           <div className="flex items-center justify-between">
             <p className="text-sm text-neutral-400">Or share directly on:</p>

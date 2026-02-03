@@ -4,10 +4,10 @@ import { NavBar } from '@/components/dashboard/components/nav-bar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'r/baytremor - Bay Area Earthquake Community',
-  description: 'Share your earthquake experiences, discuss seismic activity, and connect with Bay Area neighbors. Join the r/baytremor community!',
+  title: 'Bay Tremor Community - Bay Area Earthquake Discussions',
+  description: 'Share your earthquake experiences, discuss seismic activity, and connect with Bay Area neighbors. Join the Bay Tremor community!',
   openGraph: {
-    title: 'r/baytremor | Bay Area Earthquake Community',
+    title: 'Bay Tremor Community | Bay Area Earthquake Discussions',
     description: 'Share earthquake experiences and connect with Bay Area neighbors.',
   },
 };

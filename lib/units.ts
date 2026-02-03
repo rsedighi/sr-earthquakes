@@ -1,5 +1,5 @@
 // Distance unit utilities for displaying measurements
-// Shows both miles and kilometers (miles first for US/Bay Area users)
+// Default is imperial (miles) for US/Bay Area users
 
 // Conversion constants
 const KM_TO_MILES = 0.621371;
@@ -20,13 +20,13 @@ export function milesToKm(miles: number): number {
 }
 
 /**
- * Format distance showing both miles and km
+ * Format distance in miles (default for US users)
  * @param km - Distance in kilometers (from USGS data)
  * @param decimals - Number of decimal places (default: 1)
  */
 export function formatDistance(km: number, decimals: number = 1): string {
   const miles = kmToMiles(km);
-  return `${miles.toFixed(decimals)} mi (${km.toFixed(decimals)} km)`;
+  return `${miles.toFixed(decimals)} mi`;
 }
 
 /**
@@ -40,13 +40,13 @@ export function formatDistanceCompact(km: number, decimals: number = 1): string 
 }
 
 /**
- * Format depth showing both miles and km
+ * Format depth in miles (default for US users)
  * @param km - Depth in kilometers
  * @param decimals - Number of decimal places (default: 1)
  */
 export function formatDepth(km: number, decimals: number = 1): string {
   const miles = kmToMiles(km);
-  return `${miles.toFixed(decimals)} mi (${km.toFixed(decimals)} km)`;
+  return `${miles.toFixed(decimals)} mi`;
 }
 
 /**
@@ -61,7 +61,7 @@ export function formatDepthCompact(km: number, decimals: number = 1): string {
 
 /**
  * Get depth description based on value
- * Shallow: < 10km (6.2 mi), Intermediate: 10-30km (6.2-18.6 mi), Deep: > 30km (18.6 mi)
+ * Shallow: < 6.2 mi (10 km), Intermediate: 6.2-18.6 mi (10-30 km), Deep: > 18.6 mi (30 km)
  */
 export function getDepthDescription(depthKm: number): string {
   if (depthKm < 10) return 'Shallow';
@@ -70,23 +70,22 @@ export function getDepthDescription(depthKm: number): string {
 }
 
 /**
- * Format depth with "deep" suffix showing both units
- * e.g., "3.1 mi (5.0 km) deep"
+ * Format depth with "deep" suffix in miles
+ * e.g., "3.1 mi deep"
  */
 export function formatDepthDeep(km: number, decimals: number = 1): string {
   const miles = kmToMiles(km);
-  return `${miles.toFixed(decimals)} mi (${km.toFixed(decimals)} km) deep`;
+  return `${miles.toFixed(decimals)} mi deep`;
 }
 
 /**
- * Format radius/distance showing both units
+ * Format radius/distance in miles
  * Useful for search radius, cluster radius, etc.
  */
 export function formatRadius(km: number): string {
   const miles = kmToMiles(km);
   // Round to nice numbers for radius display
   const milesDisplay = miles < 1 ? miles.toFixed(1) : Math.round(miles).toString();
-  const kmDisplay = km < 1 ? km.toFixed(1) : Math.round(km).toString();
-  return `${milesDisplay} mi (${kmDisplay} km)`;
+  return `${milesDisplay} mi`;
 }
 

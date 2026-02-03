@@ -143,7 +143,7 @@ export function BayTremorCommunity() {
 
   return (
     <div className="min-h-screen">
-      {/* Subreddit Banner */}
+      {/* Community Banner */}
       <div className="relative h-24 sm:h-32 bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <svg viewBox="0 0 1440 320" className="w-full h-full" preserveAspectRatio="none">
@@ -164,7 +164,7 @@ export function BayTremorCommunity() {
           </div>
           <div className="pb-2 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">r/baytremor</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Bay Tremor Community</h1>
               <button className="px-4 py-1.5 bg-white text-black text-sm font-semibold rounded-full hover:bg-neutral-200 transition-colors">
                 Join
               </button>
@@ -324,7 +324,7 @@ export function BayTremorCommunity() {
             <div className="bg-[#1a1a1b] rounded-lg border border-neutral-800 p-4">
               <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-orange-500" />
-                r/baytremor Rules
+                Community Guidelines
               </h3>
               <div className="space-y-3">
                 {[
@@ -1149,7 +1149,7 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-neutral-400 mb-4">{error || 'Thread not found'}</p>
           <Link href="/community" className="text-orange-500 hover:underline">
-            Back to r/baytremor
+            Back to Community
           </Link>
         </div>
       </div>
@@ -1177,7 +1177,7 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
           <div className="flex items-center gap-2 text-sm">
             <Link href="/community" className="flex items-center gap-1.5 text-orange-500 hover:text-orange-400">
               <Activity className="w-4 h-4" />
-              r/baytremor
+              Community
             </Link>
             <span className="text-neutral-600">/</span>
             <span className="text-neutral-400">{thread.category}</span>
@@ -1489,7 +1489,7 @@ export function CommunityWidget() {
       <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-orange-500" />
-          <h3 className="font-semibold text-white">r/baytremor</h3>
+          <h3 className="font-semibold text-white">Bay Tremor Community</h3>
         </div>
         <Link href="/community" className="text-xs text-orange-500 hover:text-orange-400">
           View All

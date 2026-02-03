@@ -27,10 +27,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .join(' ');
   
   return {
-    title: `${threadTitle} | r/baytremor`,
-    description: `Discussion thread in the r/baytremor community.`,
+    title: `${threadTitle} | Bay Tremor Community`,
+    description: `Discussion thread in the Bay Tremor community.`,
     openGraph: {
-      title: `${threadTitle} | r/baytremor`,
+      title: `${threadTitle} | Bay Tremor Community`,
       description: `Join the discussion in the Bay Area earthquake community.`,
     },
   };

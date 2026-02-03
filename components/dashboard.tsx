@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { format, formatDistanceToNow, subDays } from 'date-fns';
 import dynamic from 'next/dynamic';
 import { 
@@ -751,6 +751,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [magnitudeFilter, setMagnitudeFilter] = useState<MagnitudeFilter>('all');
+  const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [newQuakesToast, setNewQuakesToast] = useState<Earthquake[]>([]);
   const [seenQuakeIds, setSeenQuakeIds] = useState<Set<string>>(new Set());
   const [feltPromptQuake, setFeltPromptQuake] = useState<Earthquake | null>(null);
@@ -1130,6 +1132,22 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     }
   }, [realtimeQuakes, magnitudeFilter]);
   
+  // Reset displayed items count when filter changes
+  useEffect(() => {
+    setDisplayedItemsCount(20);
+  }, [magnitudeFilter]);
+  
+  // Handle infinite scroll for earthquake list
+  const handleEarthquakeListScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const { scrollTop, scrollHeight, clientHeight } = target;
+    
+    // Load more when within 100px of bottom
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+      setDisplayedItemsCount(prev => Math.min(prev + 20, magnitudeFilteredQuakes.length));
+    }
+  }, [magnitudeFilteredQuakes.length]);
+  
   // Count for filter chips badges
   const filterCounts = useMemo(() => ({
     all: realtimeQuakes.length,
@@ -1338,7 +1356,10 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   </div>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto scrollbar-thin">
+                <div 
+                  className="flex-1 overflow-y-auto scrollbar-thin"
+                  onScroll={magnitudeFilter === 'felt' ? handleEarthquakeListScroll : undefined}
+                >
                   {isLoading ? (
                     <div className="p-4 space-y-3">
                       {Array.from({ length: 6 }).map((_, i) => (
@@ -1354,6 +1375,29 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                       >
                         Show all earthquakes
                       </button>
+                    </div>
+                  ) : magnitudeFilter === 'felt' ? (
+                    // Infinite scroll for felt filter
+                    <div className="divide-y divide-white/5">
+                      {deduplicateEarthquakes(magnitudeFilteredQuakes.slice(0, displayedItemsCount)).map((eq, i) => (
+                        <CompactEarthquakeRow 
+                          key={eq.id} 
+                          earthquake={eq} 
+                          isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
+                          isSelected={selectedEarthquake?.id === eq.id}
+                          onClick={() => {
+                            setSelectedEarthquake(eq);
+                            setDetailEarthquake(eq);
+                          }}
+                          userLocation={myCity ? { lat: myCity.lat, lon: myCity.lon } : null}
+                        />
+                      ))}
+                      {displayedItemsCount < magnitudeFilteredQuakes.length && (
+                        <div className="flex items-center justify-center py-4 text-neutral-500">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          <span className="text-xs">Scroll for more ({magnitudeFilteredQuakes.length - displayedItemsCount} remaining)</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="divide-y divide-white/5">
@@ -1384,12 +1428,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </section>
             </div>
 
-            {/* FELT BY COMMUNITY - Earthquakes with felt reports */}
+            {/* FELT BY COMMUNITY - Earthquakes with felt reports in the last 72 hours */}
             {(() => {
+              const seventyTwoHoursAgo = Date.now() - (72 * 60 * 60 * 1000);
               const feltQuakes = realtimeQuakes
-                .filter(eq => eq.felt && eq.felt > 0)
-                .sort((a, b) => (b.felt || 0) - (a.felt || 0))
-                .slice(0, 5);
+                .filter(eq => eq.felt && eq.felt > 0 && eq.time.getTime() > seventyTwoHoursAgo)
+                .sort((a, b) => (b.felt || 0) - (a.felt || 0));
               
               if (feltQuakes.length === 0) return null;
               
@@ -1400,7 +1444,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                       <Users className="w-4 h-4 text-amber-400" />
                       <span className="text-sm font-medium">Felt By Community</span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        {feltQuakes.length}
+                        {feltQuakes.length} in 72h
                       </span>
                     </div>
                     <button
@@ -1410,7 +1454,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                       View all felt
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[300px] overflow-y-auto">
                     {feltQuakes.map(eq => (
                       <button
                         key={eq.id}
@@ -1949,10 +1993,21 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <Activity className="w-5 h-5 text-neutral-400" />
+                {magnitudeFilter === 'felt' ? (
+                  <Users className="w-5 h-5 text-amber-400" />
+                ) : (
+                  <Activity className="w-5 h-5 text-neutral-400" />
+                )}
                 <div>
-                  <h3 className="text-lg font-semibold">All Earthquakes</h3>
-                  <p className="text-sm text-neutral-500">{realtimeQuakes.length} earthquakes this week</p>
+                  <h3 className="text-lg font-semibold">
+                    {magnitudeFilter === 'felt' ? 'Felt Earthquakes' : 'All Earthquakes'}
+                  </h3>
+                  <p className="text-sm text-neutral-500">
+                    {magnitudeFilter === 'felt' 
+                      ? `${magnitudeFilteredQuakes.length} earthquakes with felt reports`
+                      : `${realtimeQuakes.length} earthquakes this week`
+                    }
+                  </p>
                 </div>
               </div>
               <button
@@ -1963,10 +2018,17 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </button>
             </div>
 
-            {/* Earthquake List */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
+            {/* Earthquake List with infinite scroll */}
+            <div 
+              className="flex-1 overflow-y-auto scrollbar-thin"
+              onScroll={handleEarthquakeListScroll}
+            >
               <div className="divide-y divide-white/5">
-                {deduplicateEarthquakes(realtimeQuakes).map((eq, i) => (
+                {deduplicateEarthquakes(
+                  magnitudeFilter === 'felt' 
+                    ? magnitudeFilteredQuakes.slice(0, displayedItemsCount)
+                    : realtimeQuakes
+                ).map((eq, i) => (
                   <CompactEarthquakeRow 
                     key={eq.id} 
                     earthquake={eq} 
@@ -1980,6 +2042,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                     }}
                   />
                 ))}
+                {magnitudeFilter === 'felt' && displayedItemsCount < magnitudeFilteredQuakes.length && (
+                  <div className="flex items-center justify-center py-4 text-neutral-500">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-xs">Scroll for more ({magnitudeFilteredQuakes.length - displayedItemsCount} remaining)</span>
+                  </div>
+                )}
               </div>
             </div>
 
