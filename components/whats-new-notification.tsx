@@ -16,7 +16,7 @@ import {
   Star,
 } from 'lucide-react';
 
-const STORAGE_KEY = 'baytremor-whats-new-dismissed-v2';
+const STORAGE_KEY = 'baytremor-whats-new-dismissed-v3';
 
 const updates = [
   {

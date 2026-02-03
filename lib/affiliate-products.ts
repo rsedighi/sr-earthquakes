@@ -2,6 +2,7 @@
  * Affiliate Products Configuration
  * 
  * Curated earthquake preparedness products from Amazon Associates.
+ * Images are loaded directly from Amazon's CDN.
  * 
  * Product Selection Criteria:
  * - 4.5+ star rating
@@ -22,7 +23,7 @@ export interface AffiliateProduct {
   reviewCount: number;
   category: 'emergency-kit' | 'furniture-safety' | 'water-storage' | 'communication' | 'first-aid' | 'food-storage';
   affiliateUrl: string;
-  imageUrl?: string;
+  imageUrl: string; // Amazon product image URL
   badge?: 'best-seller' | 'editor-pick' | 'best-value' | 'most-popular';
   primeEligible?: boolean;
 }
@@ -40,6 +41,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 7234,
     category: 'emergency-kit',
     affiliateUrl: 'https://amzn.to/4r2Rxg0',
+    imageUrl: 'https://m.media-amazon.com/images/I/81Zt42Hi-rL._AC_SL1500_.jpg',
     badge: 'best-seller',
     primeEligible: true,
   },
@@ -54,6 +56,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 5123,
     category: 'emergency-kit',
     affiliateUrl: 'https://amzn.to/4qTsbki',
+    imageUrl: 'https://m.media-amazon.com/images/I/81vH9FflQ7L._AC_SL1500_.jpg',
     badge: 'best-value',
     primeEligible: true,
   },
@@ -68,6 +71,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 2847,
     category: 'emergency-kit',
     affiliateUrl: 'https://amzn.to/4tdPI11',
+    imageUrl: 'https://m.media-amazon.com/images/I/81qKp3aokuL._AC_SL1500_.jpg',
     badge: 'editor-pick',
     primeEligible: true,
   },
@@ -84,20 +88,22 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 8921,
     category: 'furniture-safety',
     affiliateUrl: 'https://amzn.to/4a0GtZa',
+    imageUrl: 'https://m.media-amazon.com/images/I/81nL2gu2aFL._AC_SL1500_.jpg',
     badge: 'best-seller',
     primeEligible: true,
   },
   {
     id: 'quakehold-tv-strap',
-    name: 'Quakehold! 4520 Universal Flat Screen TV Strap',
+    name: 'Quakehold! Universal Flat Screen TV Safety Strap',
     shortName: 'TV Safety Straps',
     description: 'Secure flat screen TVs up to 70". Prevents tip-overs during earthquakes.',
-    whyRecommended: 'Essential for any home with a TV. Simple velcro installation.',
-    price: 15.99,
-    rating: 4.4,
-    reviewCount: 4532,
+    whyRecommended: 'Essential for any home with a TV. No-drill adhesive installation.',
+    price: 30.06,
+    rating: 4.6,
+    reviewCount: 872,
     category: 'furniture-safety',
     affiliateUrl: 'https://amzn.to/4t938vb',
+    imageUrl: 'https://m.media-amazon.com/images/I/71Td-D4x7bL._AC_SL1500_.jpg',
     badge: 'best-value',
     primeEligible: true,
   },
@@ -112,6 +118,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 15432,
     category: 'furniture-safety',
     affiliateUrl: 'https://amzn.to/4qcsl5e',
+    imageUrl: 'https://m.media-amazon.com/images/I/71GkMG61URL._AC_SL1500_.jpg',
     badge: 'most-popular',
     primeEligible: true,
   },
@@ -128,6 +135,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 5623,
     category: 'water-storage',
     affiliateUrl: 'https://amzn.to/3ZaoWch',
+    imageUrl: 'https://m.media-amazon.com/images/I/81t3thOxDGL._AC_SL1500_.jpg',
     badge: 'editor-pick',
     primeEligible: true,
   },
@@ -142,6 +150,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 3421,
     category: 'water-storage',
     affiliateUrl: 'https://amzn.to/3NVdLlc',
+    imageUrl: 'https://m.media-amazon.com/images/I/71sPn2F5pjL._AC_SL1500_.jpg',
     primeEligible: true,
   },
   {
@@ -155,6 +164,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 12543,
     category: 'water-storage',
     affiliateUrl: 'https://amzn.to/4qVkSIU',
+    imageUrl: 'https://m.media-amazon.com/images/I/81KhWvLwBHL._AC_SL1500_.jpg',
     badge: 'best-seller',
     primeEligible: true,
   },
@@ -171,6 +181,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 4521,
     category: 'communication',
     affiliateUrl: 'https://amzn.to/3NUEQoD',
+    imageUrl: 'https://m.media-amazon.com/images/I/81xK8pCAj7L._AC_SL1500_.jpg',
     badge: 'editor-pick',
     primeEligible: true,
   },
@@ -185,6 +196,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 89234,
     category: 'communication',
     affiliateUrl: 'https://amzn.to/3LZ8aK9',
+    imageUrl: 'https://m.media-amazon.com/images/I/61HvpXvMyhL._AC_SL1500_.jpg',
     badge: 'best-seller',
     primeEligible: true,
   },
@@ -199,6 +211,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 1234,
     category: 'communication',
     affiliateUrl: 'https://amzn.to/4kh2GqH',
+    imageUrl: 'https://m.media-amazon.com/images/I/61efrYvff+L._AC_SL1000_.jpg',
     primeEligible: true,
   },
   {
@@ -212,6 +225,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 2156,
     category: 'communication',
     affiliateUrl: 'https://amzn.to/4ac0gF8',
+    imageUrl: 'https://m.media-amazon.com/images/I/61M9LoP+SQL._AC_SL1500_.jpg',
     badge: 'most-popular',
     primeEligible: true,
   },
@@ -228,6 +242,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 12543,
     category: 'first-aid',
     affiliateUrl: 'https://amzn.to/4a9hNOd',
+    imageUrl: 'https://m.media-amazon.com/images/I/81j8MHPhDYL._AC_SL1500_.jpg',
     badge: 'best-seller',
     primeEligible: true,
   },
@@ -242,6 +257,7 @@ export const AFFILIATE_PRODUCTS: AffiliateProduct[] = [
     reviewCount: 8976,
     category: 'first-aid',
     affiliateUrl: 'https://amzn.to/4aaq1G6',
+    imageUrl: 'https://m.media-amazon.com/images/I/81nSYQwsI9L._AC_SL1500_.jpg',
     badge: 'best-value',
     primeEligible: true,
   },

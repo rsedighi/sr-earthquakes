@@ -18,7 +18,8 @@ import {
   Droplets,
   Radio,
   Heart,
-  Check
+  Check,
+  ImageOff
 } from 'lucide-react';
 import { 
   AffiliateProduct, 
@@ -35,12 +36,54 @@ const CATEGORIES = [
   { id: 'first-aid', label: 'First Aid', icon: Heart, color: 'red' },
 ] as const;
 
-// Amazon product images - using their standard image URL pattern
-const getAmazonImageUrl = (affiliateUrl: string): string => {
-  // Extract ASIN-like identifier from amzn.to link or return placeholder
-  // For now, we'll use high-quality placeholder images based on category
-  return '';
-};
+// Product Image Component with fallback
+function ProductImage({ 
+  src, 
+  alt, 
+  className = '',
+  size = 'md'
+}: { 
+  src: string; 
+  alt: string; 
+  className?: string;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const sizeClasses = {
+    sm: 'w-12 h-12',
+    md: 'w-full aspect-square',
+    lg: 'w-full aspect-[4/3]',
+  };
+
+  if (hasError || !src) {
+    return (
+      <div className={`${sizeClasses[size]} bg-neutral-800 flex items-center justify-center ${className}`}>
+        <ImageOff className="w-8 h-8 text-neutral-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative ${sizeClasses[size]} bg-white ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-neutral-800 animate-pulse flex items-center justify-center">
+          <Package className="w-8 h-8 text-neutral-600" />
+        </div>
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className={`object-contain p-2 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        onLoad={() => setIsLoading(false)}
+        onError={() => setHasError(true)}
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      />
+    </div>
+  );
+}
 
 // ===== MAIN COMPONENT: Full Product Showcase =====
 interface AffiliateShowcaseProps {
@@ -190,18 +233,6 @@ function ProductCardPremium({ product, rank, onClick }: ProductCardPremiumProps)
   };
 
   const badge = getBadgeStyle(product.badge);
-  
-  // Category icons for product cards
-  const getCategoryIcon = () => {
-    switch (product.category) {
-      case 'emergency-kit': return '🎒';
-      case 'furniture-safety': return '🔧';
-      case 'water-storage': return '💧';
-      case 'communication': return '📻';
-      case 'first-aid': return '🩹';
-      default: return '📦';
-    }
-  };
 
   return (
     <a
@@ -219,12 +250,17 @@ function ProductCardPremium({ product, rank, onClick }: ProductCardPremiumProps)
       )}
 
       {/* Product Image Area */}
-      <div className="relative aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 p-6 flex items-center justify-center">
-        <div className="text-6xl">{getCategoryIcon()}</div>
+      <div className="relative bg-white rounded-t-2xl overflow-hidden">
+        <ProductImage 
+          src={product.imageUrl} 
+          alt={product.name}
+          size="md"
+          className="rounded-t-2xl"
+        />
         
         {/* Prime Badge */}
         {product.primeEligible && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#232F3E] rounded text-[10px] font-bold text-white">
+          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#232F3E] rounded text-[10px] font-bold text-white shadow-lg">
             <Truck className="w-3 h-3 text-[#FF9900]" />
             <span className="text-[#FF9900]">Prime</span>
           </div>
@@ -376,18 +412,6 @@ export function AffiliateRecommendations({
     }
   };
 
-  // Category emoji for compact display
-  const getCategoryEmoji = (category: string) => {
-    switch (category) {
-      case 'emergency-kit': return '🎒';
-      case 'furniture-safety': return '🔧';
-      case 'water-storage': return '💧';
-      case 'communication': return '📻';
-      case 'first-aid': return '🩹';
-      default: return '📦';
-    }
-  };
-
   return (
     <section className={`bg-gradient-to-b ${content.gradient} border ${content.borderColor} rounded-2xl overflow-hidden ${className}`}>
       {/* Header */}
@@ -414,9 +438,15 @@ export function AffiliateRecommendations({
             onClick={() => handleProductClick(product)}
             className="group flex items-center gap-3 p-3 bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/20 rounded-xl transition-all"
           >
-            {/* Emoji Icon */}
-            <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
-              {getCategoryEmoji(product.category)}
+            {/* Product Image */}
+            <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                className="object-contain p-1"
+                sizes="64px"
+              />
             </div>
 
             {/* Info */}
@@ -489,17 +519,6 @@ export function AffiliateRecommendationsCompact({
   
   if (products.length === 0) return null;
 
-  const getCategoryEmoji = (category: string) => {
-    switch (category) {
-      case 'emergency-kit': return '🎒';
-      case 'furniture-safety': return '🔧';
-      case 'water-storage': return '💧';
-      case 'communication': return '📻';
-      case 'first-aid': return '🩹';
-      default: return '📦';
-    }
-  };
-
   return (
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-3">
@@ -535,9 +554,15 @@ export function AffiliateRecommendationsCompact({
               </div>
             )}
             
-            {/* Icon */}
-            <div className="w-full aspect-square bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-lg mb-3 flex items-center justify-center text-4xl">
-              {getCategoryEmoji(product.category)}
+            {/* Product Image */}
+            <div className="w-full aspect-square bg-white rounded-lg mb-3 overflow-hidden relative">
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                className="object-contain p-2"
+                sizes="160px"
+              />
             </div>
             
             {/* Title */}
