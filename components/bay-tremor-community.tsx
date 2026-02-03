@@ -71,24 +71,57 @@ export function BayTremorCommunity() {
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('hot');
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostsCount, setNewPostsCount] = useState(0);
+  const [dismissedNewPostsBanner, setDismissedNewPostsBanner] = useState(false);
 
   // Load posts
   const loadPosts = useCallback(async () => {
     setIsLoading(true);
     try {
       const sortParam = sortBy === 'hot' ? 'popular' : sortBy === 'new' ? 'latest' : 'popular';
-      const [postsRes, statsRes] = await Promise.all([
+      const [postsRes, statsRes, latestRes] = await Promise.all([
         fetch(`/api/forum/threads?sortBy=${sortParam}&limit=25`),
         fetch('/api/forum/threads?stats=true'),
+        // When on hot/top, also fetch latest 5 posts to compare
+        sortBy !== 'new' ? fetch('/api/forum/threads?sortBy=latest&limit=5') : Promise.resolve(null),
       ]);
 
+      let currentPosts: ForumThreadWithId[] = [];
+      
       if (postsRes.ok) {
         const data = await postsRes.json();
-        setPosts(data.threads || []);
+        currentPosts = data.threads || [];
+        setPosts(currentPosts);
       }
+      
       if (statsRes.ok) {
         const data = await statsRes.json();
         setStats(data.stats);
+      }
+      
+      // Check if there are newer posts than what's shown in hot/top
+      if (latestRes && sortBy !== 'new') {
+        const latestData = await latestRes.json();
+        const latestPosts: ForumThreadWithId[] = latestData.threads || [];
+        
+        if (latestPosts.length > 0) {
+          // Get IDs of posts currently shown
+          const currentPostIds = new Set(currentPosts.map(p => p._id));
+          
+          // Count recent posts (last 12 hours) that aren't in the current view
+          const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+          const recentNotShown = latestPosts.filter(post => {
+            const postTime = new Date(post.createdAt);
+            return postTime > twelveHoursAgo && !currentPostIds.has(post._id);
+          });
+          
+          setNewPostsCount(recentNotShown.length);
+        } else {
+          setNewPostsCount(0);
+        }
+      } else if (sortBy === 'new') {
+        setNewPostsCount(0);
+        setDismissedNewPostsBanner(false);
       }
     } catch (err) {
       console.error('Failed to load posts:', err);
@@ -100,6 +133,13 @@ export function BayTremorCommunity() {
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+  
+  // Reset dismissed state when switching to "new"
+  useEffect(() => {
+    if (sortBy === 'new') {
+      setDismissedNewPostsBanner(false);
+    }
+  }, [sortBy]);
 
   return (
     <div className="min-h-screen">
@@ -166,22 +206,64 @@ export function BayTremorCommunity() {
                 { id: 'top' as SortOption, label: 'Top', icon: TrendingUp },
               ].map(option => {
                 const Icon = option.icon;
+                const showNewBadge = option.id === 'new' && sortBy !== 'new' && newPostsCount > 0;
                 return (
                   <button
                     key={option.id}
                     onClick={() => setSortBy(option.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                       sortBy === option.id
                         ? 'bg-neutral-800 text-white'
-                        : 'text-neutral-400 hover:bg-neutral-800/50'
+                        : showNewBadge
+                          ? 'text-emerald-400 hover:bg-emerald-500/10 animate-pulse'
+                          : 'text-neutral-400 hover:bg-neutral-800/50'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className={`w-4 h-4 ${showNewBadge ? 'text-emerald-400' : ''}`} />
                     {option.label}
+                    {showNewBadge && (
+                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/30">
+                        {newPostsCount > 9 ? '9+' : newPostsCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
+            
+            {/* New Posts Banner - Shows when viewing Hot/Top and there are newer posts */}
+            {sortBy !== 'new' && newPostsCount > 0 && !dismissedNewPostsBanner && (
+              <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-white font-medium">
+                      {newPostsCount === 1 ? 'New post' : `${newPostsCount} new posts`} in the last few hours
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      Switch to <span className="text-emerald-400 font-medium">New</span> to see the latest
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSortBy('new')}
+                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    View New
+                  </button>
+                  <button
+                    onClick={() => setDismissedNewPostsBanner(true)}
+                    className="p-1.5 hover:bg-white/5 rounded-lg transition-colors"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-4 h-4 text-neutral-500" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Posts Feed */}
             {isLoading ? (

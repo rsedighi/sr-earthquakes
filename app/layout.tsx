@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
+import Script from 'next/script';
 import { generateHomepageSchemas } from '@/lib/seo';
 import { DatadogRUM } from '@/components/datadog-rum';
 import { WhatsNewNotification } from '@/components/whats-new-notification';
@@ -142,32 +143,9 @@ export default function RootLayout({
         
         {/* Impact.com Site Verification */}
         <meta name="impact-site-verification" content="f0b61dfc-b575-4c4c-ab15-c6c6df6d9cff" />
-        
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2599154949047210"
-          crossOrigin="anonymous"
-        />
-        
-        {/* Google Analytics */}
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-B6CYF3ZSWW"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-B6CYF3ZSWW');
-            `,
-          }}
-        />
       </head>
       <body className="font-sans antialiased min-h-screen">
-        {/* JSON-LD Structured Data for SEO - placed in body to avoid AdSense conflicts */}
+        {/* JSON-LD Structured Data for SEO */}
         <script
           type="application/ld+json"
           suppressHydrationWarning
@@ -175,6 +153,28 @@ export default function RootLayout({
             __html: JSON.stringify(schemas),
           }}
         />
+        
+        {/* Google AdSense - using Next.js Script to avoid hydration issues */}
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2599154949047210"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
+        
+        {/* Google Analytics - using Next.js Script to avoid hydration issues */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-B6CYF3ZSWW"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-B6CYF3ZSWW');
+          `}
+        </Script>
+        
         <DatadogRUM />
         <WhatsNewNotification />
         {children}
