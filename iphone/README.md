@@ -2,21 +2,24 @@
 
 Native iOS app for the Bay Area Earthquake Tracker.
 
+**Status: Ready for App Store Submission** ✅
+
 ## 📱 Features
 
 - **Real-time Earthquake Feed** - Live updates from USGS every 30 seconds
 - **Interactive Map** - Apple MapKit with earthquake markers
 - **Push Notifications** - Alerts for earthquakes in your area
 - **My Area** - Personalized view based on your location
-- **Historical Data** - Browse past earthquakes
-- **Home Screen Widgets** - Quick glance at latest activity
+- **Historical Data** - Browse past earthquakes with charts
+- **Premium Dark UI** - Beautiful animated interface
+- **Onboarding Flow** - First-time user setup
 
 ## 🛠 Requirements
 
 - macOS 14.0+ (Sonoma)
 - Xcode 15.0+
-- iOS 17.0+ deployment target
-- Apple Developer account (for push notifications)
+- iOS 18.0+ deployment target
+- Apple Developer account (for push notifications & App Store)
 
 ## 🚀 Getting Started
 
@@ -27,22 +30,13 @@ cd iphone
 open BayTremor.xcodeproj
 ```
 
-> Note: You'll need to create the `.xcodeproj` file in Xcode first.
+### 2. Configure Your Team
 
-### 2. Create Xcode Project
-
-1. Open Xcode
-2. File → New → Project
-3. Select "iOS" → "App"
-4. Configure:
-   - Product Name: **BayTremor**
-   - Team: Your Apple Developer Team
-   - Organization Identifier: `com.yourcompany`
-   - Interface: **SwiftUI**
-   - Language: **Swift**
-   - Storage: **SwiftData**
-5. Save to the `iphone` folder
-6. Drag the `BayTremor` folder contents into the project
+1. Open `BayTremor.xcodeproj` in Xcode
+2. Select the "BayTremor" target
+3. Go to "Signing & Capabilities"
+4. Select your Development Team
+5. The bundle identifier is `com.baytremor.app` (change if needed)
 
 ### 3. Configure Signing
 
@@ -159,12 +153,17 @@ NotificationService.shared.scheduleTestNotification()
 
 ### App Store
 
-1. Prepare assets:
-   - App icon (1024x1024)
-   - Screenshots (6.7", 6.5", 5.5")
-   - Privacy policy URL
-2. Create App Store listing in App Store Connect
-3. Submit for review
+**See [APP-STORE-SUBMISSION-GUIDE.md](./APP-STORE-SUBMISSION-GUIDE.md) for complete instructions!**
+
+Quick checklist:
+- [x] Bundle ID: `com.baytremor.app`
+- [x] iOS 17.0+ deployment target
+- [x] Info.plist with privacy descriptions
+- [x] PrivacyInfo.xcprivacy manifest
+- [ ] App icon (1024x1024 PNG) - See guide for requirements
+- [ ] Screenshots (6.7", 6.5" devices)
+- [x] Privacy policy: `https://baytremor.com/privacy`
+- [x] Support URL: `https://baytremor.com/support`
 
 ## 📄 API Endpoints Used
 

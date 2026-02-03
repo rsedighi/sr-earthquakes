@@ -1096,6 +1096,7 @@ struct PremiumDetailSheet: View {
     let earthquake: Earthquake
     @Environment(\.dismiss) private var dismiss
     @State private var appear = false
+    @State private var isShowingDiscussion = false
     
     var body: some View {
         NavigationStack {
@@ -1205,6 +1206,27 @@ struct PremiumDetailSheet: View {
                                     .shadow(color: .blue.opacity(0.3), radius: 8)
                                 }
                             }
+                            
+                            Button {
+                                isShowingDiscussion = true
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "message.fill")
+                                    Text("Discuss")
+                                }
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                        )
+                                )
+                            }
                         }
                         .opacity(appear ? 1 : 0)
                     }
@@ -1232,6 +1254,9 @@ struct PremiumDetailSheet: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                 appear = true
             }
+        }
+        .sheet(isPresented: $isShowingDiscussion) {
+            CommunityDiscussionSheet(earthquake: earthquake)
         }
     }
     

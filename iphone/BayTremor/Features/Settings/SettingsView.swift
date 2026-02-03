@@ -86,6 +86,20 @@ struct SettingsMainView: View {
                                 Divider()
                                     .background(Color.white.opacity(0.1))
                                 
+                                SettingsLinkRow(
+                                    icon: "lock.shield.fill",
+                                    title: "Privacy Policy",
+                                    subtitle: "How we handle your data",
+                                    color: .green
+                                ) {
+                                    if let url = URL(string: "https://baytremor.com/privacy") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                                
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+                                
                                 NavigationLink {
                                     PremiumAboutView()
                                 } label: {

@@ -81,6 +81,7 @@ struct EarthquakeMapView: View {
 struct MapEarthquakeDetailSheet: View {
     let earthquake: Earthquake
     @Environment(\.dismiss) private var dismiss
+    @State private var isShowingDiscussion = false
     
     var body: some View {
         NavigationStack {
@@ -133,6 +134,14 @@ struct MapEarthquakeDetailSheet: View {
                             }
                             .buttonStyle(.bordered)
                         }
+                        
+                        Button {
+                            isShowingDiscussion = true
+                        } label: {
+                            Label("Discuss", systemImage: "message.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                     }
                 }
                 .padding()
@@ -153,6 +162,9 @@ struct MapEarthquakeDetailSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .sheet(isPresented: $isShowingDiscussion) {
+            CommunityDiscussionSheet(earthquake: earthquake)
+        }
     }
     
     func formatTime(_ date: Date) -> String {

@@ -110,6 +110,214 @@ actor APIClient {
         
         return bayAreaQuakes.map { Earthquake.from(feature: $0) }
     }
+    
+    // MARK: - Community Comments APIs
+    
+    func fetchComments(earthquakeId: String) async throws -> [Comment] {
+        var components = URLComponents(string: "\(baseURL)/api/comments")
+        components?.queryItems = [
+            URLQueryItem(name: "earthquakeId", value: earthquakeId),
+        ]
+        
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let apiResponse = try Self.commentsDecoder().decode(CommentsResponse.self, from: data)
+        return apiResponse.comments.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    func postComment(_ requestBody: CreateCommentRequest) async throws -> Comment {
+        guard let url = URL(string: "\(baseURL)/api/comments") else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
+                throw APIClientError(message: errorResponse.error)
+            }
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let apiResponse = try Self.commentsDecoder().decode(CommentResponse.self, from: data)
+        return apiResponse.comment
+    }
+    
+    // MARK: - Community Feed APIs
+    
+    func fetchCommunityFeed(limit: Int = 50) async throws -> [CommunityFeedComment] {
+        var components = URLComponents(string: "\(baseURL)/api/community")
+        components?.queryItems = [
+            URLQueryItem(name: "type", value: "feed"),
+            URLQueryItem(name: "limit", value: String(max(1, min(200, limit)))),
+        ]
+        
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let apiResponse = try Self.commentsDecoder().decode(CommunityFeedResponse.self, from: data)
+        return apiResponse.comments.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    static func commentsDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            
+            if let milliseconds = try? container.decode(Double.self) {
+                return Date(timeIntervalSince1970: milliseconds / 1000.0)
+            }
+            
+            let stringValue = try container.decode(String.self)
+            
+            let isoWithFractional = ISO8601DateFormatter()
+            isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoWithFractional.date(from: stringValue) {
+                return date
+            }
+            
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime]
+            if let date = iso.date(from: stringValue) {
+                return date
+            }
+            
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid date format: \(stringValue)"
+            )
+        }
+        return decoder
+    }
+
+    // MARK: - Forum (Reddit-style) APIs
+    
+    func fetchForumThreads(sort: ForumSort, limit: Int = 25, skip: Int = 0) async throws -> ForumThreadsResponse {
+        var components = URLComponents(string: "\(baseURL)/api/forum/threads")
+        components?.queryItems = [
+            URLQueryItem(name: "sortBy", value: sort.apiSortBy),
+            URLQueryItem(name: "limit", value: String(max(1, min(50, limit)))),
+            URLQueryItem(name: "skip", value: String(max(0, skip))),
+        ]
+        
+        guard let url = components?.url else { throw APIError.invalidURL }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200...299).contains(httpResponse.statusCode) else { throw APIError.serverError(httpResponse.statusCode) }
+        
+        return try Self.commentsDecoder().decode(ForumThreadsResponse.self, from: data)
+    }
+    
+    func fetchForumStats() async throws -> ForumStatsResponse.Stats {
+        var components = URLComponents(string: "\(baseURL)/api/forum/threads")
+        components?.queryItems = [
+            URLQueryItem(name: "stats", value: "true"),
+        ]
+        
+        guard let url = components?.url else { throw APIError.invalidURL }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200...299).contains(httpResponse.statusCode) else { throw APIError.serverError(httpResponse.statusCode) }
+        
+        return try Self.commentsDecoder().decode(ForumStatsResponse.self, from: data).stats
+    }
+    
+    func fetchForumThreadDetail(identifier: String, postsLimit: Int = 50, postsSkip: Int = 0) async throws -> ForumThreadDetailResponse {
+        var components = URLComponents(string: "\(baseURL)/api/forum/threads/\(identifier)")
+        components?.queryItems = [
+            URLQueryItem(name: "postsLimit", value: String(max(1, min(100, postsLimit)))),
+            URLQueryItem(name: "postsSkip", value: String(max(0, postsSkip))),
+        ]
+        
+        guard let url = components?.url else { throw APIError.invalidURL }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200...299).contains(httpResponse.statusCode) else { throw APIError.serverError(httpResponse.statusCode) }
+        
+        return try Self.commentsDecoder().decode(ForumThreadDetailResponse.self, from: data)
+    }
+    
+    func createForumThread(_ requestBody: CreateForumThreadRequest) async throws -> ForumThread {
+        guard let url = URL(string: "\(baseURL)/api/forum/threads") else { throw APIError.invalidURL }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
+                throw APIClientError(message: errorResponse.error)
+            }
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let created = try Self.commentsDecoder().decode(CreateForumThreadResponse.self, from: data)
+        return created.thread
+    }
+    
+    func createForumPost(_ requestBody: CreateForumPostRequest) async throws -> ForumPost {
+        guard let url = URL(string: "\(baseURL)/api/forum/posts") else { throw APIError.invalidURL }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
+                throw APIClientError(message: errorResponse.error)
+            }
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+        
+        let created = try Self.commentsDecoder().decode(CreateForumPostResponse.self, from: data)
+        return created.post
+    }
 }
 
 // MARK: - API Errors
@@ -135,4 +343,98 @@ enum APIError: LocalizedError {
             return "Server error: \(code)"
         }
     }
+}
+
+// MARK: - Comments Types
+
+struct Comment: Identifiable, Codable, Hashable {
+    let id: String
+    let earthquakeId: String
+    let parentId: String?
+    let author: String
+    let content: String
+    let createdAt: Date
+    let updatedAt: Date?
+    let likes: Int
+    let location: String?
+    let feltIt: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case earthquakeId
+        case parentId
+        case author
+        case content
+        case createdAt
+        case updatedAt
+        case likes
+        case location
+        case feltIt
+    }
+}
+
+struct CommentsResponse: Codable {
+    let comments: [Comment]
+}
+
+struct CommentResponse: Codable {
+    let comment: Comment
+}
+
+struct CreateCommentRequest: Codable {
+    let earthquakeId: String
+    let parentId: String?
+    let author: String
+    let content: String
+    let location: String?
+    let feltIt: Bool
+}
+
+struct APIErrorResponse: Codable {
+    let error: String
+}
+
+struct APIClientError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+// MARK: - Community Feed Types
+
+struct CommunityFeedComment: Identifiable, Codable, Hashable {
+    let id: String
+    let earthquakeId: String
+    let parentId: String?
+    let author: String
+    let content: String
+    let createdAt: Date
+    let updatedAt: Date?
+    let likes: Int
+    let location: String?
+    let feltIt: Bool?
+    
+    // Enriched by /api/community
+    let earthquakePlace: String?
+    let earthquakeMagnitude: Double?
+    let earthquakeTime: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case earthquakeId
+        case parentId
+        case author
+        case content
+        case createdAt
+        case updatedAt
+        case likes
+        case location
+        case feltIt
+        case earthquakePlace
+        case earthquakeMagnitude
+        case earthquakeTime
+    }
+}
+
+struct CommunityFeedResponse: Codable {
+    let comments: [CommunityFeedComment]
 }

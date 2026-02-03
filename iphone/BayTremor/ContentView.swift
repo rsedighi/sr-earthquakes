@@ -15,6 +15,7 @@ struct ContentView: View {
     enum Tab: String, CaseIterable {
         case live = "Live"
         case map = "Map"
+        case community = "Community"
         case myArea = "My Area"
         case history = "History"
         case settings = "Settings"
@@ -23,6 +24,7 @@ struct ContentView: View {
             switch self {
             case .live: return "waveform.path.ecg"
             case .map: return "map"
+            case .community: return "message.fill"
             case .myArea: return "location.fill"
             case .history: return "chart.bar"
             case .settings: return "gearshape"
@@ -46,6 +48,12 @@ struct ContentView: View {
                         Label(Tab.map.rawValue, systemImage: Tab.map.icon)
                     }
                     .tag(Tab.map)
+                
+                CommunityMainView()
+                    .tabItem {
+                        Label(Tab.community.rawValue, systemImage: Tab.community.icon)
+                    }
+                    .tag(Tab.community)
                 
                 MyAreaMainView()
                     .tabItem {
