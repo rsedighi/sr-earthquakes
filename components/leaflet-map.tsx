@@ -1,11 +1,20 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Search, MapPin, X, Loader2 } from 'lucide-react';
+import { Search, MapPin, X, Loader2, Target, Navigation } from 'lucide-react';
 import { formatDistance, formatDepth, kmToMiles } from '@/lib/units';
+
+// Quick-zoom region presets for Bay Area
+const REGION_PRESETS = [
+  { id: 'all', label: 'Bay Area', center: [37.75, -122.0] as [number, number], zoom: 9 },
+  { id: 'san-ramon', label: 'San Ramon', center: [37.78, -121.97] as [number, number], zoom: 11 },
+  { id: 'east-bay', label: 'East Bay', center: [37.82, -122.26] as [number, number], zoom: 10 },
+  { id: 'sf', label: 'SF', center: [37.77, -122.42] as [number, number], zoom: 11 },
+  { id: 'south-bay', label: 'South Bay', center: [37.33, -121.89] as [number, number], zoom: 10 },
+];
 
 interface LeafletMapProps {
   earthquakes: Earthquake[];
@@ -15,6 +24,7 @@ interface LeafletMapProps {
   searchRadius?: number; // in km
   showOnlyFelt?: boolean;
   className?: string;
+  initialRegion?: string; // Region ID to auto-center on (e.g., 'san-ramon')
 }
 
 // Haversine distance calculation
@@ -39,6 +49,7 @@ function LeafletMapInner({
   searchRadius = 25,
   showOnlyFelt = false,
   className = '',
+  initialRegion,
 }: LeafletMapProps) {
   const [hoveredQuake, setHoveredQuake] = useState<Earthquake | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -112,8 +123,13 @@ function LeafletMapInner({
       });
     }
     
+    // Apply magnitude filter from legend
+    if (minMagnitudeFilter !== null) {
+      filtered = filtered.filter(eq => eq.magnitude >= minMagnitudeFilter);
+    }
+    
     return filtered;
-  }, [earthquakes, showOnlyFelt, userLocation, searchRadius]);
+  }, [earthquakes, showOnlyFelt, userLocation, searchRadius, minMagnitudeFilter]);
 
   // Get size based on magnitude - exponential scaling for better visual distinction
   const getMagnitudeSize = (magnitude: number): number => {
@@ -125,6 +141,49 @@ function LeafletMapInner({
     if (magnitude >= 1) return 7;
     return 5;
   };
+
+  // State for selected region preset - use initialRegion if provided and matches a preset
+  const [activeRegion, setActiveRegion] = useState(() => {
+    if (initialRegion && REGION_PRESETS.some(p => p.id === initialRegion)) {
+      return initialRegion;
+    }
+    return 'all';
+  });
+  
+  // State for magnitude filter on map
+  const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  
+  // Map controller component to access the map instance
+  const MapController = useMemo(() => {
+    if (!leaflet) return () => null;
+    const { useMap } = leaflet;
+    
+    return function MapControllerInner({ region }: { region: string }) {
+      const map = useMap();
+      
+      useEffect(() => {
+        mapRef.current = map;
+      }, [map]);
+      
+      useEffect(() => {
+        const preset = REGION_PRESETS.find(p => p.id === region);
+        if (preset && map) {
+          map.flyTo(preset.center, preset.zoom, { duration: 0.8 });
+        }
+      }, [region, map]);
+      
+      return null;
+    };
+  }, [leaflet]);
+  
+  // Handler for user location button
+  const handleCenterOnUser = useCallback(() => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.flyTo([userLocation.lat, userLocation.lon], 12, { duration: 0.8 });
+      setActiveRegion(''); // Deselect preset buttons
+    }
+  }, [userLocation]);
 
   if (!mapReady || !leaflet) {
     return (
@@ -144,6 +203,9 @@ function LeafletMapInner({
         className="w-full h-full min-h-[400px] rounded-xl z-0"
         style={{ background: '#1a1a1a' }}
       >
+        {/* Map controller for programmatic navigation */}
+        <MapController region={activeRegion} />
+        
         {/* Dark mode tile layer - CartoDB Dark Matter (free, no key needed) */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -255,9 +317,39 @@ function LeafletMapInner({
         })}
       </MapContainer>
       
+      {/* Quick-zoom region presets */}
+      <div className="absolute top-3 left-3 right-14 flex items-center gap-1.5 z-[1000] overflow-x-auto scrollbar-none">
+        {REGION_PRESETS.map(preset => (
+          <button
+            key={preset.id}
+            onClick={() => setActiveRegion(preset.id)}
+            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md whitespace-nowrap transition-all flex-shrink-0 ${
+              activeRegion === preset.id
+                ? 'bg-white text-black shadow-lg'
+                : 'bg-black/70 text-white/80 hover:bg-black/90 hover:text-white backdrop-blur-sm'
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+        {userLocation && (
+          <button
+            onClick={handleCenterOnUser}
+            className={`p-1.5 rounded-md transition-all flex-shrink-0 ${
+              activeRegion === ''
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-black/70 text-blue-400 hover:bg-black/90 backdrop-blur-sm'
+            }`}
+            title="Center on my location"
+          >
+            <Navigation className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+      
       {/* Stats overlay - only show when user has selected a location */}
       {userLocation && (
-        <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
+        <div className="absolute top-12 left-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
           <div className="text-xs text-neutral-400">
             <span className="text-white font-medium">{displayedQuakes.length}</span> earthquakes
             {showOnlyFelt && <span className="text-amber-400 ml-1">felt</span>}
@@ -266,29 +358,60 @@ function LeafletMapInner({
         </div>
       )}
 
-      {/* Legend */}
+      {/* Interactive Magnitude Legend */}
       <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 text-xs z-[1000]">
-        <div className="text-neutral-400 mb-2 font-medium">Magnitude</div>
-        <div className="flex items-center gap-4">
-          {[
-            { mag: 2, label: 'Minor' },
-            { mag: 3, label: 'Moderate' },
-            { mag: 4, label: 'Strong' },
-            { mag: 5, label: 'Major' },
-          ].map(({ mag, label }) => (
-            <div key={mag} className="flex flex-col items-center gap-1">
-              <div 
-                className="rounded-full"
-                style={{
-                  width: getMagnitudeSize(mag) * 0.7,
-                  height: getMagnitudeSize(mag) * 0.7,
-                  backgroundColor: getMagnitudeColor(mag),
-                }}
-              />
-              <span className="text-neutral-500 text-[10px]">{mag}+</span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-neutral-400 font-medium">Magnitude</span>
+          {minMagnitudeFilter !== null && (
+            <button
+              onClick={() => setMinMagnitudeFilter(null)}
+              className="text-[10px] text-blue-400 hover:text-blue-300"
+            >
+              Show all
+            </button>
+          )}
         </div>
+        <div className="flex items-center gap-3">
+          {[
+            { mag: 2, label: '2+' },
+            { mag: 3, label: '3+' },
+            { mag: 4, label: '4+' },
+            { mag: 5, label: '5+' },
+          ].map(({ mag, label }) => {
+            const isActive = minMagnitudeFilter === mag;
+            const count = earthquakes.filter(eq => eq.magnitude >= mag).length;
+            return (
+              <button
+                key={mag}
+                onClick={() => setMinMagnitudeFilter(isActive ? null : mag)}
+                className={`flex flex-col items-center gap-1 p-1.5 rounded-md transition-all ${
+                  isActive 
+                    ? 'bg-white/20 ring-1 ring-white/40' 
+                    : 'hover:bg-white/10'
+                }`}
+                title={`${count} earthquakes M${mag}+`}
+              >
+                <div 
+                  className={`rounded-full transition-transform ${isActive ? 'scale-125' : ''}`}
+                  style={{
+                    width: getMagnitudeSize(mag) * 0.7,
+                    height: getMagnitudeSize(mag) * 0.7,
+                    backgroundColor: getMagnitudeColor(mag),
+                    opacity: isActive || minMagnitudeFilter === null ? 1 : 0.4,
+                  }}
+                />
+                <span className={`text-[10px] ${isActive ? 'text-white' : 'text-neutral-500'}`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {minMagnitudeFilter !== null && (
+          <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-neutral-400">
+            Showing {displayedQuakes.length} quakes M{minMagnitudeFilter}+
+          </div>
+        )}
       </div>
     </div>
   );

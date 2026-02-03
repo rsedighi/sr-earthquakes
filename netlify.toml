@@ -38,9 +38,7 @@
 [[headers]]
   for = "/*.svg"
   [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-# Disable Netlify's asset optimization to prevent encoding conflicts
+    Cache-Control = "public, max-age=86400"# Disable Netlify's asset optimization to prevent encoding conflicts
 [build.processing]
   skip_processing = false
 [build.processing.css]

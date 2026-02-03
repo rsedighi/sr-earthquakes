@@ -187,6 +187,227 @@ function parseAiSummary(summary: string): { headline: string; details: string; c
   return { headline, details, context };
 }
 
+// First-Visit Welcome Prompt - Asks users to set their city
+function FirstVisitPrompt({
+  onSetCity,
+  onDismiss,
+}: {
+  onSetCity: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
+      <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+            <House className="w-7 h-7 text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-white">Welcome to Bay Tremor</h2>
+            <p className="text-sm text-neutral-400">Stay informed about earthquakes near you</p>
+          </div>
+        </div>
+        
+        <p className="text-sm text-neutral-300 mb-6 leading-relaxed">
+          Set your city to see <span className="text-blue-400 font-medium">personalized earthquake alerts</span> and 
+          distances from your location. You can change this anytime.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={onSetCity}
+            className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-400 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            <MapPin className="w-4 h-4" />
+            Set My City
+          </button>
+          <button
+            onClick={onDismiss}
+            className="px-4 py-3 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-xl transition-colors"
+          >
+            Maybe Later
+          </button>
+        </div>
+        
+        <p className="text-[10px] text-neutral-500 text-center mt-4">
+          Your location is stored locally and never shared.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// "Did You Feel That?" Prompt Component - Shows after significant quakes
+function FeltItPrompt({
+  earthquake,
+  onReport,
+  onDismiss,
+}: {
+  earthquake: Earthquake;
+  onReport: () => void;
+  onDismiss: () => void;
+}) {
+  // Auto-dismiss after 20 seconds
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 20000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+  
+  return (
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-up max-w-sm w-full mx-4">
+      <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 backdrop-blur-md border border-amber-500/40 rounded-xl shadow-xl p-4">
+        <div className="flex items-start gap-3">
+          <div 
+            className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0"
+            style={{ 
+              backgroundColor: getMagnitudeColor(earthquake.magnitude) + '20',
+              color: getMagnitudeColor(earthquake.magnitude),
+              border: `1px solid ${getMagnitudeColor(earthquake.magnitude)}40`
+            }}
+          >
+            {earthquake.magnitude.toFixed(1)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-white mb-0.5">
+              Did you feel that?
+            </div>
+            <div className="text-xs text-neutral-300 truncate">
+              M{earthquake.magnitude.toFixed(1)} near {earthquake.place?.split(',')[0] || 'Bay Area'}
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={onReport}
+                className="flex-1 px-3 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Yes, Report It
+              </button>
+              <button
+                onClick={onDismiss}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs rounded-lg transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="p-1 text-neutral-400 hover:text-white transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// New Earthquake Toast Component - Shows when new quakes are detected
+function NewEarthquakeToast({ 
+  newQuakes, 
+  onDismiss,
+  onViewFeed 
+}: { 
+  newQuakes: Earthquake[];
+  onDismiss: () => void;
+  onViewFeed: () => void;
+}) {
+  // Auto-dismiss after 8 seconds
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 8000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+  
+  if (newQuakes.length === 0) return null;
+  
+  const largest = newQuakes.reduce((max, eq) => eq.magnitude > max.magnitude ? eq : max);
+  const hasSignificant = largest.magnitude >= 2.5;
+  
+  return (
+    <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up ${
+      hasSignificant ? 'max-w-sm' : 'max-w-xs'
+    }`}>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border backdrop-blur-md ${
+        hasSignificant 
+          ? 'bg-amber-500/20 border-amber-500/40' 
+          : 'bg-green-500/20 border-green-500/40'
+      }`}>
+        <div className={`w-2 h-2 rounded-full animate-pulse ${
+          hasSignificant ? 'bg-amber-400' : 'bg-green-400'
+        }`} />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-white">
+            {newQuakes.length === 1 
+              ? `New M${largest.magnitude.toFixed(1)} earthquake` 
+              : `${newQuakes.length} new earthquakes`
+            }
+          </div>
+          {hasSignificant && (
+            <div className="text-xs text-neutral-300 truncate">
+              {largest.place?.split(',')[0] || 'Bay Area'}
+            </div>
+          )}
+        </div>
+        <button 
+          onClick={onViewFeed}
+          className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
+            hasSignificant 
+              ? 'bg-amber-500/30 text-amber-200 hover:bg-amber-500/40' 
+              : 'bg-green-500/30 text-green-200 hover:bg-green-500/40'
+          }`}
+        >
+          View
+        </button>
+        <button 
+          onClick={onDismiss}
+          className="p-1 text-neutral-400 hover:text-white transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Live Timestamp Component - Shows "Updated X seconds ago" with live countdown
+function LiveTimestamp({ lastUpdated, isRefreshing }: { lastUpdated: Date | null; isRefreshing: boolean }) {
+  const [, forceUpdate] = useState(0);
+  
+  // Update every second to keep the timestamp fresh
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [lastUpdated]);
+  
+  if (!lastUpdated) return null;
+  
+  const secondsAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+  
+  let timeText: string;
+  if (secondsAgo < 5) {
+    timeText = 'just now';
+  } else if (secondsAgo < 60) {
+    timeText = `${secondsAgo}s ago`;
+  } else if (secondsAgo < 3600) {
+    const minutes = Math.floor(secondsAgo / 60);
+    timeText = `${minutes}m ago`;
+  } else {
+    timeText = format(lastUpdated, 'h:mm a');
+  }
+  
+  return (
+    <span className="hidden md:flex items-center gap-1.5 text-sm text-neutral-500" suppressHydrationWarning>
+      <span className={`transition-opacity ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
+        Updated {timeText}
+      </span>
+      {isRefreshing && (
+        <Loader2 className="w-3 h-3 animate-spin" />
+      )}
+    </span>
+  );
+}
+
 // Collapsible Alert Banner - Collapsed by default, with structured AI summary
 function CollapsibleAlert({
   hotspotRegion,
@@ -451,7 +672,10 @@ function HeroQuake({
                 {formatDistanceToNow(notableQuake.time, { addSuffix: true })}
               </span>
               {notableQuake.felt && notableQuake.felt > 0 && (
-                <span className="text-xs text-amber-400">• {notableQuake.felt} felt reports</span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">
+                  <Users className="w-3 h-3" />
+                  <span className="font-medium">{notableQuake.felt} felt</span>
+                </span>
               )}
             </div>
             <h2 className="text-base sm:text-lg font-semibold text-white truncate group-hover:text-white/90">
@@ -516,6 +740,9 @@ function HeroQuake({
   );
 }
 
+// Magnitude filter type for earthquake list
+type MagnitudeFilter = 'all' | 'm2plus' | 'm3plus' | 'felt';
+
 export function Dashboard({ historicalSummary, initialTab = 'live', forumCategory, forumThread }: DashboardProps) {
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
@@ -523,6 +750,36 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   const [showQuickReport, setShowQuickReport] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [magnitudeFilter, setMagnitudeFilter] = useState<MagnitudeFilter>('all');
+  const [newQuakesToast, setNewQuakesToast] = useState<Earthquake[]>([]);
+  const [seenQuakeIds, setSeenQuakeIds] = useState<Set<string>>(new Set());
+  const [feltPromptQuake, setFeltPromptQuake] = useState<Earthquake | null>(null);
+  const [dismissedFeltPrompts, setDismissedFeltPrompts] = useState<Set<string>>(new Set());
+  const [showFirstVisitPrompt, setShowFirstVisitPrompt] = useState(false);
+  
+  // Check if this is a first visit (show city prompt after short delay)
+  useEffect(() => {
+    // Only check on client side and on live tab
+    if (typeof window === 'undefined' || initialTab !== 'live') return;
+    
+    const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
+    const hasCitySet = localStorage.getItem('baytremor-my-city');
+    
+    // Show prompt if: never seen it AND no city set AND data has loaded
+    if (!hasSeenPrompt && !hasCitySet && !isLoading) {
+      // Delay to let user see the page first
+      const timer = setTimeout(() => {
+        setShowFirstVisitPrompt(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [initialTab, isLoading]);
+  
+  // Handle first-visit prompt dismiss
+  const handleFirstVisitDismiss = useCallback(() => {
+    setShowFirstVisitPrompt(false);
+    localStorage.setItem('baytremor-seen-welcome', 'true');
+  }, []);
   
   // Tab is controlled by route props
   const activeTab = initialTab;
@@ -616,6 +873,45 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     feed: 'all_week',
     refreshInterval: 10000, // 10 seconds for near-real-time updates
   });
+  
+  // Detect new earthquakes and show toast
+  useEffect(() => {
+    if (realtimeQuakes.length === 0 || isLoading) return;
+    
+    // On first load, just populate the seen IDs without showing toast
+    if (seenQuakeIds.size === 0) {
+      setSeenQuakeIds(new Set(realtimeQuakes.map(eq => eq.id)));
+      return;
+    }
+    
+    // Find new earthquakes (not in our seen set)
+    const newQuakes = realtimeQuakes.filter(eq => !seenQuakeIds.has(eq.id));
+    
+    if (newQuakes.length > 0) {
+      // Update seen IDs
+      setSeenQuakeIds(prev => {
+        const updated = new Set(prev);
+        newQuakes.forEach(eq => updated.add(eq.id));
+        return updated;
+      });
+      
+      // Show toast for new earthquakes
+      setNewQuakesToast(newQuakes);
+      
+      // Check for significant quakes (M2.5+) to show "Did you feel it?" prompt
+      const significantQuake = newQuakes.find(eq => 
+        eq.magnitude >= 2.5 && 
+        !dismissedFeltPrompts.has(eq.id)
+      );
+      
+      if (significantQuake && !feltPromptQuake) {
+        // Delay the prompt slightly so user notices the quake first
+        setTimeout(() => {
+          setFeltPromptQuake(significantQuake);
+        }, 2000);
+      }
+    }
+  }, [realtimeQuakes, isLoading, seenQuakeIds, dismissedFeltPrompts, feltPromptQuake]);
 
   // Recent earthquake data (since Dec 8, 2025) - supplements the historical data
   const {
@@ -799,6 +1095,29 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     }
   }, [realtimeQuakes, timeFilter]);
   
+  // Filter earthquakes based on magnitude filter (for the feed list)
+  const magnitudeFilteredQuakes = useMemo(() => {
+    switch (magnitudeFilter) {
+      case 'm2plus':
+        return realtimeQuakes.filter(eq => eq.magnitude >= 2.0);
+      case 'm3plus':
+        return realtimeQuakes.filter(eq => eq.magnitude >= 3.0);
+      case 'felt':
+        return realtimeQuakes.filter(eq => eq.felt && eq.felt > 0);
+      case 'all':
+      default:
+        return realtimeQuakes;
+    }
+  }, [realtimeQuakes, magnitudeFilter]);
+  
+  // Count for filter chips badges
+  const filterCounts = useMemo(() => ({
+    all: realtimeQuakes.length,
+    m2plus: realtimeQuakes.filter(eq => eq.magnitude >= 2.0).length,
+    m3plus: realtimeQuakes.filter(eq => eq.magnitude >= 3.0).length,
+    felt: realtimeQuakes.filter(eq => eq.felt && eq.felt > 0).length,
+  }), [realtimeQuakes]);
+  
   // Fetch AI summary when elevated activity is detected
   useEffect(() => {
     if (!hotspotRegion.isElevated || aiSummary || isLoadingAiSummary) return;
@@ -854,11 +1173,21 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              {lastUpdated && (
-                <span className="hidden md:block text-sm text-neutral-500">
-                  Updated {format(lastUpdated, 'h:mm a')}
-                </span>
+              {/* My Area pill - shows user's city */}
+              {myCityLoaded && myCity && (
+                <button
+                  onClick={() => setShowCitySelector(true)}
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 rounded-full text-xs transition-colors group"
+                  title="Click to change city"
+                >
+                  <MapPin className="w-3 h-3 text-blue-400" />
+                  <span className="text-blue-300 font-medium max-w-[80px] truncate">{myCity.cityName}</span>
+                  {myCityStats?.isElevated && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  )}
+                </button>
               )}
+              <LiveTimestamp lastUpdated={lastUpdated} isRefreshing={isRefreshing} />
               <button 
                 onClick={refresh}
                 disabled={isRefreshing}
@@ -867,8 +1196,14 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 rounded-full border border-white/20">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse-gentle" />
+              <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-all ${
+                isRefreshing 
+                  ? 'bg-green-500/20 border-green-500/40' 
+                  : 'bg-white/10 border-white/20'
+              }`}>
+                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 ${
+                  isRefreshing ? 'animate-ping' : 'animate-pulse-gentle'
+                }`} />
                 <span className="text-white text-xs sm:text-sm font-medium">Live</span>
               </div>
             </div>
@@ -925,30 +1260,61 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   selectedEarthquake={selectedEarthquake}
                   onSelectEarthquake={setSelectedEarthquake}
                   className="min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
+                  initialRegion={hotspotRegion.isElevated ? hotspotRegion.regionId : undefined}
                 />
               </section>
 
               {/* Feed - Takes 2/5 on large screens */}
               <section id="earthquake-feed" className="lg:col-span-2 card p-0 flex flex-col max-h-[400px] sm:max-h-[560px]">
-                <div className="p-2.5 sm:p-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm font-medium truncate">Recent Quakes</span>
-                    <span className="text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">{realtimeQuakes.length}</span>
+                <div className="p-2.5 sm:p-3 border-b border-white/5 flex-shrink-0">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium truncate">Recent Quakes</span>
+                      <span className="text-[10px] sm:text-xs text-neutral-500 flex-shrink-0">{magnitudeFilteredQuakes.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        {last24Hours.length} in 24h
+                      </span>
+                      {magnitudeFilteredQuakes.length > 20 && (
+                        <button
+                          onClick={() => setShowAllQuakes(true)}
+                          className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                        >
+                          View All
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      {last24Hours.length} in 24h
-                    </span>
-                    {realtimeQuakes.length > 20 && (
+                  
+                  {/* Magnitude filter chips */}
+                  <div className="flex items-center gap-1.5">
+                    {([
+                      { key: 'all', label: 'All', count: filterCounts.all },
+                      { key: 'm2plus', label: 'M2+', count: filterCounts.m2plus },
+                      { key: 'm3plus', label: 'M3+', count: filterCounts.m3plus },
+                      { key: 'felt', label: 'Felt', count: filterCounts.felt },
+                    ] as const).map(({ key, label, count }) => (
                       <button
-                        onClick={() => setShowAllQuakes(true)}
-                        className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                        key={key}
+                        onClick={() => setMagnitudeFilter(key)}
+                        className={`px-2 py-1 text-[10px] sm:text-xs rounded-md transition-all flex items-center gap-1 ${
+                          magnitudeFilter === key
+                            ? 'bg-white/15 text-white font-medium'
+                            : 'bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-neutral-300'
+                        }`}
                       >
-                        View All
+                        {label}
+                        {count > 0 && (
+                          <span className={`tabular-nums ${magnitudeFilter === key ? 'text-white/70' : 'text-neutral-500'}`}>
+                            {count}
+                          </span>
+                        )}
                       </button>
-                    )}
+                    ))}
                   </div>
                 </div>
                 
@@ -959,13 +1325,19 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                         <div key={i} className="h-16 skeleton rounded-lg" />
                       ))}
                     </div>
-                  ) : realtimeQuakes.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
-                      No earthquakes recorded this week
+                  ) : magnitudeFilteredQuakes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-neutral-500 text-sm py-8">
+                      <span>No earthquakes match this filter</span>
+                      <button 
+                        onClick={() => setMagnitudeFilter('all')}
+                        className="text-xs text-blue-400 hover:text-blue-300 mt-2"
+                      >
+                        Show all earthquakes
+                      </button>
                     </div>
                   ) : (
                     <div className="divide-y divide-white/5">
-                      {deduplicateEarthquakes(realtimeQuakes.slice(0, 20)).map((eq, i) => (
+                      {deduplicateEarthquakes(magnitudeFilteredQuakes.slice(0, 20)).map((eq, i) => (
                         <CompactEarthquakeRow 
                           key={eq.id} 
                           earthquake={eq} 
@@ -975,14 +1347,15 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                             setSelectedEarthquake(eq);
                             setDetailEarthquake(eq);
                           }}
+                          userLocation={myCity ? { lat: myCity.lat, lon: myCity.lon } : null}
                         />
                       ))}
-                      {realtimeQuakes.length > 20 && (
+                      {magnitudeFilteredQuakes.length > 20 && (
                         <button 
                           onClick={() => setShowAllQuakes(true)}
                           className="w-full py-3 text-xs text-neutral-500 hover:text-white transition-colors"
                         >
-                          View all {realtimeQuakes.length} earthquakes →
+                          View all {magnitudeFilteredQuakes.length} earthquakes →
                         </button>
                       )}
                     </div>
@@ -990,6 +1363,64 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 </div>
               </section>
             </div>
+
+            {/* FELT BY COMMUNITY - Earthquakes with felt reports */}
+            {(() => {
+              const feltQuakes = realtimeQuakes
+                .filter(eq => eq.felt && eq.felt > 0)
+                .sort((a, b) => (b.felt || 0) - (a.felt || 0))
+                .slice(0, 5);
+              
+              if (feltQuakes.length === 0) return null;
+              
+              return (
+                <section className="card p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-medium">Felt By Community</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        {feltQuakes.length}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setMagnitudeFilter('felt')}
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      View all felt
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                    {feltQuakes.map(eq => (
+                      <button
+                        key={eq.id}
+                        onClick={() => {
+                          setSelectedEarthquake(eq);
+                          setDetailEarthquake(eq);
+                        }}
+                        className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/30 transition-all group text-left"
+                      >
+                        <div 
+                          className="text-base font-light tabular-nums w-9 text-center flex-shrink-0"
+                          style={{ color: getMagnitudeColor(eq.magnitude) }}
+                        >
+                          {eq.magnitude.toFixed(1)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-white truncate">
+                            {eq.place?.split(',')[0] || 'Bay Area'}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-amber-400">
+                            <Users className="w-2.5 h-2.5" />
+                            <span className="font-medium">{eq.felt} felt</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* STATS GRID - All 7 stats visible on all screen sizes */}
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3">
@@ -1439,6 +1870,46 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <QuickReportButton onClick={() => setShowQuickReport(true)} />
       )}
 
+      {/* First-Visit Welcome Prompt */}
+      {showFirstVisitPrompt && !myCity && (
+        <FirstVisitPrompt
+          onSetCity={() => {
+            setShowFirstVisitPrompt(false);
+            localStorage.setItem('baytremor-seen-welcome', 'true');
+            setShowCitySelector(true);
+          }}
+          onDismiss={handleFirstVisitDismiss}
+        />
+      )}
+
+      {/* "Did You Feel That?" Prompt for significant quakes */}
+      {feltPromptQuake && (
+        <FeltItPrompt
+          earthquake={feltPromptQuake}
+          onReport={() => {
+            setFeltPromptQuake(null);
+            setShowQuickReport(true);
+          }}
+          onDismiss={() => {
+            setDismissedFeltPrompts(prev => new Set([...prev, feltPromptQuake.id]));
+            setFeltPromptQuake(null);
+          }}
+        />
+      )}
+
+      {/* New Earthquake Toast */}
+      {newQuakesToast.length > 0 && !feltPromptQuake && (
+        <NewEarthquakeToast
+          newQuakes={newQuakesToast}
+          onDismiss={() => setNewQuakesToast([])}
+          onViewFeed={() => {
+            setNewQuakesToast([]);
+            // Scroll to feed section
+            document.getElementById('earthquake-feed')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+      )}
+
       {/* Quick Report Modal */}
       <QuickReportModal
         isOpen={showQuickReport}
@@ -1493,6 +1964,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                     earthquake={eq} 
                     isNew={i === 0 && Date.now() - eq.timestamp < 60 * 60 * 1000}
                     isSelected={selectedEarthquake?.id === eq.id}
+                    userLocation={myCity ? { lat: myCity.lat, lon: myCity.lon } : null}
                     onClick={() => {
                       setSelectedEarthquake(eq);
                       setDetailEarthquake(eq);
@@ -2394,29 +2866,55 @@ function LearnSection() {
 }
 
 // Compact earthquake row for side-by-side layout
+// Haversine distance calculation for user distance
+function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function CompactEarthquakeRow({ 
   earthquake, 
   isNew,
   isSelected,
   onClick,
+  userLocation,
 }: { 
   earthquake: Earthquake; 
   isNew?: boolean;
   isSelected?: boolean;
   onClick?: () => void;
+  userLocation?: { lat: number; lon: number } | null;
 }) {
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
   
+  // Calculate distance from user
+  const distanceMiles = userLocation 
+    ? getDistanceMiles(userLocation.lat, userLocation.lon, earthquake.latitude, earthquake.longitude)
+    : null;
+  
+  // Calculate how recent the earthquake is for different highlight levels
+  const minutesAgo = (Date.now() - earthquake.timestamp) / (1000 * 60);
+  const isVeryRecent = minutesAgo < 5; // Less than 5 minutes
+  const isRecent = minutesAgo < 30; // Less than 30 minutes
+  
   return (
     <button 
-      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors
-        ${isNew ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}
-        ${isSelected ? 'bg-white/[0.06]' : ''}`}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all relative
+        ${isVeryRecent ? 'bg-green-500/10 animate-pulse-subtle' : isNew ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'}
+        ${isSelected ? 'bg-white/[0.06]' : ''}
+        ${isVeryRecent ? 'border-l-2 border-green-500' : ''}`}
       onClick={onClick}
     >
       {/* Magnitude */}
       <div 
-        className="text-lg font-light tabular-nums w-10 text-center flex-shrink-0"
+        className={`text-lg font-light tabular-nums w-10 text-center flex-shrink-0 ${isVeryRecent ? 'animate-bounce-subtle' : ''}`}
         style={{ color: getMagnitudeColor(earthquake.magnitude) }}
       >
         {earthquake.magnitude.toFixed(1)}
@@ -2424,22 +2922,39 @@ function CompactEarthquakeRow({
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-white truncate">
-          {locationContext.formattedLocation || earthquake.place?.split(',')[0] || 'Bay Area'}
+        <div className="text-sm text-white truncate flex items-center gap-2">
+          <span>{locationContext.formattedLocation || earthquake.place?.split(',')[0] || 'Bay Area'}</span>
+          {isVeryRecent && (
+            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/20 text-green-400 border border-green-500/30 animate-pulse uppercase tracking-wide">
+              New
+            </span>
+          )}
         </div>
         <div className="text-xs text-neutral-500 flex items-center gap-2">
-          <span suppressHydrationWarning>
+          <span suppressHydrationWarning className={isVeryRecent ? 'text-green-400/70' : ''}>
             {formatDistanceToNow(earthquake.time, { addSuffix: true })}
           </span>
+          {distanceMiles !== null && (
+            <span className="text-blue-400/80 flex items-center gap-0.5">
+              <MapPin className="w-2.5 h-2.5" />
+              {distanceMiles < 1 ? '<1' : Math.round(distanceMiles)} mi
+            </span>
+          )}
           {earthquake.felt && earthquake.felt > 0 && (
-            <span className="text-amber-500/80">• {earthquake.felt} felt</span>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
+              <Users className="w-3 h-3" />
+              <span className="font-medium">{earthquake.felt}</span>
+            </span>
           )}
         </div>
       </div>
 
-      {/* New indicator */}
-      {isNew && (
-        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+      {/* Pulsing indicator for very recent */}
+      {isVeryRecent && (
+        <span className="relative flex-shrink-0">
+          <span className="absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75 animate-ping" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+        </span>
       )}
     </button>
   );
