@@ -105,6 +105,17 @@ function LeafletMapInner({
     };
   }, []);
 
+  // State for selected region preset - use initialRegion if provided and matches a preset
+  const [activeRegion, setActiveRegion] = useState(() => {
+    if (initialRegion && REGION_PRESETS.some(p => p.id === initialRegion)) {
+      return initialRegion;
+    }
+    return 'all';
+  });
+  
+  // State for magnitude filter on map
+  const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
+
   // Filter earthquakes based on settings
   const displayedQuakes = useMemo(() => {
     let filtered = earthquakes;
@@ -142,16 +153,6 @@ function LeafletMapInner({
     return 5;
   };
 
-  // State for selected region preset - use initialRegion if provided and matches a preset
-  const [activeRegion, setActiveRegion] = useState(() => {
-    if (initialRegion && REGION_PRESETS.some(p => p.id === initialRegion)) {
-      return initialRegion;
-    }
-    return 'all';
-  });
-  
-  // State for magnitude filter on map
-  const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   
   // Map controller component to access the map instance
