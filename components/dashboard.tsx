@@ -891,6 +891,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   }, [realtimeQuakes, isLoading, seenQuakeIds, dismissedFeltPrompts, feltPromptQuake]);
 
   // Check if this is a first visit (show city prompt after short delay)
+  // Coordinates with WhatsNewNotification to avoid overlapping modals
   useEffect(() => {
     // Only check on client side and on live tab
     if (typeof window === 'undefined' || initialTab !== 'live') return;
@@ -898,9 +899,28 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
     const hasCitySet = localStorage.getItem('baytremor-my-city');
     
+    // Check if What's New notification might be showing
+    const whatsNewDismissed = localStorage.getItem('baytremor-whats-new-dismissed-v3');
+    const whatsNewLaunchDate = new Date('2026-02-03');
+    const whatsNewExpires = new Date(whatsNewLaunchDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const isWhatsNewActive = !whatsNewDismissed && new Date() < whatsNewExpires;
+    
     // Show prompt if: never seen it AND no city set AND data has loaded
     if (!hasSeenPrompt && !hasCitySet && !isLoading) {
-      // Delay to let user see the page first
+      // If What's New is active, wait for it to be dismissed by polling
+      if (isWhatsNewActive) {
+        const pollInterval = setInterval(() => {
+          if (localStorage.getItem('baytremor-whats-new-dismissed-v3')) {
+            clearInterval(pollInterval);
+            // What's New was just dismissed, show city prompt after a short delay
+            setTimeout(() => setShowFirstVisitPrompt(true), 500);
+          }
+        }, 500);
+        
+        return () => clearInterval(pollInterval);
+      }
+      
+      // What's New is not active, show prompt after normal delay
       const timer = setTimeout(() => {
         setShowFirstVisitPrompt(true);
       }, 3000);
