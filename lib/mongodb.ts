@@ -396,6 +396,7 @@ export interface ForumThread {
     magnitude: number;
     place: string;
     time: string;
+    depth?: number;
   };
   isPinned: boolean;
   isLocked: boolean;
@@ -462,7 +463,7 @@ export async function createForumThread(data: {
   authorLocation?: string;
   content: string;
   earthquakeId?: string;
-  earthquakeData?: { magnitude: number; place: string; time: string };
+  earthquakeData?: { magnitude: number; place: string; time: string; depth?: number };
   tags?: string[];
 }): Promise<ForumThreadWithId | null> {
   const threadsCollection = await getForumThreadsCollection();
@@ -586,6 +587,7 @@ export async function getOrCreateEarthquakeThread(earthquakeData: {
   magnitude: number;
   place: string;
   time: string;
+  depth?: number;
 }): Promise<ForumThreadWithId | null> {
   const collection = await getForumThreadsCollection();
   if (!collection) return null;
@@ -608,6 +610,7 @@ export async function getOrCreateEarthquakeThread(earthquakeData: {
       magnitude: earthquakeData.magnitude,
       place: earthquakeData.place,
       time: earthquakeData.time,
+      depth: earthquakeData.depth,
     },
   });
 }

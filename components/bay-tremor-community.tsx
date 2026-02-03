@@ -741,6 +741,7 @@ function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSucces
           magnitude: selectedEarthquake.properties.mag,
           place: selectedEarthquake.properties.place || 'Unknown location',
           time: new Date(selectedEarthquake.properties.time).toISOString(),
+          depth: selectedEarthquake.geometry?.coordinates?.[2],
         };
       }
 
