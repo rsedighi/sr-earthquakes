@@ -4,7 +4,6 @@ import { GeistMono } from 'geist/font/mono';
 import Script from 'next/script';
 import { generateHomepageSchemas } from '@/lib/seo';
 import { DatadogRUM } from '@/components/datadog-rum';
-import { WhatsNewNotification } from '@/components/whats-new-notification';
 import './globals.css';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
@@ -176,7 +175,6 @@ export default function RootLayout({
         </Script>
         
         <DatadogRUM />
-        <WhatsNewNotification />
         {children}
       </body>
     </html>
