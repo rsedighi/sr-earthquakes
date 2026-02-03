@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// Note: Using regular <img> tags for Amazon images since Next.js Image optimization doesn't work with Amazon's CDN
 import { 
   ExternalLink, 
   Star, 
@@ -36,7 +36,7 @@ const CATEGORIES = [
   { id: 'first-aid', label: 'First Aid', icon: Heart, color: 'red' },
 ] as const;
 
-// Product Image Component with fallback
+// Product Image Component with fallback (using img tag for external Amazon images)
 function ProductImage({ 
   src, 
   alt, 
@@ -59,8 +59,8 @@ function ProductImage({
 
   if (hasError || !src) {
     return (
-      <div className={`${sizeClasses[size]} bg-neutral-800 flex items-center justify-center ${className}`}>
-        <ImageOff className="w-8 h-8 text-neutral-600" />
+      <div className={`${sizeClasses[size]} bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center ${className}`}>
+        <Package className="w-12 h-12 text-neutral-600" />
       </div>
     );
   }
@@ -68,18 +68,18 @@ function ProductImage({
   return (
     <div className={`relative ${sizeClasses[size]} bg-white ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-neutral-800 animate-pulse flex items-center justify-center">
-          <Package className="w-8 h-8 text-neutral-600" />
+        <div className="absolute inset-0 bg-neutral-100 animate-pulse flex items-center justify-center">
+          <Package className="w-8 h-8 text-neutral-400" />
         </div>
       )}
-      <Image
+      {/* Using img tag for external Amazon images - Next.js Image optimization doesn't work with Amazon's CDN */}
+      <img
         src={src}
         alt={alt}
-        fill
-        className={`object-contain p-2 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute inset-0 w-full h-full object-contain p-3 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onLoad={() => setIsLoading(false)}
         onError={() => setHasError(true)}
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        loading="lazy"
       />
     </div>
   );
@@ -440,12 +440,12 @@ export function AffiliateRecommendations({
           >
             {/* Product Image */}
             <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
-              <Image
+              <img
                 src={product.imageUrl}
                 alt={product.name}
-                fill
-                className="object-contain p-1"
-                sizes="64px"
+                className="absolute inset-0 w-full h-full object-contain p-1"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
 
@@ -556,12 +556,12 @@ export function AffiliateRecommendationsCompact({
             
             {/* Product Image */}
             <div className="w-full aspect-square bg-white rounded-lg mb-3 overflow-hidden relative">
-              <Image
+              <img
                 src={product.imageUrl}
                 alt={product.name}
-                fill
-                className="object-contain p-2"
-                sizes="160px"
+                className="absolute inset-0 w-full h-full object-contain p-2"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
             
