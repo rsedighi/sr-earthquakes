@@ -120,6 +120,9 @@ export async function POST(request: NextRequest) {
 
     // Get all devices with notifications enabled
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const devicesCollection = db.collection<Device>('devices');
 

@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
     }
     
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const devicesCollection = db.collection('devices');
     
@@ -95,6 +98,9 @@ export async function GET(request: NextRequest) {
     }
     
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const devicesCollection = db.collection('devices');
     
@@ -146,6 +152,9 @@ export async function PUT(request: NextRequest) {
     }
     
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const devicesCollection = db.collection('devices');
     
@@ -201,6 +210,9 @@ export async function DELETE(request: NextRequest) {
     }
     
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const devicesCollection = db.collection('devices');
     

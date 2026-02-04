@@ -133,6 +133,9 @@ export async function GET(request: NextRequest) {
 
     // 3. Connect to MongoDB
     const client = await clientPromise;
+    if (!client) {
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
     const db = client.db('baytremor');
     const processedCollection = db.collection('processed_earthquakes');
     const devicesCollection = db.collection('devices');
