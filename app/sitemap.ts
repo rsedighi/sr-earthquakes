@@ -113,6 +113,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
   
+  // ===== PILLAR CONTENT PAGES (Critical for SEO) =====
+  const pillarPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/earthquake-preparedness`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/san-andreas-fault`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/hayward-fault`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+  ];
+  
   // ===== HIGH-VALUE CONTENT PAGES =====
   const contentPages: MetadataRoute.Sitemap = [
     {
@@ -246,6 +268,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   
   return [
     ...corePages,
+    ...pillarPages,
     ...contentPages,
     ...regionPages,
     ...cityPages,

@@ -51,3 +51,12 @@
   pretty_urls = false
 [build.processing.images]
   compress = true
+
+# Scheduled function for real-time earthquake monitoring
+# Runs every minute to check for new earthquakes and send push notifications
+[functions]
+  directory = "netlify/functions"
+
+[[functions.schedule]]
+  function = "earthquake-monitor"
+  schedule = "* * * * *"

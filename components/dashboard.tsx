@@ -1862,6 +1862,33 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </ul>
             </div>
             
+            {/* Safety & Guides */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Safety & Guides</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/earthquake-preparedness" className="text-neutral-500 hover:text-white transition-colors">
+                    Preparedness Guide
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/san-andreas-fault" className="text-neutral-500 hover:text-white transition-colors">
+                    San Andreas Fault
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/hayward-fault" className="text-neutral-500 hover:text-white transition-colors">
+                    Hayward Fault
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/faq" className="text-neutral-500 hover:text-white transition-colors">
+                    FAQ
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
             {/* Resources */}
             <div>
               <h4 className="font-semibold text-sm mb-3">Resources</h4>
