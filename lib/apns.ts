@@ -68,7 +68,9 @@ class APNsClient {
       teamId: process.env.APNS_TEAM_ID || '',
       privateKey: this.decodeKey(process.env.APNS_KEY || ''),
       bundleId: process.env.APNS_BUNDLE_ID || 'com.baytremor.app',
-      production: process.env.NODE_ENV === 'production',
+      // Use sandbox for development builds, production for App Store builds
+      // Set APNS_USE_SANDBOX=true in Netlify to test with development builds
+      production: process.env.APNS_USE_SANDBOX !== 'true',
     };
   }
 
