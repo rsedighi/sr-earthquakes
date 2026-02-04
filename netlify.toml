@@ -57,6 +57,5 @@
 [functions]
   directory = "netlify/functions"
 
-[[functions.schedule]]
-  function = "earthquake-monitor"
+[functions."earthquake-monitor"]
   schedule = "* * * * *"
