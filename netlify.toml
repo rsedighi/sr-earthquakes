@@ -11,6 +11,23 @@
 
 # Custom headers to prevent stale cache issues
 [[headers]]
+  # OG Images - MUST be cached aggressively for fast social sharing
+  # These are fetched by iMessage, Twitter, Facebook crawlers
+  for = "/earthquake/*/opengraph-image"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+    CDN-Cache-Control = "public, max-age=86400"
+    Netlify-CDN-Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  # Twitter Images - same aggressive caching
+  for = "/earthquake/*/twitter-image"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+    CDN-Cache-Control = "public, max-age=86400"
+    Netlify-CDN-Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
   # HTML pages - short cache, must revalidate
   for = "/*"
   [headers.values]

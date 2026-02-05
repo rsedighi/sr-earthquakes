@@ -30,36 +30,8 @@ const nextConfig = {
   // Configure headers for better cache control
   async headers() {
     return [
-      {
-        // OpenGraph images - cached but allows magnitude updates
-        // These are fetched by social platform crawlers (Twitter, Facebook, iMessage)
-        // stale-while-revalidate: return cached instantly, regenerate in background
-        source: '/earthquake/:id/opengraph-image',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
-          },
-          {
-            key: 'CDN-Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
-        // Twitter images - same caching strategy
-        source: '/earthquake/:id/twitter-image',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
-          },
-          {
-            key: 'CDN-Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400',
-          },
-        ],
-      },
+      // NOTE: OG image caching is handled in netlify.toml to avoid header conflicts
+      // The netlify.toml headers take precedence and are more reliable
       {
         // HTML pages - short cache, force revalidation
         // This prevents stale browser tabs from serving outdated content
