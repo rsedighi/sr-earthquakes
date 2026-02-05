@@ -33,6 +33,8 @@ import {
   Link2,
 } from 'lucide-react';
 import { getMagnitudeColor } from '@/lib/analysis';
+import { formatDepth } from '@/lib/units';
+import { useUnits } from '@/lib/unit-context';
 import type { ForumThreadWithId, ForumPostWithId, ForumCategory } from '@/lib/mongodb';
 import { FeedbackModal } from './feedback-modal';
 
@@ -67,6 +69,7 @@ interface CommunityStats {
 
 export function BayTremorCommunity() {
   const router = useRouter();
+  const { unitSystem } = useUnits();
   const [posts, setPosts] = useState<ForumThreadWithId[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -471,6 +474,7 @@ export function BayTremorCommunity() {
 
 // Post Card Component
 function PostCard({ post }: { post: ForumThreadWithId }) {
+  const { unitSystem } = useUnits();
   const [votes, setVotes] = useState(post.viewCount || 0);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
 
@@ -578,7 +582,7 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-white truncate">{post.earthquakeData.place}</div>
               <div className="text-xs text-neutral-500">
-                Magnitude {post.earthquakeData.magnitude.toFixed(1)} • Depth {post.earthquakeData.depth?.toFixed(1) || '?'}km
+                Magnitude {post.earthquakeData.magnitude.toFixed(1)} • Depth {post.earthquakeData.depth ? formatDepth(post.earthquakeData.depth, unitSystem) : '?'}
               </div>
             </div>
           </div>
@@ -1142,6 +1146,7 @@ function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 // Thread Detail View Component
 export function ThreadDetailView({ slug, category }: { slug: string; category: ForumCategory }) {
   const router = useRouter();
+  const { unitSystem } = useUnits();
   const [thread, setThread] = useState<ForumThreadWithId | null>(null);
   const [posts, setPosts] = useState<ForumPostWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1323,7 +1328,7 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
                   <div className="flex-1">
                     <div className="font-medium text-white">{thread.earthquakeData.place}</div>
                     <div className="text-sm text-neutral-500">
-                      Depth: {thread.earthquakeData.depth?.toFixed(1) || '?'} km
+                      Depth: {thread.earthquakeData.depth ? formatDepth(thread.earthquakeData.depth, unitSystem) : '?'}
                     </div>
                   </div>
                   <Link

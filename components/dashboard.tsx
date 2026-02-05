@@ -64,7 +64,8 @@ export type ForumCategory = 'earthquake' | 'general' | 'neighborhood' | 'prepare
 // Time filter type (moved from hero-header.tsx during cleanup)
 export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
 
-import { formatDepth, formatDepthDeep, formatRadius, kmToMiles, getDepthDescription } from '@/lib/units';
+import { formatDepth, formatDepthDeep, formatRadius, formatDistanceBoth, kmToMiles, getDepthDescription } from '@/lib/units';
+import { useUnits } from '@/lib/unit-context';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
 import { HistoricalSwarms } from './historical-swarms';
@@ -409,6 +410,78 @@ function LiveTimestamp({ lastUpdated, isRefreshing }: { lastUpdated: Date | null
   );
 }
 
+// iOS App Promotional Banner - Dismissable, stored in localStorage
+function IOSAppBanner() {
+  const [isVisible, setIsVisible] = useState(false); // Start hidden to avoid flash, show after mount
+  
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem('baytremor-ios-banner-dismissed-at');
+    
+    // If never dismissed, show the banner
+    if (!dismissedAt) {
+      setIsVisible(true);
+      return;
+    }
+    
+    // Re-show after 7 days since dismissal
+    const daysSinceDismissed = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
+    if (daysSinceDismissed > 7) {
+      setIsVisible(true);
+    }
+  }, []);
+  
+  const handleDismiss = () => {
+    setIsVisible(false);
+    localStorage.setItem('baytremor-ios-banner-dismissed-at', Date.now().toString());
+  };
+  
+  if (!isVisible) return null;
+  
+  return (
+    <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 border-b border-orange-500/20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <Link 
+            href="/ios" 
+            className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 group"
+          >
+            {/* Pulsing indicator */}
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            
+            {/* Text content */}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-xs sm:text-sm font-medium text-orange-300/90 whitespace-nowrap">
+                📱 iOS App Coming Soon
+              </span>
+              <span className="hidden sm:inline text-xs text-neutral-400">
+                — Real-time alerts, widgets & more
+              </span>
+              <span className="text-xs text-orange-400/80 group-hover:text-orange-300 transition-colors whitespace-nowrap">
+                Join waitlist →
+              </span>
+            </div>
+          </Link>
+          
+          {/* Dismiss button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              handleDismiss();
+            }}
+            className="p-1 rounded hover:bg-white/10 transition-colors text-neutral-500 hover:text-neutral-300 flex-shrink-0"
+            aria-label="Dismiss banner"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Collapsible Alert Banner - Collapsed by default, with structured AI summary
 function CollapsibleAlert({
   hotspotRegion,
@@ -745,6 +818,7 @@ function HeroQuake({
 type MagnitudeFilter = 'all' | 'm2plus' | 'm3plus' | 'felt';
 
 export function Dashboard({ historicalSummary, initialTab = 'live', forumCategory, forumThread }: DashboardProps) {
+  const { unitSystem } = useUnits();
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
@@ -1254,6 +1328,9 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         <NavBar currentPath={TAB_ROUTES[activeTab]} earthquakeCount={realtimeQuakes.length} />
       </header>
 
+      {/* iOS App Promo Banner */}
+      <IOSAppBanner />
+
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 md:pb-6 space-y-3 sm:space-y-4">
         
         {activeTab === 'live' && (
@@ -1456,7 +1533,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                       View all felt
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[300px] overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[300px] overflow-y-auto">
                     {feltQuakes.map(eq => (
                       <button
                         key={eq.id}
@@ -1464,21 +1541,30 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                           setSelectedEarthquake(eq);
                           setDetailEarthquake(eq);
                         }}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/30 transition-all group text-left"
+                        className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/30 transition-all group text-left"
                       >
                         <div 
-                          className="text-base font-light tabular-nums w-9 text-center flex-shrink-0"
+                          className="text-lg font-light tabular-nums w-10 text-center flex-shrink-0"
                           style={{ color: getMagnitudeColor(eq.magnitude) }}
                         >
                           {eq.magnitude.toFixed(1)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-white truncate">
+                          <div className="text-xs text-white truncate font-medium">
                             {eq.place?.split(',')[0] || 'Bay Area'}
                           </div>
-                          <div className="flex items-center gap-1 text-[10px] text-amber-400">
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-neutral-500">
+                              {formatDistanceToNow(eq.time, { addSuffix: true })}
+                            </span>
+                            <span className="text-[10px] text-neutral-600">•</span>
+                            <span className="text-[10px] text-neutral-500">
+                              {format(eq.time, 'MMM d')} at {format(eq.time, 'h:mm a')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-amber-400 mt-0.5">
                             <Users className="w-2.5 h-2.5" />
-                            <span className="font-medium">{eq.felt} felt</span>
+                            <span className="font-medium">{eq.felt} felt it</span>
                           </div>
                         </div>
                       </button>
@@ -1557,7 +1643,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   <span className="text-[10px] sm:text-xs uppercase tracking-wider truncate">Depth</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-light">{formatDepth(avgDepth)}</div>
+                <div className="text-xl sm:text-2xl font-light">{formatDepth(avgDepth, unitSystem)}</div>
                 <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">{getDepthDescription(avgDepth)}</div>
               </div>
 
@@ -1782,83 +1868,49 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
 
         {/* Footer */}
         <footer className="border-t border-white/5 mt-12 pt-8 pb-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            {/* About */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-8">
+            {/* Navigation */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">About</h4>
+              <h4 className="font-semibold text-sm mb-3">Navigation</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/about" className="text-neutral-500 hover:text-white transition-colors">
-                    About Bay Tremor
+                  <Link href="/" className="text-neutral-500 hover:text-white transition-colors">
+                    Live Earthquakes
                   </Link>
                 </li>
                 <li>
-                  <Link href="/faq" className="text-neutral-500 hover:text-white transition-colors">
-                    FAQ
+                  <Link href="/today" className="text-neutral-500 hover:text-white transition-colors">
+                    Today&apos;s Activity
                   </Link>
                 </li>
                 <li>
-                  <a 
-                    href="https://earthquake.usgs.gov/" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
-                  >
-                    USGS Data <ExternalLink className="w-3 h-3" />
-                  </a>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Regions */}
-            <div>
-              <h4 className="font-semibold text-sm mb-3">Popular Regions</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/region/san-ramon" className="text-neutral-500 hover:text-white transition-colors">
-                    San Ramon / Dublin
+                  <Link href="/my-area" className="text-neutral-500 hover:text-white transition-colors">
+                    My Area
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/berkeley-oakland" className="text-neutral-500 hover:text-white transition-colors">
-                    Berkeley / Oakland
+                  <Link href="/blog" className="text-neutral-500 hover:text-white transition-colors">
+                    News & Reports
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/sf-peninsula" className="text-neutral-500 hover:text-white transition-colors">
-                    SF Peninsula
+                  <Link href="/community" className="text-neutral-500 hover:text-white transition-colors">
+                    Community
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/santa-clara" className="text-neutral-500 hover:text-white transition-colors">
-                    Santa Clara / San Jose
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Cities */}
-            <div>
-              <h4 className="font-semibold text-sm mb-3">Popular Cities</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/city/san-francisco" className="text-neutral-500 hover:text-white transition-colors">
-                    San Francisco
+                  <Link href="/history" className="text-neutral-500 hover:text-white transition-colors">
+                    History
                   </Link>
                 </li>
                 <li>
-                  <Link href="/city/oakland" className="text-neutral-500 hover:text-white transition-colors">
-                    Oakland
+                  <Link href="/compare" className="text-neutral-500 hover:text-white transition-colors">
+                    Compare Regions
                   </Link>
                 </li>
                 <li>
-                  <Link href="/city/san-jose" className="text-neutral-500 hover:text-white transition-colors">
-                    San Jose
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/city/berkeley" className="text-neutral-500 hover:text-white transition-colors">
-                    Berkeley
+                  <Link href="/learn" className="text-neutral-500 hover:text-white transition-colors">
+                    Learn
                   </Link>
                 </li>
               </ul>
@@ -1901,10 +1953,116 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               </ul>
             </div>
             
-            {/* Resources */}
+            {/* Historical Events */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Historical Events</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/history/1906-san-francisco" className="text-neutral-500 hover:text-white transition-colors">
+                    1906 San Francisco
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/history/1989-loma-prieta" className="text-neutral-500 hover:text-white transition-colors">
+                    1989 Loma Prieta
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/history/1868-hayward" className="text-neutral-500 hover:text-white transition-colors">
+                    1868 Hayward
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/history/2014-napa" className="text-neutral-500 hover:text-white transition-colors">
+                    2014 South Napa
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Regions */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Popular Regions</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/region/san-ramon" className="text-neutral-500 hover:text-white transition-colors">
+                    San Ramon / Dublin
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/berkeley-oakland" className="text-neutral-500 hover:text-white transition-colors">
+                    Berkeley / Oakland
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/sf-peninsula" className="text-neutral-500 hover:text-white transition-colors">
+                    SF Peninsula
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/santa-clara" className="text-neutral-500 hover:text-white transition-colors">
+                    Santa Clara / San Jose
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/region/sonoma-napa" className="text-neutral-500 hover:text-white transition-colors">
+                    Sonoma / Napa
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Cities */}
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Popular Cities</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/san-francisco-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                    San Francisco Today
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/oakland-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                    Oakland Today
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/san-jose-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                    San Jose Today
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/city/berkeley" className="text-neutral-500 hover:text-white transition-colors">
+                    Berkeley
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/city/fremont" className="text-neutral-500 hover:text-white transition-colors">
+                    Fremont
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Resources & About */}
             <div>
               <h4 className="font-semibold text-sm mb-3">Resources</h4>
               <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/about" className="text-neutral-500 hover:text-white transition-colors">
+                    About Bay Tremor
+                  </Link>
+                </li>
+                <li>
+                  <a 
+                    href="https://earthquake.usgs.gov/" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    USGS Data <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
                 <li>
                   <a 
                     href="https://www.shakealert.org/"
@@ -1928,6 +2086,11 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <li>
                   <Link href="/feed.xml" className="text-neutral-500 hover:text-white transition-colors">
                     RSS Feed
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-neutral-500 hover:text-white transition-colors">
+                    Privacy Policy
                   </Link>
                 </li>
               </ul>
@@ -2131,17 +2294,23 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-neutral-950/95 to-neutral-900/90 backdrop-blur-xl border-t border-white/20 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-around px-2 py-1 pb-safe safe-area-bottom">
           {[
-            { id: 'live', label: 'Live', href: '/', icon: Activity, primary: true },
-            { id: 'neighborhood', label: 'My Area', href: '/my-area', icon: MapPin, primary: true },
-            { id: 'community', label: 'Discuss', href: '/community', icon: MessageCircle, primary: true },
+            { id: 'live', label: 'Live', href: '/', icon: Activity },
+            { id: 'neighborhood', label: 'My Area', href: '/my-area', icon: MapPin },
+            { id: 'blog', label: 'News', href: '/blog', icon: FileText },
+            { id: 'community', label: 'Discuss', href: '/community', icon: MessageCircle },
           ].map(item => {
             const Icon = item.icon;
-            const active = TAB_ROUTES[activeTab] === item.href || (item.href === '/' && TAB_ROUTES[activeTab] === '/');
+            const isHome = item.href === '/';
+            const active = isHome 
+              ? TAB_ROUTES[activeTab] === '/' 
+              : item.href === '/blog' 
+                ? false // Blog is external, never "active" in tab system
+                : TAB_ROUTES[activeTab] === item.href;
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
+                className={`flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all ${
                   active 
                     ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
                     : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
@@ -2156,7 +2325,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           {/* More Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
+            className={`flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all ${
               ['history', 'compare', 'learn'].includes(activeTab)
                 ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
                 : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
@@ -2214,6 +2383,56 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   </Link>
                 );
               })}
+              
+              {/* Divider */}
+              <div className="border-t border-white/10 my-4" />
+              
+              {/* Safety & Guides Section */}
+              <div className="pt-2">
+                <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                  Safety & Guides
+                </div>
+                <Link
+                  href="/felt-earthquake"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+                >
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  <span className="font-medium">Did You Feel It?</span>
+                </Link>
+                <Link
+                  href="/earthquake-preparedness"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+                >
+                  <AlertTriangle className="w-5 h-5 text-green-400" />
+                  <span className="font-medium">Preparedness Guide</span>
+                </Link>
+                <Link
+                  href="/san-andreas-fault"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+                >
+                  <Layers className="w-5 h-5 text-red-400" />
+                  <span className="font-medium">San Andreas Fault</span>
+                </Link>
+                <Link
+                  href="/hayward-fault"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+                >
+                  <Layers className="w-5 h-5 text-orange-400" />
+                  <span className="font-medium">Hayward Fault</span>
+                </Link>
+                <Link
+                  href="/calaveras-fault"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
+                >
+                  <Layers className="w-5 h-5 text-yellow-400" />
+                  <span className="font-medium">Calaveras Fault</span>
+                </Link>
+              </div>
               
               {/* Divider */}
               <div className="border-t border-white/10 my-4" />
@@ -2325,6 +2544,7 @@ function StatCard({
 
 // Comprehensive Educational Section
 function LearnSection() {
+  const { unitSystem } = useUnits();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   
   const toggleSection = (id: string) => {
@@ -2759,7 +2979,7 @@ function LearnSection() {
                   <div className="text-xs text-neutral-500 mt-1">Duration</div>
                 </div>
                 <div className="text-center p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                                <div className="text-2xl font-light text-white">&lt;6 mi (10 km)</div>
+                                <div className="text-2xl font-light text-white">&lt;{formatDistanceBoth(10, unitSystem)}</div>
                                 <div className="text-xs text-neutral-500 mt-1">Cluster radius</div>
                 </div>
               </div>
@@ -3115,6 +3335,7 @@ function EarthquakeRow({
   onClick?: () => void;
   onMapSelect?: () => void;
 }) {
+  const { unitSystem } = useUnits();
   const region = getRegionById(earthquake.region);
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
   
@@ -3156,7 +3377,7 @@ function EarthquakeRow({
             {formatDistanceToNow(earthquake.time, { addSuffix: true })}
           </span>
           <span className="hidden sm:inline">·</span>
-          <span className="hidden sm:inline">{formatDepthDeep(earthquake.depth)}</span>
+          <span className="hidden sm:inline">{formatDepthDeep(earthquake.depth, unitSystem)}</span>
           {earthquake.felt && earthquake.felt > 0 && (
             <>
               <span className="hidden sm:inline">·</span>

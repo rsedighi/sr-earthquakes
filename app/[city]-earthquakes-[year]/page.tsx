@@ -23,22 +23,18 @@ const CITY_SLUGS = [
 const YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
 interface PageProps {
-  params: Promise<{ 'city-earthquakes-year': string }>;
+  params: Promise<{ city: string; year: string }>;
 }
 
-// Parse slug like "san-francisco-earthquakes-2025"
-function parseSlug(slug: string): { citySlug: string; year: number } | null {
-  const match = slug.match(/^(.+)-earthquakes-(\d{4})$/);
-  if (!match) return null;
+// Validate city and year
+function validateParams(city: string, yearStr: string): { citySlug: string; year: number } | null {
+  const year = parseInt(yearStr, 10);
   
-  const citySlug = match[1];
-  const year = parseInt(match[2], 10);
-  
-  if (!CITY_SLUGS.includes(citySlug) || !YEARS.includes(year)) {
+  if (!CITY_SLUGS.includes(city) || !YEARS.includes(year)) {
     return null;
   }
   
-  return { citySlug, year };
+  return { citySlug: city, year };
 }
 
 function slugToCityName(slug: string): string {
@@ -62,12 +58,13 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export async function generateStaticParams() {
-  const params: { 'city-earthquakes-year': string }[] = [];
+  const params: { city: string; year: string }[] = [];
   
   for (const citySlug of CITY_SLUGS) {
     for (const year of YEARS) {
       params.push({
-        'city-earthquakes-year': `${citySlug}-earthquakes-${year}`,
+        city: citySlug,
+        year: String(year),
       });
     }
   }
@@ -77,8 +74,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const slug = resolvedParams['city-earthquakes-year'];
-  const parsed = parseSlug(slug);
+  const parsed = validateParams(resolvedParams.city, resolvedParams.year);
   
   if (!parsed) {
     return { title: 'Not Found' };
@@ -92,7 +88,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   const title = `${cityName} Earthquakes ${year} | Complete Seismic History`;
   const description = `Complete list of all earthquakes near ${cityName}, California in ${year}. View magnitude, depth, and location data for every earthquake recorded within 30 miles of ${cityName}.`;
-  const pageUrl = `${baseUrl}/${slug}`;
+  const pageUrl = `${baseUrl}/${citySlug}-earthquakes-${year}`;
   
   return {
     title,
@@ -136,8 +132,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CityYearPage({ params }: PageProps) {
   const resolvedParams = await params;
-  const slug = resolvedParams['city-earthquakes-year'];
-  const parsed = parseSlug(slug);
+  const parsed = validateParams(resolvedParams.city, resolvedParams.year);
   
   if (!parsed) {
     notFound();
@@ -212,10 +207,11 @@ export default async function CityYearPage({ params }: PageProps) {
   });
   
   // Generate structured data
+  const pageSlug = `${citySlug}-earthquakes-${year}`;
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: 'Home', url: baseUrl },
     { name: cityName, url: `${baseUrl}/city/${citySlug}` },
-    { name: `${year} Earthquakes`, url: `${baseUrl}/${slug}` },
+    { name: `${year} Earthquakes`, url: `${baseUrl}/${pageSlug}` },
   ]);
   
   const datasetSchema = {
@@ -223,7 +219,7 @@ export default async function CityYearPage({ params }: PageProps) {
     '@type': 'Dataset',
     name: `${cityName} Earthquake Data ${year}`,
     description: `Complete earthquake data for ${cityName}, California in ${year}. Includes ${totalCount} earthquakes within 30 miles.`,
-    url: `${baseUrl}/${slug}`,
+    url: `${baseUrl}/${pageSlug}`,
     creator: {
       '@type': 'Organization',
       name: 'Bay Tremor',

@@ -13,6 +13,8 @@ import {
   Users,
   Layers
 } from 'lucide-react';
+import { useUnits, UnitSystem } from '@/lib/unit-context';
+import { getDistanceUnitShort, formatDepth } from '@/lib/units';
 
 // Query parser and builder types
 export interface QueryCondition {
@@ -31,88 +33,100 @@ export interface QueryTemplate {
   conditions: Omit<QueryCondition, 'id'>[];
 }
 
-// Predefined query templates for non-technical users
-const QUERY_TEMPLATES: QueryTemplate[] = [
-  {
-    id: 'felt-significant',
-    name: 'Felt by Many',
-    icon: <Users className="w-4 h-4" />,
-    description: 'Earthquakes felt by 50+ people',
-    conditions: [
-      { field: 'felt', operator: '>=', value: 50, label: 'felt by at least 50 people' }
-    ]
-  },
-  {
-    id: 'strong-nearby',
-    name: 'Strong & Close',
-    icon: <Zap className="w-4 h-4" />,
-    description: 'M3.0+ within 10 miles',
-    conditions: [
-      { field: 'magnitude', operator: '>=', value: 3.0, label: 'magnitude ≥ 3.0' },
-      { field: 'distance', operator: '<=', value: 10, label: 'within 10 miles' }
-    ]
-  },
-  {
-    id: 'recent-active',
-    name: 'Recent Activity',
-    icon: <Clock className="w-4 h-4" />,
-    description: 'Last 24 hours',
-    conditions: [
-      { field: 'time', operator: '<=', value: 24, label: 'in the last 24 hours' }
-    ]
-  },
-  {
-    id: 'shallow-strong',
-    name: 'Shallow Events',
-    icon: <Layers className="w-4 h-4" />,
-    description: 'Shallow earthquakes (< 5km)',
-    conditions: [
-      { field: 'depth', operator: '<', value: 5, label: 'depth less than 5km' }
-    ]
-  },
-  {
-    id: 'significant',
-    name: 'Significant Only',
-    icon: <TrendingUp className="w-4 h-4" />,
-    description: 'M4.0+ earthquakes',
-    conditions: [
-      { field: 'magnitude', operator: '>=', value: 4.0, label: 'magnitude ≥ 4.0' }
-    ]
-  }
-];
+// Helper to get distance unit label
+function getDistanceLabel(value: number, unitSystem: UnitSystem): string {
+  const unit = getDistanceUnitShort(unitSystem);
+  return `${value} ${unit}`;
+}
 
-// Auto-complete suggestions
-const AUTO_COMPLETE_SUGGESTIONS = {
-  magnitude: [
-    { text: 'magnitude > 2.0', query: { field: 'magnitude', operator: '>', value: 2.0 } },
-    { text: 'magnitude > 3.0', query: { field: 'magnitude', operator: '>', value: 3.0 } },
-    { text: 'magnitude > 4.0', query: { field: 'magnitude', operator: '>', value: 4.0 } },
-    { text: 'magnitude between 2.0 and 4.0', query: { field: 'magnitude', operator: 'between', value: [2.0, 4.0] } },
-  ],
-  felt: [
-    { text: 'felt by people', query: { field: 'felt', operator: '>', value: 0 } },
-    { text: 'felt by more than 10 people', query: { field: 'felt', operator: '>', value: 10 } },
-    { text: 'felt by more than 50 people', query: { field: 'felt', operator: '>', value: 50 } },
-    { text: 'felt by more than 100 people', query: { field: 'felt', operator: '>', value: 100 } },
-  ],
-  distance: [
-    { text: 'within 5 miles', query: { field: 'distance', operator: '<=', value: 5 } },
-    { text: 'within 10 miles', query: { field: 'distance', operator: '<=', value: 10 } },
-    { text: 'within 25 miles', query: { field: 'distance', operator: '<=', value: 25 } },
-    { text: 'more than 25 miles away', query: { field: 'distance', operator: '>', value: 25 } },
-  ],
-  depth: [
-    { text: 'shallow depth (< 5km)', query: { field: 'depth', operator: '<', value: 5 } },
-    { text: 'moderate depth (5-15km)', query: { field: 'depth', operator: 'between', value: [5, 15] } },
-    { text: 'deep (> 15km)', query: { field: 'depth', operator: '>', value: 15 } },
-  ],
-  time: [
-    { text: 'in the last hour', query: { field: 'time', operator: '<=', value: 1 } },
-    { text: 'in the last 24 hours', query: { field: 'time', operator: '<=', value: 24 } },
-    { text: 'in the last week', query: { field: 'time', operator: '<=', value: 168 } },
-    { text: 'in the last month', query: { field: 'time', operator: '<=', value: 720 } },
-  ],
-};
+// Generate query templates based on unit system
+function getQueryTemplates(unitSystem: UnitSystem): QueryTemplate[] {
+  const distUnit = getDistanceUnitShort(unitSystem);
+  return [
+    {
+      id: 'felt-significant',
+      name: 'Felt by Many',
+      icon: <Users className="w-4 h-4" />,
+      description: 'Earthquakes felt by 50+ people',
+      conditions: [
+        { field: 'felt', operator: '>=', value: 50, label: 'felt by at least 50 people' }
+      ]
+    },
+    {
+      id: 'strong-nearby',
+      name: 'Strong & Close',
+      icon: <Zap className="w-4 h-4" />,
+      description: `M3.0+ within 10 ${distUnit}`,
+      conditions: [
+        { field: 'magnitude', operator: '>=', value: 3.0, label: 'magnitude ≥ 3.0' },
+        { field: 'distance', operator: '<=', value: 10, label: `within 10 ${distUnit}` }
+      ]
+    },
+    {
+      id: 'recent-active',
+      name: 'Recent Activity',
+      icon: <Clock className="w-4 h-4" />,
+      description: 'Last 24 hours',
+      conditions: [
+        { field: 'time', operator: '<=', value: 24, label: 'in the last 24 hours' }
+      ]
+    },
+    {
+      id: 'shallow-strong',
+      name: 'Shallow Events',
+      icon: <Layers className="w-4 h-4" />,
+      description: `Shallow earthquakes (${formatDepth(5, unitSystem)})`,
+      conditions: [
+        { field: 'depth', operator: '<', value: 5, label: `depth less than ${formatDepth(5, unitSystem)}` }
+      ]
+    },
+    {
+      id: 'significant',
+      name: 'Significant Only',
+      icon: <TrendingUp className="w-4 h-4" />,
+      description: 'M4.0+ earthquakes',
+      conditions: [
+        { field: 'magnitude', operator: '>=', value: 4.0, label: 'magnitude ≥ 4.0' }
+      ]
+    }
+  ];
+}
+
+// Generate auto-complete suggestions based on unit system
+function getAutoCompleteSuggestions(unitSystem: UnitSystem) {
+  const distUnit = getDistanceUnitShort(unitSystem);
+  return {
+    magnitude: [
+      { text: 'magnitude > 2.0', query: { field: 'magnitude', operator: '>', value: 2.0 } },
+      { text: 'magnitude > 3.0', query: { field: 'magnitude', operator: '>', value: 3.0 } },
+      { text: 'magnitude > 4.0', query: { field: 'magnitude', operator: '>', value: 4.0 } },
+      { text: 'magnitude between 2.0 and 4.0', query: { field: 'magnitude', operator: 'between', value: [2.0, 4.0] } },
+    ],
+    felt: [
+      { text: 'felt by people', query: { field: 'felt', operator: '>', value: 0 } },
+      { text: 'felt by more than 10 people', query: { field: 'felt', operator: '>', value: 10 } },
+      { text: 'felt by more than 50 people', query: { field: 'felt', operator: '>', value: 50 } },
+      { text: 'felt by more than 100 people', query: { field: 'felt', operator: '>', value: 100 } },
+    ],
+    distance: [
+      { text: `within 5 ${distUnit}`, query: { field: 'distance', operator: '<=', value: 5 } },
+      { text: `within 10 ${distUnit}`, query: { field: 'distance', operator: '<=', value: 10 } },
+      { text: `within 25 ${distUnit}`, query: { field: 'distance', operator: '<=', value: 25 } },
+      { text: `more than 25 ${distUnit} away`, query: { field: 'distance', operator: '>', value: 25 } },
+    ],
+    depth: [
+      { text: `shallow depth (< ${formatDepth(5, unitSystem)})`, query: { field: 'depth', operator: '<', value: 5 } },
+      { text: `moderate depth (${formatDepth(5, unitSystem)}-${formatDepth(15, unitSystem)})`, query: { field: 'depth', operator: 'between', value: [5, 15] } },
+      { text: `deep (> ${formatDepth(15, unitSystem)})`, query: { field: 'depth', operator: '>', value: 15 } },
+    ],
+    time: [
+      { text: 'in the last hour', query: { field: 'time', operator: '<=', value: 1 } },
+      { text: 'in the last 24 hours', query: { field: 'time', operator: '<=', value: 24 } },
+      { text: 'in the last week', query: { field: 'time', operator: '<=', value: 168 } },
+      { text: 'in the last month', query: { field: 'time', operator: '<=', value: 720 } },
+    ],
+  };
+}
 
 interface EarthquakeExplorerProps {
   earthquakes: Earthquake[];
@@ -127,9 +141,14 @@ export function EarthquakeExplorer({
   onResultsChange,
   getDistance
 }: EarthquakeExplorerProps) {
+  const { unitSystem } = useUnits();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeConditions, setActiveConditions] = useState<QueryCondition[]>([]);
+  
+  // Get unit-aware templates and suggestions
+  const QUERY_TEMPLATES = useMemo(() => getQueryTemplates(unitSystem), [unitSystem]);
+  const AUTO_COMPLETE_SUGGESTIONS = useMemo(() => getAutoCompleteSuggestions(unitSystem), [unitSystem]);
 
   // Filter earthquakes based on active conditions
   const filteredEarthquakes = useMemo(() => {
@@ -267,7 +286,7 @@ export function EarthquakeExplorer({
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
-            placeholder="Try: magnitude > 3.0, felt by people, within 10 miles..."
+            placeholder={`Try: magnitude > 3.0, felt by people, within 10 ${getDistanceUnitShort(unitSystem)}...`}
             className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07]"
           />
         </div>

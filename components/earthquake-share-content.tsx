@@ -33,6 +33,7 @@ import { AffiliateRecommendations } from './affiliate-recommendations';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { getRegionById, getLocationContext } from '@/lib/regions';
 import { formatDepth, getDepthDescription } from '@/lib/units';
+import { useUnits } from '@/lib/unit-context';
 
 // Dynamically import the map to avoid SSR issues
 const EarthquakeDetailMap = dynamic(
@@ -94,6 +95,7 @@ interface EarthquakeShareContentProps {
 export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentProps) {
   const [copied, setCopied] = useState(false);
   const [ogImageReady, setOgImageReady] = useState(false);
+  const { unitSystem } = useUnits();
   
   const region = getRegionById(earthquake.region);
   const magnitudeColor = getMagnitudeColor(earthquake.magnitude);
@@ -423,7 +425,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
             <MetricCard
               icon={<Layers className="w-4 h-4" />}
               label="Depth"
-              value={formatDepth(earthquake.depth)}
+              value={formatDepth(earthquake.depth, unitSystem)}
               subtext={getDepthDescription(earthquake.depth)}
             />
             <MetricCard
@@ -558,7 +560,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
               <div className="flex items-start gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-lg">
                 <AlertTriangle className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
                 <p className="text-neutral-300">
-                  This was a <span className="font-medium">shallow earthquake</span> ({formatDepth(earthquake.depth)} deep), which can feel stronger 
+                  This was a <span className="font-medium">shallow earthquake</span> ({formatDepth(earthquake.depth, unitSystem)} deep), which can feel stronger 
                   at the surface than deeper earthquakes of the same magnitude.
                 </p>
               </div>
