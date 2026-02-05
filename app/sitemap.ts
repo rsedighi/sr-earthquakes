@@ -116,6 +116,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // ===== PILLAR CONTENT PAGES (Critical for SEO) =====
   const pillarPages: MetadataRoute.Sitemap = [
     {
+      url: `${baseUrl}/felt-earthquake`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 1.0, // Highest priority - captures "earthquake just now" searches
+    },
+    {
       url: `${baseUrl}/earthquake-preparedness`,
       lastModified: now,
       changeFrequency: 'weekly',
@@ -129,6 +135,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/hayward-fault`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/calaveras-fault`,
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.95,

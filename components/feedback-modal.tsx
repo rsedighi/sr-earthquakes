@@ -130,21 +130,28 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       formData.append('page', typeof window !== 'undefined' ? window.location.pathname : '/');
       formData.append('timestamp', new Date().toISOString());
 
+      console.log('[Feedback Form] Submitting:', Object.fromEntries(formData));
+
       const response = await fetch('/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString(),
       });
 
-      if (response.ok || response.status === 200) {
+      console.log('[Feedback Form] Response status:', response.status);
+      
+      if (response.ok) {
+        console.log('[Feedback Form] Success!');
         setStep('success');
       } else {
-        // Still show success - form data may have been captured
+        const text = await response.text();
+        console.error('[Feedback Form] Error response:', response.status, text);
+        // Still show success - Netlify may have captured it
         setStep('success');
       }
-    } catch {
+    } catch (err) {
+      console.error('[Feedback Form] Network error:', err);
       // Network error - still show success for better UX
-      // Netlify may still receive the form submission
       setStep('success');
     } finally {
       setIsSubmitting(false);

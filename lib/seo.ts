@@ -510,6 +510,81 @@ export function getRegionSEOData(regionId: string) {
   };
 }
 
+// City-specific FAQ data generation
+export interface CityFAQ {
+  question: string;
+  answer: string;
+}
+
+export function generateCityFAQs(cityName: string, county: string, faultLine?: string): CityFAQ[] {
+  const faqs: CityFAQ[] = [
+    {
+      question: `Is ${cityName} at risk for earthquakes?`,
+      answer: `Yes, ${cityName} is located in ${county} County within the seismically active San Francisco Bay Area. The region sits near several major fault systems${faultLine ? `, including the ${faultLine}` : ''}. Scientists estimate a 72% probability of a magnitude 6.7 or greater earthquake in the Bay Area within the next 30 years.`,
+    },
+    {
+      question: `What should I do if I feel an earthquake in ${cityName}?`,
+      answer: `If you feel shaking in ${cityName}, remember "Drop, Cover, and Hold On." Drop to your hands and knees, take cover under a sturdy desk or table, and hold on until the shaking stops. Stay away from windows, exterior walls, and anything that could fall. If you're outdoors, move away from buildings, power lines, and trees.`,
+    },
+    {
+      question: `How do I report feeling an earthquake in ${cityName}?`,
+      answer: `You can report feeling an earthquake in ${cityName} using Bay Tremor's "Did You Feel It?" feature or through the USGS website. Your reports help scientists understand earthquake intensity distribution and improve hazard assessments for ${county} County.`,
+    },
+    {
+      question: `What is the nearest fault line to ${cityName}?`,
+      answer: faultLine 
+        ? `The nearest major fault to ${cityName} is the ${faultLine}. This fault is part of the San Andreas Fault system and is capable of producing significant earthquakes. Residents should maintain emergency supplies and have an earthquake preparedness plan.`
+        : `${cityName} is located in the San Francisco Bay Area, which is traversed by several major faults including the San Andreas, Hayward, and Calaveras faults. All Bay Area residents should maintain earthquake preparedness.`,
+    },
+    {
+      question: `How often do earthquakes occur near ${cityName}?`,
+      answer: `The Bay Area, including areas near ${cityName}, experiences hundreds of small earthquakes each year. Most are too small to feel (below magnitude 2.0), but noticeable earthquakes occur regularly. Larger earthquakes (magnitude 4.0+) that are widely felt happen several times per year across the Bay Area.`,
+    },
+    {
+      question: `What earthquake supplies should ${cityName} residents have?`,
+      answer: `${cityName} residents should prepare an earthquake kit containing: 3-7 days of water (1 gallon per person per day), non-perishable food, flashlight, batteries, first aid kit, medications, important documents, cash, and a battery-powered radio. Also secure heavy furniture to walls and know how to shut off gas and electricity.`,
+    },
+  ];
+
+  // Add fault-specific questions based on the nearest fault
+  if (faultLine?.toLowerCase().includes('hayward')) {
+    faqs.push({
+      question: `Why is the Hayward Fault dangerous for ${cityName}?`,
+      answer: `The Hayward Fault runs through densely populated East Bay cities and is considered one of the most dangerous faults in the U.S. Scientists call it "ticking time bomb" - it last ruptured in 1868 (magnitude 6.8) and has an average recurrence interval of about 140 years. ${cityName}'s proximity to this fault means strong shaking is likely in a major event.`,
+    });
+  } else if (faultLine?.toLowerCase().includes('san andreas')) {
+    faqs.push({
+      question: `How would a San Andreas earthquake affect ${cityName}?`,
+      answer: `A major San Andreas Fault earthquake would cause significant shaking in ${cityName}. While the fault runs mostly through the Peninsula and South Bay, a magnitude 7.0+ event would be felt strongly throughout ${county} County. The 1906 San Francisco earthquake (M7.9) caused widespread damage across the entire Bay Area.`,
+    });
+  } else if (faultLine?.toLowerCase().includes('calaveras')) {
+    faqs.push({
+      question: `What are earthquake swarms near ${cityName}?`,
+      answer: `The Calaveras Fault is known for producing earthquake swarms - sequences of many small earthquakes over days or weeks. If ${cityName} is near this fault, you may experience periods of elevated seismic activity. While these swarms rarely produce damaging earthquakes, they're reminders to stay prepared.`,
+    });
+  }
+
+  return faqs;
+}
+
+// Generate FAQPage schema for cities
+export function generateCityFAQSchema(cityName: string, county: string, faultLine?: string) {
+  const faqs = generateCityFAQs(cityName, county, faultLine);
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(faq => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
+}
+
 
 
 

@@ -436,15 +436,19 @@ baytremor://earthquake/[id]
 
 ## 📋 Content Production Schedule
 
-### Week 1-2: Foundation
-- [ ] Create `/earthquake-preparedness` pillar page
-- [ ] Create `/san-andreas-fault` pillar page
-- [ ] Create `/hayward-fault` pillar page
-- [ ] Enhance 10 highest-population city pages
+### Week 1-2: Foundation ✅ IN PROGRESS
+- [x] Create `/earthquake-preparedness` pillar page ✅ DONE
+- [x] Create `/san-andreas-fault` pillar page ✅ DONE  
+- [x] Create `/hayward-fault` pillar page ✅ DONE
+- [x] Update sitemap with new pillar pages ✅ DONE
+- [x] Add footer links to new pages ✅ DONE
+- [x] Enhance city pages with FAQ schemas (all 30+ cities)
+- [ ] Submit sitemap to Google Search Console
+- [ ] Set up Google Search Console if not done
 
 ### Week 3-4: Depth
-- [ ] Create `/calaveras-fault` page
-- [ ] Create `/felt-earthquake` system
+- [x] Create `/calaveras-fault` page
+- [x] Create `/felt-earthquake` system ✅ DONE
 - [ ] Launch blog with 4 posts
 - [ ] Add FAQ sections to all city pages
 
@@ -488,16 +492,16 @@ baytremor://earthquake/[id]
 
 ## 🚨 Quick Wins (Do This Week)
 
-1. **Submit sitemap to Google Search Console** (if not done)
-2. **Set up Google News publisher** application
-3. **Add FAQ schema** to city pages
-4. **Create social media accounts** and link from site
-5. **Add author pages** with expertise credentials
-6. **Update title tags** with location modifiers
-7. **Add "earthquake just now" section** to homepage
-8. **Create `/earthquake-preparedness`** page
-9. **Submit to Bing Webmaster Tools**
-10. **Set up Google Alerts** for "bay area earthquake" to respond quickly
+1. [ ] **Submit sitemap to Google Search Console** (if not done)
+2. [ ] **Set up Google News publisher** application
+3. [ ] **Add FAQ schema** to city pages
+4. [ ] **Create social media accounts** and link from site
+5. [ ] **Add author pages** with expertise credentials
+6. [ ] **Update title tags** with location modifiers
+7. [ ] **Add "earthquake just now" section** to homepage
+8. [x] **Create `/earthquake-preparedness`** page ✅ DONE
+9. [ ] **Submit to Bing Webmaster Tools**
+10. [ ] **Set up Google Alerts** for "bay area earthquake" to respond quickly
 
 ---
 

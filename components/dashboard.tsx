@@ -1869,6 +1869,11 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Safety & Guides</h4>
               <ul className="space-y-2 text-sm">
                 <li>
+                  <Link href="/felt-earthquake" className="text-neutral-500 hover:text-white transition-colors">
+                    Did You Feel It?
+                  </Link>
+                </li>
+                <li>
                   <Link href="/earthquake-preparedness" className="text-neutral-500 hover:text-white transition-colors">
                     Preparedness Guide
                   </Link>
@@ -1881,6 +1886,11 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <li>
                   <Link href="/hayward-fault" className="text-neutral-500 hover:text-white transition-colors">
                     Hayward Fault
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/calaveras-fault" className="text-neutral-500 hover:text-white transition-colors">
+                    Calaveras Fault
                   </Link>
                 </li>
                 <li>

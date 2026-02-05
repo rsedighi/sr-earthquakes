@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Radio, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Radio, TrendingUp, ChevronDown, Shield, HelpCircle } from 'lucide-react';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { BAY_AREA_LANDMARKS, REGIONS } from '@/lib/regions';
-import { generateBreadcrumbSchema, generateCityPlaceSchema } from '@/lib/seo';
+import { generateBreadcrumbSchema, generateCityPlaceSchema, generateCityFAQs, generateCityFAQSchema } from '@/lib/seo';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
@@ -252,6 +252,10 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
     region?.faultLine
   );
   
+  // FAQ schema for rich snippets
+  const faqSchema = generateCityFAQSchema(cityName, cityData.county, region?.faultLine);
+  const faqs = generateCityFAQs(cityName, cityData.county, region?.faultLine);
+  
   const cityEarthquakeSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -293,7 +297,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([breadcrumbSchema, cityPlaceSchema, cityEarthquakeSchema]),
+          __html: JSON.stringify([breadcrumbSchema, cityPlaceSchema, cityEarthquakeSchema, faqSchema]),
         }}
       />
       
@@ -483,8 +487,51 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
           </div>
         </section>
         
+        {/* FAQ Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <HelpCircle className="w-6 h-6 text-blue-400" />
+            {cityName} Earthquake FAQ
+          </h2>
+          <div className="space-y-3">
+            {faqs.map((faq, index) => (
+              <details 
+                key={index}
+                className="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden"
+              >
+                <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                  <h3 className="font-semibold pr-4 text-left">{faq.question}</h3>
+                  <ChevronDown className="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" />
+                </summary>
+                <div className="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">
+                  {faq.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+        
+        {/* Preparedness CTA */}
+        <section className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl p-6 mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <Shield className="w-10 h-10 text-emerald-400 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-emerald-400 mb-1">Are You Prepared?</h3>
+              <p className="text-neutral-300 text-sm">
+                Learn how to protect yourself and your family before, during, and after an earthquake in {cityName}.
+              </p>
+            </div>
+            <Link 
+              href="/earthquake-preparedness"
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors whitespace-nowrap"
+            >
+              Preparedness Guide
+            </Link>
+          </div>
+        </section>
+        
         {/* Related Links */}
-        <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link 
             href={`/city/${citySlug}`}
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
@@ -510,6 +557,14 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <Radio className="w-5 h-5 text-red-400 mb-2" />
             <span className="block font-semibold">All Bay Area</span>
             <span className="text-sm text-neutral-500">Today's earthquakes</span>
+          </Link>
+          <Link 
+            href="/felt-earthquake"
+            className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
+          >
+            <AlertTriangle className="w-5 h-5 text-amber-400 mb-2" />
+            <span className="block font-semibold">Did You Feel It?</span>
+            <span className="text-sm text-neutral-500">Report earthquake shaking</span>
           </Link>
         </section>
       </div>

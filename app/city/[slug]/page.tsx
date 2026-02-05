@@ -1,9 +1,9 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Activity, TrendingUp, AlertTriangle, ChevronDown, Shield, HelpCircle } from 'lucide-react';
 import { BAY_AREA_LANDMARKS, REGIONS, getNearestCity } from '@/lib/regions';
-import { getCityData, generateBreadcrumbSchema } from '@/lib/seo';
+import { getCityData, generateBreadcrumbSchema, generateCityFAQs, generateCityFAQSchema } from '@/lib/seo';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 
@@ -114,6 +114,10 @@ export default async function CityPage({ params }: CityPageProps) {
     { name: city.name, url: `${baseUrl}/city/${slug}` },
   ]);
   
+  // FAQ schema and data
+  const faqSchema = generateCityFAQSchema(city.name, city.county, region?.faultLine);
+  const faqs = generateCityFAQs(city.name, city.county, region?.faultLine);
+  
   const placeSchema = {
     '@context': 'https://schema.org',
     '@type': 'City',
@@ -135,7 +139,7 @@ export default async function CityPage({ params }: CityPageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([placeSchema, breadcrumbSchema]),
+          __html: JSON.stringify([placeSchema, breadcrumbSchema, faqSchema]),
         }}
       />
       
@@ -256,6 +260,49 @@ export default async function CityPage({ params }: CityPageProps) {
           </div>
         </section>
         
+        {/* FAQ Section */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <HelpCircle className="w-6 h-6 text-blue-400" />
+            {city.name} Earthquake FAQ
+          </h2>
+          <div className="space-y-3">
+            {faqs.map((faq, index) => (
+              <details 
+                key={index}
+                className="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden"
+              >
+                <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                  <h3 className="font-semibold pr-4 text-left">{faq.question}</h3>
+                  <ChevronDown className="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" />
+                </summary>
+                <div className="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">
+                  {faq.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+        
+        {/* Preparedness CTA */}
+        <section className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl p-6 mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <Shield className="w-10 h-10 text-emerald-400 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-emerald-400 mb-1">Be Earthquake Ready</h3>
+              <p className="text-neutral-300 text-sm">
+                Learn essential safety tips for before, during, and after an earthquake in {city.name}.
+              </p>
+            </div>
+            <Link 
+              href="/earthquake-preparedness"
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors whitespace-nowrap"
+            >
+              View Guide
+            </Link>
+          </div>
+        </section>
+        
         {/* Recent Earthquakes */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Recent Earthquakes Near {city.name}</h2>
@@ -322,6 +369,30 @@ export default async function CityPage({ params }: CityPageProps) {
             </div>
           </section>
         )}
+        
+        {/* Quick Links */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Link 
+            href={`/${slug}-earthquake-today`}
+            className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors group"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <Activity className="w-5 h-5 text-red-400" />
+              <span className="font-semibold text-red-400 group-hover:text-red-300">Today's Activity</span>
+            </div>
+            <p className="text-sm text-neutral-400">Live earthquake updates for {city.name} today</p>
+          </Link>
+          <Link 
+            href="/felt-earthquake"
+            className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-colors group"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <span className="font-semibold text-amber-400 group-hover:text-amber-300">Did You Feel It?</span>
+            </div>
+            <p className="text-sm text-neutral-400">Report earthquake shaking in {city.name}</p>
+          </Link>
+        </section>
         
         {/* Region Link */}
         {region && (
