@@ -100,13 +100,10 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
   
-  // Share URLs
+  // Share URLs - constructed in useEffect for client-side only
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/earthquake/${earthquake.id}`
     : `/earthquake/${earthquake.id}`;
-  const ogImageUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/earthquake/${earthquake.id}/opengraph-image`
-    : `/earthquake/${earthquake.id}/opengraph-image`;
   const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
   const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
   
@@ -115,32 +112,32 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   // When user clicks Share, the image is already cached = instant preview
   // Re-visiting the page refreshes the cache (handles magnitude updates like 2.1 -> 2.5)
   useEffect(() => {
+    // Only run on client side
     if (typeof window === 'undefined') return;
     
+    const ogImageUrl = `${window.location.origin}/earthquake/${earthquake.id}/opengraph-image`;
+    
     const warmOgImageCache = async () => {
+      console.log('[OG Cache] Warming cache for:', ogImageUrl);
       try {
         // Fetch the OG image to trigger server-side generation
         // The server will cache it, so social platforms get it instantly
         const response = await fetch(ogImageUrl, {
           method: 'GET',
-          // Use default cache behavior - allows stale-while-revalidate
-          // This means: return cached version immediately, regenerate in background
+          mode: 'no-cors', // Avoid CORS issues - we just want to trigger the request
         });
         
-        if (response.ok) {
-          setOgImageReady(true);
-        } else {
-          // Still mark ready on error so user can share
-          setOgImageReady(true);
-        }
-      } catch {
+        console.log('[OG Cache] Response received, marking ready');
+        setOgImageReady(true);
+      } catch (error) {
+        console.log('[OG Cache] Error (still marking ready):', error);
         // Network error - still mark ready so user can share
         setOgImageReady(true);
       }
     };
     
     warmOgImageCache();
-  }, [ogImageUrl]);
+  }, [earthquake.id]);
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
