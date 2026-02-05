@@ -147,6 +147,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
   
+  // ===== BLOG PAGES =====
+  const blogPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+  ];
+  
+  // Generate blog post URLs for recent weeks/months
+  const blogPostSlugs: string[] = [];
+  
+  // Weekly roundups for past 12 weeks
+  for (let i = 0; i < 12; i++) {
+    const weekDate = new Date(now);
+    weekDate.setDate(weekDate.getDate() - (i * 7));
+    const weekStart = new Date(weekDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    blogPostSlugs.push(`weekly-roundup-${weekStart.toISOString().split('T')[0]}`);
+  }
+  
+  // Monthly reports for past 6 months
+  for (let i = 0; i < 6; i++) {
+    const monthDate = new Date(now);
+    monthDate.setMonth(monthDate.getMonth() - i);
+    blogPostSlugs.push(`monthly-report-${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`);
+  }
+  
+  const blogPostPages: MetadataRoute.Sitemap = blogPostSlugs.map(slug => ({
+    url: `${baseUrl}/blog/${slug}`,
+    lastModified: now,
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }));
+  
   // ===== HIGH-VALUE CONTENT PAGES =====
   const contentPages: MetadataRoute.Sitemap = [
     {
@@ -190,6 +226,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/today`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.95,
     },
     {
       url: `${baseUrl}/learn`,
@@ -267,6 +309,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.95, // Very high priority for "today" searches
   }));
   
+  // ===== CITY + YEAR PAGES (Programmatic SEO) =====
+  const years = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const currentYear = new Date().getFullYear();
+  
+  const cityYearPages: MetadataRoute.Sitemap = majorCities.flatMap(citySlug => 
+    years
+      .filter(year => year <= currentYear) // Only include up to current year
+      .map(year => ({
+        url: `${baseUrl}/${citySlug}-earthquakes-${year}`,
+        lastModified: now,
+        changeFrequency: year === currentYear ? 'daily' as const : 'monthly' as const,
+        priority: year === currentYear ? 0.8 : 0.6,
+      }))
+  );
+  
+  // ===== HISTORICAL EVENT PAGES =====
+  const historicalEvents = [
+    '1906-san-francisco',
+    '1989-loma-prieta', 
+    '1868-hayward',
+    '2014-napa',
+  ];
+  
+  const historicalPages: MetadataRoute.Sitemap = historicalEvents.map(event => ({
+    url: `${baseUrl}/history/${event}`,
+    lastModified: now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.85,
+  }));
+  
   // ===== EARTHQUAKE DETAIL PAGES (Dynamic Priority) =====
   // Include more earthquakes with smart prioritization
   const recentEarthquakes = earthquakeData.slice(0, 2000);
@@ -281,10 +353,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...corePages,
     ...pillarPages,
+    ...blogPages,
+    ...blogPostPages,
     ...contentPages,
     ...regionPages,
     ...cityPages,
     ...cityTodayPages,
+    ...cityYearPages,
+    ...historicalPages,
     ...earthquakePages,
   ];
 }
