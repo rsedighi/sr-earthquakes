@@ -110,26 +110,36 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
   const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
   
-  // Prefetch the OG image on mount so it's cached before user clicks Share
-  // This ensures the rich preview loads instantly in Messages, Twitter, etc.
+  // Warm the OG image cache by fetching it when the page loads
+  // This triggers server-side generation and CDN caching
+  // When user clicks Share, the image is already cached = instant preview
+  // Re-visiting the page refreshes the cache (handles magnitude updates like 2.1 -> 2.5)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const img = new Image();
-    img.onload = () => setOgImageReady(true);
-    img.onerror = () => setOgImageReady(true); // Still mark ready even on error
-    img.src = ogImageUrl;
-    
-    // Also add a link prefetch hint to the document head
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
-    link.as = 'image';
-    link.href = ogImageUrl;
-    document.head.appendChild(link);
-    
-    return () => {
-      document.head.removeChild(link);
+    const warmOgImageCache = async () => {
+      try {
+        // Fetch the OG image to trigger server-side generation
+        // The server will cache it, so social platforms get it instantly
+        const response = await fetch(ogImageUrl, {
+          method: 'GET',
+          // Use default cache behavior - allows stale-while-revalidate
+          // This means: return cached version immediately, regenerate in background
+        });
+        
+        if (response.ok) {
+          setOgImageReady(true);
+        } else {
+          // Still mark ready on error so user can share
+          setOgImageReady(true);
+        }
+      } catch {
+        // Network error - still mark ready so user can share
+        setOgImageReady(true);
+      }
     };
+    
+    warmOgImageCache();
   }, [ogImageUrl]);
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;

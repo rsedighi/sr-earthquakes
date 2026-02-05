@@ -10,8 +10,9 @@ export const size = {
 };
 export const contentType = 'image/png';
 
-// Cache OG images aggressively - earthquake data is immutable once recorded
-export const revalidate = 86400; // 24 hours
+// Cache OG images but allow updates (magnitude can change from 2.1 to 2.5)
+// stale-while-revalidate: return cached, regenerate in background
+export const revalidate = 3600; // 1 hour - allows for magnitude updates
 
 interface EarthquakeBasic {
   magnitude: number;
