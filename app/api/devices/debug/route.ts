@@ -14,8 +14,10 @@ export async function GET(request: NextRequest) {
   const decodedKey = decodeKey(rawKey);
   
   const apnsConfig = {
-    keyId: process.env.APNS_KEY_ID ? `${process.env.APNS_KEY_ID.substring(0, 4)}...` : 'NOT SET',
-    teamId: process.env.APNS_TEAM_ID ? `${process.env.APNS_TEAM_ID.substring(0, 4)}...` : 'NOT SET',
+    keyId: process.env.APNS_KEY_ID || 'NOT SET',
+    keyIdLength: process.env.APNS_KEY_ID?.length || 0,
+    teamId: process.env.APNS_TEAM_ID || 'NOT SET',
+    teamIdLength: process.env.APNS_TEAM_ID?.length || 0,
     bundleId: process.env.APNS_BUNDLE_ID || 'NOT SET',
     keyPresent: !!process.env.APNS_KEY,
     keyLength: rawKey.length,

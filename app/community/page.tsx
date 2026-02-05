@@ -29,12 +29,12 @@ function CommunityLoading() {
 
 export default function CommunityPage() {
   return (
-    <>
-      <NavBar />
+    <div className="pb-20 md:pb-0">
+      <NavBar currentPath="/community" />
       <Suspense fallback={<CommunityLoading />}>
         <BayTremorCommunity />
       </Suspense>
-    </>
+    </div>
   );
 }
 

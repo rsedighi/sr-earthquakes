@@ -3035,7 +3035,7 @@ function CompactEarthquakeRow({
         </div>
         <div className="text-xs text-neutral-500 flex items-center gap-2">
           <span suppressHydrationWarning className={isVeryRecent ? 'text-green-400/70' : ''}>
-            {formatDistanceToNow(earthquake.time, { addSuffix: true })}
+            {formatDistanceToNow(earthquake.time, { addSuffix: true })} · {new Date(earthquake.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST
           </span>
           {distanceMiles !== null && (
             <span className="text-blue-400/80 flex items-center gap-0.5">

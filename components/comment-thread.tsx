@@ -365,12 +365,6 @@ function CommentCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm text-white">{comment.author}</span>
-              {comment.location && (
-                <span className="text-xs text-neutral-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
-                  <MapPin className="w-3 h-3" />
-                  {comment.location}
-                </span>
-              )}
               {comment.feltIt && (
                 <span className="text-xs bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-500/30">
                   <CheckCircle2 className="w-3 h-3" />
@@ -473,16 +467,10 @@ function ReplyCard({ reply }: { reply: CommentWithId }) {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center flex-shrink-0 border border-white/10">
           <User className="w-4 h-4 text-neutral-400" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-white">{reply.author}</span>
-            {reply.location && (
-              <span className="text-xs text-neutral-500 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {reply.location}
-              </span>
-            )}
-          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-white">{reply.author}</span>
+            </div>
           <p className="text-sm text-neutral-300 mt-1 whitespace-pre-wrap break-words">
             {reply.content}
           </p>

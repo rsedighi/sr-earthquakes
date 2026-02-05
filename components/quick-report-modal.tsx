@@ -107,19 +107,6 @@ export function QuickReportModal({
     return Math.round(R * c);
   }, [userLocation]);
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setTimeout(() => {
-        setStep('select');
-        setSelectedQuake(null);
-        setSelectedIntensity(null);
-        setComment('');
-        setIsSubmitting(false);
-      }, 300);
-    }
-  }, [isOpen]);
-
   // Try to get user's location for report
   const requestLocation = useCallback(async () => {
     if (!navigator.geolocation) {
@@ -152,6 +139,20 @@ export function QuickReportModal({
       requestLocation();
     }
   }, [step, locationPermission, requestLocation]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => {
+        setStep('select');
+        setSelectedQuake(null);
+        setSelectedIntensity(null);
+        setComment('');
+        setIsSubmitting(false);
+      }, 300);
+    }
+  }, [isOpen]);
+
 
   // Submit the felt report
   const handleSubmit = async () => {
@@ -315,7 +316,7 @@ export function QuickReportModal({
                               {eq.place}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
-                              <span>{formatDistanceToNow(eq.time, { addSuffix: true })}</span>
+                              <span suppressHydrationWarning>{formatDistanceToNow(eq.time, { addSuffix: true })} · {new Date(eq.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST</span>
                               {distance !== null && (
                                 <>
                                   <span>•</span>

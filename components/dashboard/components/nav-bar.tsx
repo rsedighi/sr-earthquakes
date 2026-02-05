@@ -55,7 +55,31 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
 
   return (
     <>
-      {/* Desktop Navigation - Hidden on mobile, mobile nav handled at Dashboard root level */}
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-neutral-950/95 to-neutral-900/90 backdrop-blur-xl border-t border-white/20 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-around px-2 py-1 pb-safe safe-area-bottom">
+          {NAV_ITEMS.filter(item => item.primary).map(item => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[60px] rounded-xl transition-all ${
+                  active 
+                    ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
+                    : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : ''}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Desktop Navigation */}
       <nav className="hidden md:block border-t border-white/5 bg-neutral-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-12">
