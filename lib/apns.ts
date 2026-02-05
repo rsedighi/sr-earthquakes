@@ -76,13 +76,22 @@ class APNsClient {
 
   private decodeKey(key: string): string {
     if (!key) return '';
-    // If base64 encoded, decode it
+    
     try {
-      if (!key.includes('-----BEGIN PRIVATE KEY-----')) {
-        return Buffer.from(key, 'base64').toString('utf-8');
+      // Clean up the key - remove any whitespace/newlines that might have been added
+      let cleanKey = key.replace(/\s/g, '');
+      
+      // If it's base64 encoded (doesn't start with the PEM header), decode it
+      if (!cleanKey.includes('-----BEGIN')) {
+        const decoded = Buffer.from(cleanKey, 'base64').toString('utf-8');
+        console.log('APNs key decoded, starts with:', decoded.substring(0, 30));
+        return decoded;
       }
+      
+      // Already in PEM format
       return key;
-    } catch {
+    } catch (error) {
+      console.error('APNs key decode error:', error);
       return key;
     }
   }

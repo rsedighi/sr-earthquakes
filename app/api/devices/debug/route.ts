@@ -10,12 +10,18 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get('action');
 
   // Check APNs configuration
+  const rawKey = process.env.APNS_KEY || '';
+  const decodedKey = decodeKey(rawKey);
+  
   const apnsConfig = {
     keyId: process.env.APNS_KEY_ID ? `${process.env.APNS_KEY_ID.substring(0, 4)}...` : 'NOT SET',
     teamId: process.env.APNS_TEAM_ID ? `${process.env.APNS_TEAM_ID.substring(0, 4)}...` : 'NOT SET',
     bundleId: process.env.APNS_BUNDLE_ID || 'NOT SET',
     keyPresent: !!process.env.APNS_KEY,
-    keyLength: process.env.APNS_KEY?.length || 0,
+    keyLength: rawKey.length,
+    keyDecodedLength: decodedKey.length,
+    keyStartsWith: decodedKey.substring(0, 27),
+    keyValid: decodedKey.includes('-----BEGIN PRIVATE KEY-----'),
     useSandbox: process.env.APNS_USE_SANDBOX === 'true',
     environment: process.env.APNS_USE_SANDBOX === 'true' ? 'sandbox' : 'production',
   };
@@ -145,8 +151,11 @@ export async function GET(request: NextRequest) {
 function decodeKey(key: string): string {
   if (!key) return '';
   try {
-    if (!key.includes('-----BEGIN PRIVATE KEY-----')) {
-      return Buffer.from(key, 'base64').toString('utf-8');
+    // Clean up the key - remove any whitespace/newlines
+    let cleanKey = key.replace(/\s/g, '');
+    
+    if (!cleanKey.includes('-----BEGIN')) {
+      return Buffer.from(cleanKey, 'base64').toString('utf-8');
     }
     return key;
   } catch {
