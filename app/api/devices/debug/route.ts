@@ -146,12 +146,24 @@ export async function GET(request: NextRequest) {
 function decodeKey(key: string): string {
   if (!key) return '';
   try {
-    // Clean up the key - remove any whitespace/newlines
+    // Handle escaped newlines (common in env vars)
+    let processedKey = key.replace(/\\n/g, '\n');
+    
+    // If already in PEM format, return as-is
+    if (processedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      return processedKey;
+    }
+    
+    // Clean up for base64 decoding
     let cleanKey = key.replace(/\s/g, '');
     
-    if (!cleanKey.includes('-----BEGIN')) {
-      return Buffer.from(cleanKey, 'base64').toString('utf-8');
+    // Try base64 decode
+    const decoded = Buffer.from(cleanKey, 'base64').toString('utf-8');
+    
+    if (decoded.includes('-----BEGIN PRIVATE KEY-----')) {
+      return decoded;
     }
+    
     return key;
   } catch {
     return key;

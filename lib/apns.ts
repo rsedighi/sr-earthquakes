@@ -78,17 +78,28 @@ class APNsClient {
     if (!key) return '';
     
     try {
-      // Clean up the key - remove any whitespace/newlines that might have been added
+      // Handle escaped newlines (common in env vars)
+      let processedKey = key.replace(/\\n/g, '\n');
+      
+      // If already in PEM format, return as-is
+      if (processedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        console.log('APNs key already in PEM format');
+        return processedKey;
+      }
+      
+      // Clean up for base64 decoding - remove any whitespace
       let cleanKey = key.replace(/\s/g, '');
       
-      // If it's base64 encoded (doesn't start with the PEM header), decode it
-      if (!cleanKey.includes('-----BEGIN')) {
-        const decoded = Buffer.from(cleanKey, 'base64').toString('utf-8');
-        console.log('APNs key decoded, starts with:', decoded.substring(0, 30));
+      // Try base64 decode
+      const decoded = Buffer.from(cleanKey, 'base64').toString('utf-8');
+      
+      if (decoded.includes('-----BEGIN PRIVATE KEY-----')) {
+        console.log('APNs key decoded from base64');
         return decoded;
       }
       
-      // Already in PEM format
+      // If decode didn't produce PEM, return original
+      console.log('APNs key decode failed, using original');
       return key;
     } catch (error) {
       console.error('APNs key decode error:', error);
