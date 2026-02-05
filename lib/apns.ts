@@ -147,7 +147,7 @@ class APNsClient {
   }
 
   /**
-   * Send a push notification
+   * Send a push notification using HTTP/2 (required by APNs)
    */
   async send(notification: EarthquakeNotification): Promise<{ success: boolean; error?: string }> {
     if (!this.isConfigured()) {
@@ -198,38 +198,76 @@ class APNsClient {
       longitude: earthquake.longitude,
     };
 
-    try {
-      const response = await fetch(this.getEndpoint(deviceToken), {
-        method: 'POST',
-        headers: {
-          'authorization': `bearer ${this.getJWT()}`,
-          'apns-topic': this.config.bundleId,
-          'apns-push-type': 'alert',
-          'apns-priority': isMajor ? '10' : '5',
-          'apns-expiration': '0', // Send immediately or not at all
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+    return this.sendWithHttp2(deviceToken, payload, isMajor ? '10' : '5');
+  }
+
+  /**
+   * Send notification using Node.js HTTP/2 (APNs requires HTTP/2)
+   */
+  private sendWithHttp2(
+    deviceToken: string,
+    payload: APNsPayload,
+    priority: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      const http2 = require('http2');
+      const host = this.config.production
+        ? 'api.push.apple.com'
+        : 'api.sandbox.push.apple.com';
+
+      const client = http2.connect(`https://${host}`);
+
+      client.on('error', (err: Error) => {
+        console.error('HTTP/2 connection error:', err);
+        resolve({ success: false, error: `Connection error: ${err.message}` });
       });
 
-      if (response.ok) {
-        return { success: true };
-      }
+      const headers = {
+        ':method': 'POST',
+        ':path': `/3/device/${deviceToken}`,
+        'authorization': `bearer ${this.getJWT()}`,
+        'apns-topic': this.config.bundleId,
+        'apns-push-type': 'alert',
+        'apns-priority': priority,
+        'apns-expiration': '0',
+        'content-type': 'application/json',
+      };
 
-      const errorBody = await response.text();
-      console.error(`APNs error (${response.status}):`, errorBody);
+      const req = client.request(headers);
 
-      // Handle specific errors
-      if (response.status === 410) {
-        // Device token is no longer valid - should remove from database
-        return { success: false, error: 'invalid_token' };
-      }
+      let responseData = '';
+      let statusCode = 0;
 
-      return { success: false, error: `APNs error: ${response.status}` };
-    } catch (error) {
-      console.error('APNs request failed:', error);
-      return { success: false, error: String(error) };
-    }
+      req.on('response', (headers: Record<string, string>) => {
+        statusCode = parseInt(headers[':status'] || '0', 10);
+      });
+
+      req.on('data', (chunk: Buffer) => {
+        responseData += chunk.toString();
+      });
+
+      req.on('end', () => {
+        client.close();
+
+        if (statusCode === 200) {
+          resolve({ success: true });
+        } else if (statusCode === 410) {
+          resolve({ success: false, error: 'invalid_token' });
+        } else {
+          console.error(`APNs error (${statusCode}):`, responseData);
+          resolve({ success: false, error: `APNs error: ${statusCode} - ${responseData}` });
+        }
+      });
+
+      req.on('error', (err: Error) => {
+        client.close();
+        console.error('APNs request error:', err);
+        resolve({ success: false, error: `Request error: ${err.message}` });
+      });
+
+      req.write(JSON.stringify(payload));
+      req.end();
+    });
   }
 
   /**

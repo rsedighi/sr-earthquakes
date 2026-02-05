@@ -61,10 +61,8 @@ export async function GET(request: NextRequest) {
       const host = process.env.APNS_USE_SANDBOX === 'true'
         ? 'api.sandbox.push.apple.com'
         : 'api.push.apple.com';
-      
-      const url = `https://${host}/3/device/${deviceToken}`;
 
-      // Send test notification
+      // Send test notification using HTTP/2 (required by APNs)
       const payload = {
         aps: {
           alert: {
@@ -76,33 +74,18 @@ export async function GET(request: NextRequest) {
         },
       };
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'authorization': `bearer ${token}`,
-          'apns-topic': process.env.APNS_BUNDLE_ID || 'com.baytremor.app',
-          'apns-push-type': 'alert',
-          'apns-priority': '10',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
-      let responseJson = null;
-      try {
-        responseJson = JSON.parse(responseText);
-      } catch {
-        // Response might be empty on success
-      }
+      const result = await sendWithHttp2(
+        host,
+        deviceToken,
+        token,
+        process.env.APNS_BUNDLE_ID || 'com.baytremor.app',
+        payload
+      );
 
       return NextResponse.json({
-        success: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        apnsResponse: responseJson || responseText || '(empty - success)',
+        ...result,
         apnsConfig,
-        endpoint: url,
+        endpoint: `https://${host}/3/device/${deviceToken}`,
         tokenPreview: `${deviceToken.substring(0, 8)}...${deviceToken.substring(deviceToken.length - 8)}`,
       });
 
@@ -161,4 +144,72 @@ function decodeKey(key: string): string {
   } catch {
     return key;
   }
+}
+
+// Send notification using Node.js HTTP/2 (APNs requires HTTP/2)
+function sendWithHttp2(
+  host: string,
+  deviceToken: string,
+  jwtToken: string,
+  bundleId: string,
+  payload: object
+): Promise<{ success: boolean; status?: number; error?: string; apnsResponse?: string }> {
+  return new Promise((resolve) => {
+    const http2 = require('http2');
+
+    const client = http2.connect(`https://${host}`);
+
+    client.on('error', (err: Error) => {
+      console.error('HTTP/2 connection error:', err);
+      resolve({ success: false, error: `Connection error: ${err.message}` });
+    });
+
+    const headers = {
+      ':method': 'POST',
+      ':path': `/3/device/${deviceToken}`,
+      'authorization': `bearer ${jwtToken}`,
+      'apns-topic': bundleId,
+      'apns-push-type': 'alert',
+      'apns-priority': '10',
+      'apns-expiration': '0',
+      'content-type': 'application/json',
+    };
+
+    const req = client.request(headers);
+
+    let responseData = '';
+    let statusCode = 0;
+
+    req.on('response', (headers: Record<string, string>) => {
+      statusCode = parseInt(headers[':status'] || '0', 10);
+    });
+
+    req.on('data', (chunk: Buffer) => {
+      responseData += chunk.toString();
+    });
+
+    req.on('end', () => {
+      client.close();
+
+      if (statusCode === 200) {
+        resolve({ success: true, status: statusCode, apnsResponse: '(empty - success)' });
+      } else {
+        resolve({ 
+          success: false, 
+          status: statusCode, 
+          error: `APNs error: ${statusCode}`,
+          apnsResponse: responseData || '(empty)'
+        });
+      }
+    });
+
+    req.on('error', (err: Error) => {
+      client.close();
+      console.error('APNs request error:', err);
+      resolve({ success: false, error: `Request error: ${err.message}` });
+    });
+
+    req.write(JSON.stringify(payload));
+    req.end();
+  });
 }
