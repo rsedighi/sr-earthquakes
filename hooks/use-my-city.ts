@@ -23,7 +23,7 @@ interface MyCityStats {
   nearbyCount: number;
   nearbyThisWeek: number;
   nearestEarthquake: Earthquake | null;
-  distanceToNearest: number;
+  distanceToNearestKm: number; // Distance in km - format with unitSystem for display
   isElevated: boolean;
   regionId: string | null;
   regionName: string | null;
@@ -40,10 +40,6 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): 
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
-}
-
-function kmToMiles(km: number): number {
-  return km * 0.621371;
 }
 
 export function useMyCity(earthquakes: Earthquake[]) {
@@ -95,8 +91,7 @@ export function useMyCity(earthquakes: Earthquake[]) {
   const stats = useMemo((): MyCityStats | null => {
     if (!myCity || earthquakes.length === 0) return null;
     
-    const radiusMiles = 10; // 10 mile radius - reasonable for Bay Area cities
-    const radiusKm = radiusMiles / 0.621371; // Convert to km for calculation
+    const radiusKm = 16; // ~10 mile radius - reasonable for Bay Area cities
     const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
     const now = Date.now();
     
@@ -105,7 +100,6 @@ export function useMyCity(earthquakes: Earthquake[]) {
       .map(eq => ({
         ...eq,
         distanceKm: getDistanceKm(myCity.lat, myCity.lon, eq.latitude, eq.longitude),
-        distanceMiles: kmToMiles(getDistanceKm(myCity.lat, myCity.lon, eq.latitude, eq.longitude)),
       }))
       .filter(eq => eq.distanceKm <= radiusKm)
       .sort((a, b) => a.distanceKm - b.distanceKm);
@@ -122,7 +116,7 @@ export function useMyCity(earthquakes: Earthquake[]) {
       nearbyCount: nearbyQuakes.length,
       nearbyThisWeek: nearbyThisWeek.length,
       nearestEarthquake: nearbyQuakes[0] || null,
-      distanceToNearest: nearbyQuakes[0] ? nearbyQuakes[0].distanceMiles : 0,
+      distanceToNearestKm: nearbyQuakes[0] ? nearbyQuakes[0].distanceKm : 0,
       isElevated,
       regionId: regionId !== 'unknown' ? regionId : null,
       regionName: region?.name || null,

@@ -9,6 +9,8 @@ import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { EarthquakeExplorer } from './earthquake-explorer';
 import { AffiliateRecommendations } from './affiliate-recommendations';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useUnits } from '@/lib/unit-context';
+import { formatDistance, formatRadius, kmToMiles, convertFromKm, getDistanceUnitShort } from '@/lib/units';
 import { 
   MapPin, 
   Users, 
@@ -19,11 +21,6 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react';
-
-// Convert km to miles
-function kmToMiles(km: number): number {
-  return km * 0.621371;
-}
 
 
 // Dynamically import Leaflet map to avoid SSR issues
@@ -75,6 +72,7 @@ interface SavedAddress {
 }
 
 export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = false, className = '' }: MyNeighborhoodProps) {
+  const { unitSystem } = useUnits();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lon: number;
@@ -84,7 +82,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
   const [isLoadingFromStorage, setIsLoadingFromStorage] = useState(true);
   const [visitorId, setVisitorId] = useState<string>('');
   
-  const [searchRadiusMiles, setSearchRadiusMiles] = useState(15); // miles
+  const [searchRadiusKm, setSearchRadiusKm] = useState(25); // km (approximately 15 miles)
   const [selectedEarthquake, setSelectedEarthquake] = useState<Earthquake | null>(null);
   
   // Earthquake Explorer filtered results
@@ -193,7 +191,6 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
     }
     
     // Fallback: basic distance filtering when explorer is initializing
-    const searchRadiusKm = searchRadiusMiles / 0.621371;
     return historicalEarthquakes
       .filter(eq => {
         const distance = getDistanceKm(
@@ -203,7 +200,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
         return distance <= searchRadiusKm;
       })
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [historicalEarthquakes, userLocation, searchRadiusMiles, explorerFilteredEarthquakes]);
+  }, [historicalEarthquakes, userLocation, searchRadiusKm, explorerFilteredEarthquakes]);
   
   // Calculate statistics
   const stats = useMemo(() => {
@@ -213,7 +210,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
         feltCount: 0,
         avgMagnitude: 0,
         maxMagnitude: 0,
-        closestDistanceMiles: 0,
+        closestDistanceKm: 0,
         mostRecent: null as Earthquake | null,
         largestFelt: null as Earthquake | null,
       };
@@ -222,8 +219,8 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
     const feltQuakes = filteredEarthquakes.filter(eq => eq.felt && eq.felt > 0);
     const magnitudes = filteredEarthquakes.map(eq => eq.magnitude);
     
-    const distancesMiles = filteredEarthquakes.map(eq => 
-      kmToMiles(getDistanceKm(userLocation.lat, userLocation.lon, eq.latitude, eq.longitude))
+    const distancesKm = filteredEarthquakes.map(eq => 
+      getDistanceKm(userLocation.lat, userLocation.lon, eq.latitude, eq.longitude)
     );
     
     const largestFelt = feltQuakes.length > 0
@@ -235,7 +232,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
       feltCount: feltQuakes.length,
       avgMagnitude: magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length,
       maxMagnitude: Math.max(...magnitudes),
-      closestDistanceMiles: Math.min(...distancesMiles),
+      closestDistanceKm: Math.min(...distancesKm),
       mostRecent: filteredEarthquakes[0] || null,
       largestFelt,
     };
@@ -319,12 +316,12 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
             earthquakes={historicalEarthquakes}
             userLocation={userLocation}
             onResultsChange={setExplorerFilteredEarthquakes}
-            getDistance={(eq) => kmToMiles(getDistanceKm(
+            getDistance={(eq) => convertFromKm(getDistanceKm(
               userLocation.lat,
               userLocation.lon,
               eq.latitude,
               eq.longitude
-            ))}
+            ), unitSystem)}
           />
         </div>
       )}
@@ -334,13 +331,13 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
         <LeafletMap
           earthquakes={filteredEarthquakes}
           userLocation={userLocation}
-          searchRadius={searchRadiusMiles / 0.621371}
+          searchRadius={searchRadiusKm}
           className="h-[400px]"
         />
         {filteredEarthquakes.length > 0 && (
           <div className="bg-neutral-900/80 px-4 py-2 text-xs text-neutral-400 flex items-center justify-between">
             <span>Showing {filteredEarthquakes.length} earthquakes</span>
-            <span>within {searchRadiusMiles} miles</span>
+            <span>within {formatRadius(searchRadiusKm, unitSystem)}</span>
           </div>
         )}
       </div>
@@ -354,7 +351,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
               icon={<Activity className="w-4 h-4 text-neutral-400" />}
               label="Total Found"
               value={stats.total}
-              subtext={`within ${searchRadiusMiles} mi`}
+              subtext={`within ${formatRadius(searchRadiusKm, unitSystem)}`}
             />
             <StatCard
               icon={<Users className="w-4 h-4 text-neutral-400" />}
@@ -371,7 +368,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
             <StatCard
               icon={<MapPin className="w-4 h-4 text-neutral-400" />}
               label="Closest"
-              value={stats.closestDistanceMiles > 0 ? `${stats.closestDistanceMiles.toFixed(1)} mi` : '—'}
+              value={stats.closestDistanceKm > 0 ? formatDistance(stats.closestDistanceKm, unitSystem, 1) : '—'}
               subtext="from you"
             />
           </div>
@@ -381,7 +378,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
             <div className="p-4 bg-white/[0.02] rounded-xl border border-white/10">
               <h4 className="font-medium text-neutral-200 mb-2">Your Neighborhood Summary</h4>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                {generateNeighborhoodInsight(stats, searchRadiusMiles, userLocation.address)}
+                {generateNeighborhoodInsight(stats, searchRadiusKm, userLocation.address, unitSystem)}
               </p>
             </div>
           )}
@@ -520,10 +517,11 @@ function EarthquakeDetail({
   userLocation: { lat: number; lon: number };
   onClick?: () => void;
 }) {
-  const distanceMiles = kmToMiles(getDistanceKm(
+  const { unitSystem } = useUnits();
+  const distanceKm = getDistanceKm(
     userLocation.lat, userLocation.lon,
     earthquake.latitude, earthquake.longitude
-  ));
+  );
   
   return (
     <button 
@@ -542,7 +540,7 @@ function EarthquakeDetail({
       <div className="flex-1">
         <div className="font-medium">{earthquake.place}</div>
         <div className="text-sm text-neutral-500 mt-1">
-          {format(earthquake.time, 'PPP')} • {distanceMiles.toFixed(1)} mi from you
+          {format(earthquake.time, 'PPP')} • {formatDistance(distanceKm, unitSystem, 1)} from you
         </div>
         {earthquake.felt && earthquake.felt > 0 && (
           <div className="text-sm text-neutral-400 mt-1">
@@ -566,10 +564,11 @@ function EarthquakeListItem({
   userLocation: { lat: number; lon: number };
   onClick?: () => void;
 }) {
-  const distanceMiles = kmToMiles(getDistanceKm(
+  const { unitSystem } = useUnits();
+  const distanceKm = getDistanceKm(
     userLocation.lat, userLocation.lon,
     earthquake.latitude, earthquake.longitude
-  ));
+  );
   
   return (
     <button
@@ -590,7 +589,7 @@ function EarthquakeListItem({
         <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
           <span>{format(earthquake.time, 'MMM d, yyyy')}</span>
           <span>•</span>
-          <span>{distanceMiles.toFixed(1)} mi away</span>
+          <span>{formatDistance(distanceKm, unitSystem, 1)} away</span>
           {earthquake.felt && earthquake.felt > 0 && (
             <>
               <span>•</span>
@@ -611,19 +610,21 @@ function generateNeighborhoodInsight(
     feltCount: number;
     avgMagnitude: number;
     maxMagnitude: number;
-    closestDistanceMiles: number;
+    closestDistanceKm: number;
     mostRecent: Earthquake | null;
   },
-  radiusMiles: number,
-  address: string
+  radiusKm: number,
+  address: string,
+  unitSystem: 'imperial' | 'metric'
 ): string {
   const locationName = address.split(',')[0];
+  const radiusDisplay = formatRadius(radiusKm, unitSystem);
   
   if (stats.total === 0) {
-    return `Great news! No significant earthquakes have been recorded within ${radiusMiles} miles of ${locationName} matching your filters.`;
+    return `Great news! No significant earthquakes have been recorded within ${radiusDisplay} of ${locationName} matching your filters.`;
   }
   
-  let insight = `Within ${radiusMiles} miles of ${locationName}, there have been ${stats.total} earthquakes matching your filters`;
+  let insight = `Within ${radiusDisplay} of ${locationName}, there have been ${stats.total} earthquakes matching your filters`;
   
   if (stats.feltCount > 0) {
     insight += `, ${stats.feltCount} of which were felt by people`;

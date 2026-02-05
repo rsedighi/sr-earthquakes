@@ -100,7 +100,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const region = getRegionById(earthquake.region);
   const magnitudeColor = getMagnitudeColor(earthquake.magnitude);
   const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
-  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
   // Share URLs - constructed in useEffect for client-side only
   const shareUrl = typeof window !== 'undefined' 

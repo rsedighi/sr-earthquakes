@@ -64,7 +64,7 @@ export type ForumCategory = 'earthquake' | 'general' | 'neighborhood' | 'prepare
 // Time filter type (moved from hero-header.tsx during cleanup)
 export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
 
-import { formatDepth, formatDepthDeep, formatRadius, formatDistanceBoth, kmToMiles, getDepthDescription } from '@/lib/units';
+import { formatDepth, formatDepthDeep, formatRadius, formatDistanceBoth, formatDistance, kmToMiles, getDepthDescription } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { RegionComparison } from './region-comparison';
 import { MyNeighborhood } from './my-neighborhood';
@@ -249,6 +249,9 @@ function FeltItPrompt({
   onReport: () => void;
   onDismiss: () => void;
 }) {
+  const { unitSystem } = useUnits();
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
+  
   // Auto-dismiss after 20 seconds
   useEffect(() => {
     const timer = setTimeout(onDismiss, 20000);
@@ -274,7 +277,7 @@ function FeltItPrompt({
               Did you feel that?
             </div>
             <div className="text-xs text-neutral-300 truncate">
-              M{earthquake.magnitude.toFixed(1)} near {earthquake.place?.split(',')[0] || 'Bay Area'}
+              M{earthquake.magnitude.toFixed(1)} near {locationContext.formattedLocation || earthquake.place?.split(',')[0] || 'Bay Area'}
             </div>
             <div className="flex items-center gap-2 mt-3">
               <button
@@ -314,6 +317,8 @@ function NewEarthquakeToast({
   onDismiss: () => void;
   onViewFeed: () => void;
 }) {
+  const { unitSystem } = useUnits();
+  
   // Auto-dismiss after 8 seconds
   useEffect(() => {
     const timer = setTimeout(onDismiss, 8000);
@@ -324,6 +329,7 @@ function NewEarthquakeToast({
   
   const largest = newQuakes.reduce((max, eq) => eq.magnitude > max.magnitude ? eq : max);
   const hasSignificant = largest.magnitude >= 2.5;
+  const largestLocationContext = getLocationContext(largest.latitude, largest.longitude, unitSystem);
   
   return (
     <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up ${
@@ -346,7 +352,7 @@ function NewEarthquakeToast({
           </div>
           {hasSignificant && (
             <div className="text-xs text-neutral-300 truncate">
-              {largest.place?.split(',')[0] || 'Bay Area'}
+              {largestLocationContext.formattedLocation || largest.place?.split(',')[0] || 'Bay Area'}
             </div>
           )}
         </div>
@@ -689,12 +695,14 @@ function HeroQuake({
   myCityLoaded: boolean;
   onSetCity: () => void;
 }) {
+  const { unitSystem } = useUnits();
+  
   // Find most recent M2.0+ earthquake
   const notableQuake = useMemo(() => {
     return earthquakes.find(eq => eq.magnitude >= 2.0) || earthquakes[0];
   }, [earthquakes]);
   
-  const locationContext = notableQuake ? getLocationContext(notableQuake.latitude, notableQuake.longitude) : null;
+  const locationContext = notableQuake ? getLocationContext(notableQuake.latitude, notableQuake.longitude, unitSystem) : null;
   
   if (!notableQuake) return null;
   
@@ -1551,7 +1559,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs text-white truncate font-medium">
-                            {eq.place?.split(',')[0] || 'Bay Area'}
+                            {getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place?.split(',')[0] || 'Bay Area'}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-neutral-500">
@@ -1671,7 +1679,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col mx-4">
                   <h3 className="text-lg font-semibold mb-2">Select Your City</h3>
                   <p className="text-sm text-neutral-400 mb-4">
-                    Choose a city to see personalized earthquake stats within 10 miles of your area.
+                    Choose a city to see personalized earthquake stats within {formatRadius(16, unitSystem)} of your area.
                   </p>
                   
                   {/* Search Input */}
@@ -3228,9 +3236,9 @@ function LearnSection() {
 }
 
 // Compact earthquake row for side-by-side layout
-// Haversine distance calculation for user distance
-function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3959; // Earth radius in miles
+// Haversine distance calculation for user distance (returns km)
+function getDistanceKmLocal(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = 
@@ -3254,11 +3262,12 @@ function CompactEarthquakeRow({
   onClick?: () => void;
   userLocation?: { lat: number; lon: number } | null;
 }) {
-  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
+  const { unitSystem } = useUnits();
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
-  // Calculate distance from user
-  const distanceMiles = userLocation 
-    ? getDistanceMiles(userLocation.lat, userLocation.lon, earthquake.latitude, earthquake.longitude)
+  // Calculate distance from user (in km)
+  const distanceKm = userLocation 
+    ? getDistanceKmLocal(userLocation.lat, userLocation.lon, earthquake.latitude, earthquake.longitude)
     : null;
   
   // Calculate how recent the earthquake is for different highlight levels
@@ -3296,10 +3305,10 @@ function CompactEarthquakeRow({
           <span suppressHydrationWarning className={isVeryRecent ? 'text-green-400/70' : ''}>
             {formatDistanceToNow(earthquake.time, { addSuffix: true })} · {new Date(earthquake.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST
           </span>
-          {distanceMiles !== null && (
+          {distanceKm !== null && (
             <span className="text-blue-400/80 flex items-center gap-0.5">
               <MapPin className="w-2.5 h-2.5" />
-              {distanceMiles < 1 ? '<1' : Math.round(distanceMiles)} mi
+              {formatDistance(distanceKm, unitSystem, 0)}
             </span>
           )}
           {earthquake.felt && earthquake.felt > 0 && (
@@ -3337,7 +3346,7 @@ function EarthquakeRow({
 }) {
   const { unitSystem } = useUnits();
   const region = getRegionById(earthquake.region);
-  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
   return (
     <div 

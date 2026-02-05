@@ -132,7 +132,7 @@ interface EarthquakeExplorerProps {
   earthquakes: Earthquake[];
   userLocation: { lat: number; lon: number } | null;
   onResultsChange: (filtered: Earthquake[]) => void;
-  getDistance: (eq: Earthquake) => number; // Distance in miles
+  getDistance: (eq: Earthquake) => number; // Distance in current unit system (mi or km)
 }
 
 export function EarthquakeExplorer({

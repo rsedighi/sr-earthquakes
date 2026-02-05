@@ -1,4 +1,5 @@
 import { Region } from './types';
+import type { UnitSystem } from './unit-context';
 
 // Define the regions of Northern California with area codes for easy identification
 // Using a consistent monochrome palette for a polished, professional look
@@ -402,7 +403,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 // Convert km to miles
-function kmToMiles(km: number): number {
+export function kmToMiles(km: number): number {
   return km * 0.621371;
 }
 
@@ -410,7 +411,7 @@ function kmToMiles(km: number): number {
 export function getNearestCity(lat: number, lon: number): {
   name: string;
   county: string;
-  distance: number; // in miles
+  distanceKm: number; // distance in km (use formatDistance for display)
   direction: string;
 } | null {
   const cities = BAY_AREA_LANDMARKS.filter(l => l.type === 'city');
@@ -450,7 +451,7 @@ export function getNearestCity(lat: number, lon: number): {
   return {
     name: nearest.name,
     county: nearest.county,
-    distance: Math.round(kmToMiles(minDistance) * 10) / 10,
+    distanceKm: minDistance, // Return raw km, format later with unit system
     direction: reverseDir[direction] || direction,
   };
 }
@@ -459,14 +460,14 @@ export function getNearestCity(lat: number, lon: number): {
 export interface LocationContext {
   nearestCity: string;
   county: string;
-  distanceMiles: number;
+  distanceKm: number; // Raw distance in km
   direction: string;
   formattedLocation: string;
   region: Region | undefined;
   isInBayArea: boolean;
 }
 
-export function getLocationContext(lat: number, lon: number): LocationContext {
+export function getLocationContext(lat: number, lon: number, unitSystem: UnitSystem = 'imperial'): LocationContext {
   const region = REGIONS.find(r => {
     const { minLat, maxLat, minLon, maxLon } = r.bounds;
     return lat >= minLat && lat <= maxLat && lon >= minLon && lon <= maxLon;
@@ -477,11 +478,20 @@ export function getLocationContext(lat: number, lon: number): LocationContext {
   
   let formattedLocation = '';
   if (nearestCityInfo) {
-    if (nearestCityInfo.distance < 1) {
+    const distanceKm = nearestCityInfo.distanceKm;
+    const distanceMiles = kmToMiles(distanceKm);
+    const displayDistance = unitSystem === 'metric' ? distanceKm : distanceMiles;
+    const displayUnit = unitSystem === 'metric' ? 'km' : 'mi';
+    
+    // Consider "near" if less than ~1 mile (1.6 km)
+    const nearThreshold = unitSystem === 'metric' ? 1.6 : 1;
+    
+    if (displayDistance < nearThreshold) {
       formattedLocation = `Near ${nearestCityInfo.name}`;
     } else {
       const dirText = nearestCityInfo.direction ? `${nearestCityInfo.direction} of ` : 'near ';
-      formattedLocation = `${nearestCityInfo.distance} mi ${dirText}${nearestCityInfo.name}`;
+      const roundedDistance = Math.round(displayDistance * 10) / 10;
+      formattedLocation = `${roundedDistance} ${displayUnit} ${dirText}${nearestCityInfo.name}`;
     }
     formattedLocation += ` (${nearestCityInfo.county} County)`;
   }
@@ -489,7 +499,7 @@ export function getLocationContext(lat: number, lon: number): LocationContext {
   return {
     nearestCity: nearestCityInfo?.name ?? 'Unknown',
     county: nearestCityInfo?.county ?? region?.county ?? 'Unknown',
-    distanceMiles: nearestCityInfo?.distance ?? 0,
+    distanceKm: nearestCityInfo?.distanceKm ?? 0,
     direction: nearestCityInfo?.direction ?? '',
     formattedLocation,
     region,

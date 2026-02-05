@@ -3,9 +3,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, getYear, differenceInHours, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { Earthquake, SwarmEvent, SwarmEpisode, DailyActivityCluster } from '@/lib/types';
-import { REGIONS, getRegionById } from '@/lib/regions';
+import { REGIONS, getRegionById, getLocationContext } from '@/lib/regions';
 import { detectSwarms, detectSwarmEpisodes, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDepth } from '@/lib/units';
+import { useUnits } from '@/lib/unit-context';
 import {
   Activity,
   Calendar,
@@ -121,6 +122,7 @@ const intensityColors = {
 };
 
 export function HistoricalSwarms({ earthquakes, className = '' }: HistoricalSwarmsProps) {
+  const { unitSystem } = useUnits();
   const [selectedRegion, setSelectedRegion] = useState('san-ramon');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set([2024, 2023, 2022]));
@@ -681,6 +683,7 @@ interface EpisodeDrillDownProps {
 }
 
 function EpisodeDrillDown({ episode, region, onClose, onEarthquakeClick }: EpisodeDrillDownProps) {
+  const { unitSystem } = useUnits();
   const [sortBy, setSortBy] = useState<'time' | 'magnitude' | 'depth'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1097,7 +1100,7 @@ function EpisodeDrillDown({ episode, region, onClose, onEarthquakeClick }: Episo
                     className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getMagnitudeColor(eq.magnitude) }}
                   />
-                  <span className="text-sm truncate group-hover:text-white transition-colors">{eq.place}</span>
+                  <span className="text-sm truncate group-hover:text-white transition-colors">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</span>
                   {eq.felt && eq.felt > 0 && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 flex-shrink-0">
                       {eq.felt} felt

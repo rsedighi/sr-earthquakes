@@ -19,6 +19,7 @@ export function UnitToggle({ className = '', showLabel = true, size = 'md' }: Un
   
   return (
     <button
+      type="button"
       onClick={toggleUnit}
       className={`flex items-center gap-1.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-colors ${className}`}
       title={`Switch to ${isImperial ? 'metric (km)' : 'imperial (miles)'}`}
@@ -49,6 +50,7 @@ export function UnitToggleCompact({ className = '' }: { className?: string }) {
   
   return (
     <button
+      type="button"
       onClick={toggleUnit}
       className={`text-[10px] font-medium px-1.5 py-0.5 rounded border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-colors ${className}`}
       title={`Click to switch units`}
@@ -65,6 +67,7 @@ export function UnitToggleSegmented({ className = '' }: { className?: string }) 
   return (
     <div className={`inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5 ${className}`}>
       <button
+        type="button"
         onClick={() => setUnitSystem('imperial')}
         className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
           unitSystem === 'imperial' 
@@ -75,6 +78,7 @@ export function UnitToggleSegmented({ className = '' }: { className?: string }) 
         Miles
       </button>
       <button
+        type="button"
         onClick={() => setUnitSystem('metric')}
         className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
           unitSystem === 'metric' 

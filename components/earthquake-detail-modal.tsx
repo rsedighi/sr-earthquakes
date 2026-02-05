@@ -149,7 +149,7 @@ export function EarthquakeDetailModal({
   const region = getRegionById(earthquake.region);
   const magnitudeColor = getMagnitudeColor(earthquake.magnitude);
   const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
-  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude);
+  const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
   // Share URLs
   const shareUrl = typeof window !== 'undefined' 
@@ -617,7 +617,7 @@ export function EarthquakeDetailModal({
                       {eq.magnitude.toFixed(1)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{eq.place}</div>
+                      <div className="text-sm truncate">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
                       <div className="flex items-center gap-3 text-xs text-neutral-500">
                         <span>{format(eq.time, 'MMM d, yyyy')}</span>
                         <span>•</span>
@@ -682,7 +682,7 @@ export function EarthquakeDetailModal({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] rounded-lg hover:bg-white/[0.06] transition-colors border border-white/5"
-                    title={eq.place}
+                    title={getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}
                   >
                     <span 
                       className="text-xs font-bold"

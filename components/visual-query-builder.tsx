@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Plus, X, Save, Play } from 'lucide-react';
 import { QueryCondition } from './earthquake-explorer';
+import { useUnits } from '@/lib/unit-context';
+import { getDistanceUnitShort } from '@/lib/units';
 
 interface VisualQueryBuilderProps {
   onBuildQuery: (conditions: Omit<QueryCondition, 'id'>[]) => void;
@@ -34,6 +36,7 @@ const OPERATOR_LABELS: Record<string, string> = {
 };
 
 export function VisualQueryBuilder({ onBuildQuery, onSaveQuery }: VisualQueryBuilderProps) {
+  const { unitSystem } = useUnits();
   const [rows, setRows] = useState<BuilderRow[]>([
     { id: '1', field: 'magnitude', operator: '>', value: 3.0 }
   ]);
@@ -63,7 +66,7 @@ export function VisualQueryBuilder({ onBuildQuery, onSaveQuery }: VisualQueryBui
       let label = `${field?.label || row.field} ${operatorLabel} ${row.value}`;
       
       // Add units
-      if (row.field === 'distance') label += ' miles';
+      if (row.field === 'distance') label += ` ${getDistanceUnitShort(unitSystem)}`;
       if (row.field === 'depth') label += ' km';
       if (row.field === 'time') label += ' hours ago';
       if (row.field === 'felt') label += ' people';

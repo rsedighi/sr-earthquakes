@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 
 export type UnitSystem = 'imperial' | 'metric';
 
@@ -28,19 +28,30 @@ export function UnitProvider({ children }: { children: ReactNode }) {
     setIsHydrated(true);
   }, []);
 
-  // Save to localStorage when changed
-  const setUnitSystem = (system: UnitSystem) => {
+  // Save to localStorage when changed - memoized to prevent unnecessary re-renders
+  const setUnitSystem = useCallback((system: UnitSystem) => {
     setUnitSystemState(system);
     localStorage.setItem(UNIT_STORAGE_KEY, system);
-  };
+  }, []);
 
-  const toggleUnit = () => {
-    const newSystem = unitSystem === 'imperial' ? 'metric' : 'imperial';
-    setUnitSystem(newSystem);
-  };
+  // Toggle using functional update to ensure we always use the latest state
+  const toggleUnit = useCallback(() => {
+    setUnitSystemState(prev => {
+      const newSystem = prev === 'imperial' ? 'metric' : 'imperial';
+      localStorage.setItem(UNIT_STORAGE_KEY, newSystem);
+      return newSystem;
+    });
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo(() => ({
+    unitSystem,
+    setUnitSystem,
+    toggleUnit,
+  }), [unitSystem, setUnitSystem, toggleUnit]);
 
   return (
-    <UnitContext.Provider value={{ unitSystem, setUnitSystem, toggleUnit }}>
+    <UnitContext.Provider value={contextValue}>
       {children}
     </UnitContext.Provider>
   );

@@ -5,6 +5,9 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
+import { useUnits } from '@/lib/unit-context';
+import { formatDistance } from '@/lib/units';
+import { getLocationContext } from '@/lib/regions';
 import {
   X,
   Zap,
@@ -78,6 +81,7 @@ export function QuickReportModal({
   earthquakes,
   userLocation,
 }: QuickReportModalProps) {
+  const { unitSystem } = useUnits();
   const [step, setStep] = useState<ModalStep>('select');
   const [selectedQuake, setSelectedQuake] = useState<Earthquake | null>(null);
   const [selectedIntensity, setSelectedIntensity] = useState<number | null>(null);
@@ -93,10 +97,10 @@ export function QuickReportModal({
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 20);
 
-  // Calculate distance helper
-  const getDistanceMiles = useCallback((eq: Earthquake) => {
+  // Calculate distance helper (returns km)
+  const getDistanceKm = useCallback((eq: Earthquake) => {
     if (!userLocation) return null;
-    const R = 3959; // Earth radius in miles
+    const R = 6371; // Earth radius in km
     const dLat = (eq.latitude - userLocation.lat) * Math.PI / 180;
     const dLon = (eq.longitude - userLocation.lon) * Math.PI / 180;
     const a = 
@@ -104,7 +108,7 @@ export function QuickReportModal({
       Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(eq.latitude * Math.PI / 180) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c);
+    return R * c;
   }, [userLocation]);
 
   // Try to get user's location for report
@@ -294,7 +298,7 @@ export function QuickReportModal({
                       Recent earthquakes in the Bay Area:
                     </p>
                     {recentQuakes.map(eq => {
-                      const distance = getDistanceMiles(eq);
+                      const distanceKm = getDistanceKm(eq);
                       return (
                         <button
                           key={eq.id}
@@ -313,16 +317,16 @@ export function QuickReportModal({
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white truncate">
-                              {eq.place}
+                              {getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
                               <span suppressHydrationWarning>{formatDistanceToNow(eq.time, { addSuffix: true })} · {new Date(eq.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST</span>
-                              {distance !== null && (
+                              {distanceKm !== null && (
                                 <>
                                   <span>•</span>
                                   <span className="flex items-center gap-1">
                                     <MapPin className="w-3 h-3" />
-                                    {distance} mi away
+                                    {formatDistance(distanceKm, unitSystem, 0)} away
                                   </span>
                                 </>
                               )}

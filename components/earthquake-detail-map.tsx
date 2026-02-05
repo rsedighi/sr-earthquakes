@@ -6,6 +6,8 @@ import { getMagnitudeColor } from '@/lib/analysis';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { formatDepth, formatDistance } from '@/lib/units';
+import { useUnits } from '@/lib/unit-context';
+import { getLocationContext } from '@/lib/regions';
 
 interface EarthquakeDetailMapProps {
   earthquake: Earthquake;
@@ -31,6 +33,7 @@ export function EarthquakeDetailMap({
   nearbyEarthquakes = [],
   className = '',
 }: EarthquakeDetailMapProps) {
+  const { unitSystem } = useUnits();
   const [mapReady, setMapReady] = useState(false);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
@@ -139,12 +142,12 @@ export function EarthquakeDetailMap({
                   <div className="font-bold" style={{ color: getMagnitudeColor(eq.magnitude) }}>
                     M{eq.magnitude.toFixed(1)}
                   </div>
-                  <div className="text-gray-600">{eq.place}</div>
+                  <div className="text-gray-600">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
                   <div className="text-xs text-gray-400">
                     {format(eq.time, 'MMM d, yyyy')}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatDistance(getDistanceKm(earthquake.latitude, earthquake.longitude, eq.latitude, eq.longitude))} away
+                    {formatDistance(getDistanceKm(earthquake.latitude, earthquake.longitude, eq.latitude, eq.longitude), unitSystem)} away
                   </div>
                 </div>
               </Popup>

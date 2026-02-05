@@ -7,6 +7,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Search, MapPin, X, Loader2, Target, Navigation } from 'lucide-react';
 import { formatDistance, formatDepth, formatDistanceBoth, kmToMiles } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
+import { getLocationContext } from '@/lib/regions';
 
 // Quick-zoom region presets for Bay Area
 const REGION_PRESETS = [
@@ -289,7 +290,7 @@ function LeafletMapInner({
                       </div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-700 mb-2">{eq.place}</div>
+                  <div className="text-sm text-gray-700 mb-2">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
                   <div className="text-xs text-gray-500 space-y-1">
                     <div>Depth: {formatDepth(eq.depth, unitSystem)}</div>
                     <div>Time: {format(eq.time, 'PPpp')}</div>
