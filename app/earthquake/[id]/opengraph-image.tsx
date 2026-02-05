@@ -1,16 +1,19 @@
 import { ImageResponse } from 'next/og';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
-import fs from 'fs';
-import path from 'path';
 
-export const runtime = 'nodejs';
+// Use edge runtime for faster cold starts (no filesystem access needed)
+export const runtime = 'edge';
 export const alt = 'Earthquake details';
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = 'image/png';
+
+// Cache OG images aggressively - earthquake data is immutable once recorded
+// This is the key optimization: social platforms cache based on these headers
+export const revalidate = 86400; // 24 hours - earthquake data doesn't change
 
 interface Earthquake {
   id: string;
@@ -27,11 +30,16 @@ interface Earthquake {
 }
 
 async function getEarthquake(id: string): Promise<Earthquake | null> {
-  // First try USGS API
+  // Single source of truth: USGS API with aggressive caching
+  // No fallback to local files - it's slow and rarely needed
+  // If USGS fails, we return a generic fallback image (fast failure)
   try {
     const response = await fetch(
       `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`,
-      { next: { revalidate: 300 } }
+      { 
+        next: { revalidate: 86400 }, // Cache for 24 hours - earthquake data is immutable
+        signal: AbortSignal.timeout(5000), // 5 second timeout to fail fast
+      }
     );
     
     if (response.ok) {
@@ -53,41 +61,7 @@ async function getEarthquake(id: string): Promise<Earthquake | null> {
       };
     }
   } catch {
-    // Continue to local search
-  }
-  
-  // Search local data
-  const dataDir = path.join(process.cwd(), 'data');
-  try {
-    const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-    
-    for (const file of files) {
-      const filePath = path.join(dataDir, file);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      
-      if (data.features) {
-        const feature = data.features.find((f: { id: string }) => f.id === id);
-        if (feature) {
-          const [longitude, latitude, depth] = feature.geometry.coordinates;
-          return {
-            id: feature.id,
-            magnitude: feature.properties.mag,
-            place: feature.properties.place,
-            time: new Date(feature.properties.time),
-            timestamp: feature.properties.time,
-            latitude,
-            longitude,
-            depth,
-            felt: feature.properties.felt,
-            significance: feature.properties.sig,
-            region: getRegionForCoordinates(latitude, longitude),
-          };
-        }
-      }
-    }
-  } catch {
-    // Return null
+    // Fail fast - return null and show generic fallback image
   }
   
   return null;

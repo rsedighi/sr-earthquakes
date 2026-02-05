@@ -31,6 +31,36 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // OpenGraph images - aggressive caching (earthquake data is immutable)
+        // These are fetched by social platform crawlers (Twitter, Facebook, iMessage)
+        // Caching here is critical for fast rich card previews when sharing
+        source: '/earthquake/:id/opengraph-image',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=604800',
+          },
+        ],
+      },
+      {
+        // Twitter images - same aggressive caching
+        source: '/earthquake/:id/twitter-image',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=604800',
+          },
+        ],
+      },
+      {
         // HTML pages - short cache, force revalidation
         // This prevents stale browser tabs from serving outdated content
         source: '/',
