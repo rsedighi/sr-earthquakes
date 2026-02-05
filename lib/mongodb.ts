@@ -760,6 +760,271 @@ export async function searchForumThreads(query: string, options?: {
   return threads.map(t => ({ ...t, _id: t._id!.toString() }));
 }
 
+// ============================================
+// iOS App Email Waitlist
+// ============================================
+
+export interface iOSWaitlistEntry {
+  _id?: ObjectId;
+  email: string;
+  source: 'website' | 'social' | 'referral' | 'other';
+  referralCode?: string;
+  createdAt: Date;
+  userAgent?: string;
+  ipHash?: string;
+  notified: boolean; // Whether they've been notified about app launch
+  unsubscribed: boolean;
+}
+
+export interface iOSWaitlistEntryWithId extends Omit<iOSWaitlistEntry, '_id'> {
+  _id: string;
+}
+
+export async function getIOSWaitlistCollection(): Promise<Collection<iOSWaitlistEntry> | null> {
+  const db = await getDatabase();
+  if (!db) return null;
+  return db.collection<iOSWaitlistEntry>('ios_waitlist');
+}
+
+// Add email to iOS waitlist
+export async function addToIOSWaitlist(data: {
+  email: string;
+  source?: 'website' | 'social' | 'referral' | 'other';
+  referralCode?: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<{ success: boolean; isNew: boolean; entry?: iOSWaitlistEntryWithId; error?: string }> {
+  const collection = await getIOSWaitlistCollection();
+  if (!collection) {
+    return { success: false, isNew: false, error: 'Database unavailable' };
+  }
+
+  // Check if email already exists
+  const existing = await collection.findOne({ email: data.email.toLowerCase() });
+  if (existing) {
+    return { 
+      success: true, 
+      isNew: false, 
+      entry: { ...existing, _id: existing._id!.toString() }
+    };
+  }
+
+  // Create new entry
+  const newEntry: iOSWaitlistEntry = {
+    email: data.email.toLowerCase(),
+    source: data.source || 'website',
+    referralCode: data.referralCode,
+    createdAt: new Date(),
+    userAgent: data.userAgent,
+    ipHash: data.ipHash,
+    notified: false,
+    unsubscribed: false,
+  };
+
+  const result = await collection.insertOne(newEntry);
+
+  return {
+    success: true,
+    isNew: true,
+    entry: { ...newEntry, _id: result.insertedId.toString() },
+  };
+}
+
+// Get iOS waitlist statistics
+export async function getIOSWaitlistStats(): Promise<{
+  totalSignups: number;
+  signupsToday: number;
+  signupsThisWeek: number;
+  signupsThisMonth: number;
+}> {
+  const collection = await getIOSWaitlistCollection();
+  if (!collection) {
+    return { totalSignups: 0, signupsToday: 0, signupsThisWeek: 0, signupsThisMonth: 0 };
+  }
+
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [totalSignups, signupsToday, signupsThisWeek, signupsThisMonth] = await Promise.all([
+    collection.countDocuments({ unsubscribed: false }),
+    collection.countDocuments({ createdAt: { $gte: oneDayAgo }, unsubscribed: false }),
+    collection.countDocuments({ createdAt: { $gte: oneWeekAgo }, unsubscribed: false }),
+    collection.countDocuments({ createdAt: { $gte: oneMonthAgo }, unsubscribed: false }),
+  ]);
+
+  return { totalSignups, signupsToday, signupsThisWeek, signupsThisMonth };
+}
+
+// Get all waitlist entries (for admin)
+export async function getIOSWaitlistEntries(options?: {
+  limit?: number;
+  skip?: number;
+  notifiedOnly?: boolean;
+}): Promise<{ entries: iOSWaitlistEntryWithId[]; total: number }> {
+  const collection = await getIOSWaitlistCollection();
+  if (!collection) return { entries: [], total: 0 };
+
+  const query: Record<string, unknown> = { unsubscribed: false };
+  if (options?.notifiedOnly !== undefined) {
+    query.notified = options.notifiedOnly;
+  }
+
+  const [entries, total] = await Promise.all([
+    collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(options?.skip || 0)
+      .limit(options?.limit || 100)
+      .toArray(),
+    collection.countDocuments(query),
+  ]);
+
+  return {
+    entries: entries.map(e => ({ ...e, _id: e._id!.toString() })),
+    total,
+  };
+}
+
+// ============================================
+// Blog Post Hero Images
+// ============================================
+
+export interface BlogImage {
+  _id?: ObjectId;
+  slug: string; // Blog post slug (unique identifier)
+  imageUrl: string; // Cloudinary CDN URL (or fallback base64)
+  cloudinaryPublicId?: string; // Cloudinary public ID for management
+  imageData?: string; // Legacy: Base64 image data (deprecated, use Cloudinary)
+  prompt: string; // The prompt used to generate
+  city: string;
+  timeOfDay: string;
+  weather: string;
+  season: string;
+  magnitude?: number;
+  category: string; // breaking, monthly-report, etc.
+  createdAt: Date;
+  updatedAt: Date;
+  generationTime?: number; // How long it took to generate (ms)
+}
+
+export interface BlogImageWithId extends Omit<BlogImage, '_id'> {
+  _id: string;
+}
+
+export async function getBlogImagesCollection(): Promise<Collection<BlogImage> | null> {
+  const db = await getDatabase();
+  if (!db) return null;
+  return db.collection<BlogImage>('blog_images');
+}
+
+// Get image for a blog post by slug
+export async function getBlogImage(slug: string): Promise<BlogImageWithId | null> {
+  const collection = await getBlogImagesCollection();
+  if (!collection) return null;
+  
+  const image = await collection.findOne({ slug });
+  if (!image) return null;
+  
+  return { ...image, _id: image._id!.toString() };
+}
+
+// Save a generated blog image
+export async function saveBlogImage(data: Omit<BlogImage, '_id' | 'createdAt' | 'updatedAt'>): Promise<BlogImageWithId | null> {
+  const collection = await getBlogImagesCollection();
+  if (!collection) return null;
+  
+  const now = new Date();
+  
+  // Check if image already exists for this slug
+  const existing = await collection.findOne({ slug: data.slug });
+  
+  if (existing) {
+    // Update existing
+    await collection.updateOne(
+      { slug: data.slug },
+      { 
+        $set: { 
+          ...data,
+          updatedAt: now 
+        } 
+      }
+    );
+    return { 
+      ...existing, 
+      ...data, 
+      _id: existing._id!.toString(), 
+      updatedAt: now 
+    };
+  }
+  
+  // Create new
+  const newImage: BlogImage = {
+    ...data,
+    createdAt: now,
+    updatedAt: now,
+  };
+  
+  const result = await collection.insertOne(newImage);
+  
+  return {
+    ...newImage,
+    _id: result.insertedId.toString(),
+  };
+}
+
+// Get multiple blog images by slugs
+export async function getBlogImagesBySlugs(slugs: string[]): Promise<Map<string, BlogImageWithId>> {
+  const collection = await getBlogImagesCollection();
+  if (!collection) return new Map();
+  
+  const images = await collection.find({ slug: { $in: slugs } }).toArray();
+  
+  const map = new Map<string, BlogImageWithId>();
+  for (const img of images) {
+    map.set(img.slug, { ...img, _id: img._id!.toString() });
+  }
+  
+  return map;
+}
+
+// Delete a blog image
+export async function deleteBlogImage(slug: string): Promise<boolean> {
+  const collection = await getBlogImagesCollection();
+  if (!collection) return false;
+  
+  const result = await collection.deleteOne({ slug });
+  return result.deletedCount > 0;
+}
+
+// Get blog image statistics
+export async function getBlogImageStats(): Promise<{
+  totalImages: number;
+  imagesThisWeek: number;
+  byCategory: Record<string, number>;
+}> {
+  const collection = await getBlogImagesCollection();
+  if (!collection) return { totalImages: 0, imagesThisWeek: 0, byCategory: {} };
+  
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  
+  const [totalImages, imagesThisWeek, categoryAgg] = await Promise.all([
+    collection.countDocuments({}),
+    collection.countDocuments({ createdAt: { $gte: oneWeekAgo } }),
+    collection.aggregate([
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]).toArray(),
+  ]);
+  
+  const byCategory: Record<string, number> = {};
+  for (const cat of categoryAgg) {
+    byCategory[cat._id] = cat.count;
+  }
+  
+  return { totalImages, imagesThisWeek, byCategory };
+}
+
 export default clientPromise;
 
 
