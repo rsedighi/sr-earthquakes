@@ -93,6 +93,7 @@ interface EarthquakeShareContentProps {
 
 export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentProps) {
   const [copied, setCopied] = useState(false);
+  const [ogImageReady, setOgImageReady] = useState(false);
   
   const region = getRegionById(earthquake.region);
   const magnitudeColor = getMagnitudeColor(earthquake.magnitude);
@@ -103,8 +104,33 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/earthquake/${earthquake.id}`
     : `/earthquake/${earthquake.id}`;
+  const ogImageUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/earthquake/${earthquake.id}/opengraph-image`
+    : `/earthquake/${earthquake.id}/opengraph-image`;
   const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
   const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
+  
+  // Prefetch the OG image on mount so it's cached before user clicks Share
+  // This ensures the rich preview loads instantly in Messages, Twitter, etc.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const img = new Image();
+    img.onload = () => setOgImageReady(true);
+    img.onerror = () => setOgImageReady(true); // Still mark ready even on error
+    img.src = ogImageUrl;
+    
+    // Also add a link prefetch hint to the document head
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.as = 'image';
+    link.href = ogImageUrl;
+    document.head.appendChild(link);
+    
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, [ogImageUrl]);
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
@@ -279,11 +305,21 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
                 setTimeout(() => setCopied(false), 2000);
               }
             }}
-            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group"
+            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group relative"
           >
             <Share2 className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
             <span className="text-lg font-bold text-white">Share This Earthquake</span>
-            <MessageSquare className="w-5 h-5 text-white/80" />
+            {ogImageReady ? (
+              <Check className="w-5 h-5 text-white/80" />
+            ) : (
+              <Loader2 className="w-5 h-5 text-white/80 animate-spin" />
+            )}
+            {/* Ready indicator badge */}
+            {ogImageReady && (
+              <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full shadow-lg">
+                Preview Ready
+              </span>
+            )}
           </button>
           
           <div className="flex items-center justify-between flex-wrap gap-4">
