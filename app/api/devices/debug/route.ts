@@ -57,10 +57,20 @@ export async function GET(request: NextRequest) {
         }
       );
 
-      // Determine endpoint
-      const host = process.env.APNS_USE_SANDBOX === 'true'
-        ? 'api.sandbox.push.apple.com'
-        : 'api.push.apple.com';
+      // Determine endpoint - allow override via query param for testing
+      const forceProduction = searchParams.get('env') === 'production';
+      const forceSandbox = searchParams.get('env') === 'sandbox';
+      
+      let host: string;
+      if (forceProduction) {
+        host = 'api.push.apple.com';
+      } else if (forceSandbox) {
+        host = 'api.sandbox.push.apple.com';
+      } else {
+        host = process.env.APNS_USE_SANDBOX === 'true'
+          ? 'api.sandbox.push.apple.com'
+          : 'api.push.apple.com';
+      }
 
       // Send test notification using HTTP/2 (required by APNs)
       const payload = {
