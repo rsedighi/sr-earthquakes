@@ -107,9 +107,36 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
   const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
   
-  // Reset state when earthquake changes - the img element handles cache warming
+  // Warm the OG image cache by fetching it when the page loads
+  // This triggers server-side generation and CDN caching
+  // When user clicks Share, the image is already cached = instant preview
+  // Re-visiting the page refreshes the cache (handles magnitude updates like 2.1 -> 2.5)
   useEffect(() => {
-    setOgImageReady(false);
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
+    const ogImageUrl = `${window.location.origin}/earthquake/${earthquake.id}/opengraph-image`;
+    
+    const warmOgImageCache = async () => {
+      console.log('[OG Cache] Warming cache for:', ogImageUrl);
+      try {
+        // Fetch the OG image to trigger server-side generation
+        // The server will cache it, so social platforms get it instantly
+        const response = await fetch(ogImageUrl, {
+          method: 'GET',
+          mode: 'no-cors', // Avoid CORS issues - we just want to trigger the request
+        });
+        
+        console.log('[OG Cache] Response received, marking ready');
+        setOgImageReady(true);
+      } catch (error) {
+        console.log('[OG Cache] Error (still marking ready):', error);
+        // Network error - still mark ready so user can share
+        setOgImageReady(true);
+      }
+    };
+    
+    warmOgImageCache();
   }, [earthquake.id]);
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
@@ -260,37 +287,6 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
         
         {/* Share This Earthquake - Prominent Section */}
         <div className="bg-gradient-to-r from-emerald-500/30 via-blue-500/30 to-purple-500/30 border-b border-white/10 p-5">
-          {/* Share Preview Thumbnail - Shows what the card will look like */}
-          <div className="mb-4 rounded-xl overflow-hidden border border-white/10 bg-black/20">
-            <div className="px-3 py-2 bg-white/5 border-b border-white/10 flex items-center gap-2">
-              <span className="text-xs text-neutral-400">Share Preview</span>
-              {ogImageReady ? (
-                <span className="flex items-center gap-1 text-[10px] text-green-400">
-                  <Check className="w-3 h-3" /> Cached
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-[10px] text-neutral-500">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Loading...
-                </span>
-              )}
-            </div>
-            {/* Actual OG image preview - uses relative URL to avoid SSR issues */}
-            <div className="relative aspect-[1200/630] bg-neutral-900">
-              <img
-                src={`/earthquake/${earthquake.id}/opengraph-image`}
-                alt="Share preview"
-                className={`w-full h-full object-cover transition-opacity duration-300 ${ogImageReady ? 'opacity-100' : 'opacity-0'}`}
-                onLoad={() => setOgImageReady(true)}
-                onError={() => setOgImageReady(true)}
-              />
-              {!ogImageReady && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-neutral-600" />
-                </div>
-              )}
-            </div>
-          </div>
-          
           {/* Main Share Button - Native Share */}
           <button
             onClick={async () => {
@@ -316,11 +312,21 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
                 setTimeout(() => setCopied(false), 2000);
               }
             }}
-            className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group"
+            className="w-full mb-4 py-4 px-6 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 group relative"
           >
             <Share2 className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
             <span className="text-lg font-bold text-white">Share This Earthquake</span>
-            <MessageSquare className="w-5 h-5 text-white/80" />
+            {ogImageReady ? (
+              <Check className="w-5 h-5 text-white/80" />
+            ) : (
+              <Loader2 className="w-5 h-5 text-white/80 animate-spin" />
+            )}
+            {/* Ready indicator badge */}
+            {ogImageReady && (
+              <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full shadow-lg">
+                Preview Ready
+              </span>
+            )}
           </button>
           
           <div className="flex items-center justify-between flex-wrap gap-4">
