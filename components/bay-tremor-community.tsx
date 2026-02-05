@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { getMagnitudeColor } from '@/lib/analysis';
 import type { ForumThreadWithId, ForumPostWithId, ForumCategory } from '@/lib/mongodb';
+import { FeedbackModal } from './feedback-modal';
 
 // Sort options
 type SortOption = 'hot' | 'new' | 'top';
@@ -73,6 +74,7 @@ export function BayTremorCommunity() {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [dismissedNewPostsBanner, setDismissedNewPostsBanner] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Load posts
   const loadPosts = useCallback(async () => {
@@ -374,6 +376,23 @@ export function BayTremorCommunity() {
               </div>
             </div>
 
+            {/* Feedback Card */}
+            <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-lg border border-violet-500/20 p-4">
+              <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-violet-400" />
+                Send Feedback
+              </h3>
+              <p className="text-sm text-neutral-400 mb-3">
+                Help us improve Bay Tremor with your ideas and suggestions.
+              </p>
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Share Feedback
+              </button>
+            </div>
+
             {/* Footer */}
             <div className="text-xs text-neutral-600 px-2">
               <div className="flex flex-wrap gap-x-2 gap-y-1">
@@ -391,10 +410,61 @@ export function BayTremorCommunity() {
         </div>
       </div>
 
+      {/* Footer - Full Width */}
+      <footer className="border-t border-white/5 mt-8">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          {/* Feedback Call-to-Action */}
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 hover:border-violet-500/30 transition-colors">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-6 h-6 text-violet-400" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <h4 className="font-semibold text-white">Help Us Improve Bay Tremor</h4>
+                  <p className="text-sm text-neutral-400">Share feedback, ideas, report bugs, or inquire about advertising</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-medium rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+              >
+                Send Feedback
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Links & Copyright */}
+          <div className="text-center pt-6 border-t border-white/5">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-neutral-500 mb-4">
+              <Link href="/about" className="hover:text-white transition-colors">About</Link>
+              <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
+              <Link href="/" className="hover:text-white transition-colors">Live Map</Link>
+              <Link href="/learn" className="hover:text-white transition-colors">Learn</Link>
+              <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">
+                USGS <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <p className="text-xs text-neutral-600">
+              Data from USGS Earthquake Hazards Program. For emergencies, dial 911.
+            </p>
+            <p className="text-xs text-neutral-700 mt-2">
+              © {new Date().getFullYear()} Bay Tremor. Built for the Bay Area community.
+            </p>
+          </div>
+        </div>
+      </footer>
+
       {/* Create Post Modal */}
       {showCreatePost && (
         <CreatePostModal onClose={() => setShowCreatePost(false)} onSuccess={loadPosts} />
       )}
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+      />
     </div>
   );
 }
@@ -1076,6 +1146,7 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
   const [posts, setPosts] = useState<ForumPostWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Reply form state
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -1367,7 +1438,44 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
             <p className="text-neutral-600 text-sm mt-1">Be the first to share your thoughts!</p>
           </div>
         )}
+
+        {/* Footer with Feedback CTA */}
+        <footer className="mt-12 pt-8 border-t border-white/5">
+          <div className="p-5 rounded-xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 hover:border-violet-500/30 transition-colors">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-5 h-5 text-violet-400" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <h4 className="font-medium text-white text-sm">Help Us Improve Bay Tremor</h4>
+                  <p className="text-xs text-neutral-400">Share feedback, ideas, or report bugs</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-purple-500/20 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+              >
+                Send Feedback
+              </button>
+            </div>
+          </div>
+          <div className="mt-6 text-center">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-neutral-500 mb-3">
+              <Link href="/about" className="hover:text-white transition-colors">About</Link>
+              <Link href="/community" className="hover:text-white transition-colors">Community</Link>
+              <Link href="/" className="hover:text-white transition-colors">Live Map</Link>
+            </div>
+            <p className="text-xs text-neutral-700">© {new Date().getFullYear()} Bay Tremor</p>
+          </div>
+        </footer>
       </div>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+      />
     </div>
   );
 }

@@ -140,6 +140,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
+        {/* DNS Prefetch for external resources - faster first load */}
+        <link rel="dns-prefetch" href="https://m.media-amazon.com" />
+        <link rel="preconnect" href="https://m.media-amazon.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images-na.ssl-images-amazon.com" />
+        <link rel="preconnect" href="https://images-na.ssl-images-amazon.com" crossOrigin="anonymous" />
+        
         {/* Impact.com Site Verification */}
         <meta name="impact-site-verification" content="f0b61dfc-b575-4c4c-ab15-c6c6df6d9cff" />
       </head>
@@ -175,6 +181,19 @@ export default function RootLayout({
         </Script>
         
         <DatadogRUM />
+        
+        {/* Hidden form for Netlify Forms detection (required for SSR/Next.js) */}
+        <form name="feedback" netlify-honeypot="bot-field" data-netlify="true" hidden>
+          <input type="hidden" name="form-name" value="feedback" />
+          <input name="bot-field" />
+          <input name="feedback-type" />
+          <input name="name" />
+          <input name="email" />
+          <textarea name="message" />
+          <input name="page" />
+          <input name="timestamp" />
+        </form>
+        
         {children}
       </body>
     </html>

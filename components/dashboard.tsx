@@ -75,6 +75,7 @@ import { QuickReportButton } from './community-hub';
 import { AffiliateRecommendations, AffiliateShowcase } from './affiliate-recommendations';
 import { NavBar } from './dashboard/components/nav-bar';
 import { QuickReportModal } from './quick-report-modal';
+import { FeedbackModal } from './feedback-modal';
 
 // Dynamically import Leaflet map to avoid SSR issues
 const LeafletMap = dynamic(
@@ -748,6 +749,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   const [detailEarthquake, setDetailEarthquake] = useState<Earthquake | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
   const [showQuickReport, setShowQuickReport] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [magnitudeFilter, setMagnitudeFilter] = useState<MagnitudeFilter>('all');
@@ -1922,6 +1924,27 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
             </div>
           </div>
           
+          {/* Feedback Call-to-Action */}
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 hover:border-violet-500/30 transition-colors">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="w-6 h-6 text-violet-400" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <h4 className="font-semibold text-white">Help Us Improve Bay Tremor</h4>
+                  <p className="text-sm text-neutral-400">Share feedback, ideas, report bugs, or inquire about advertising</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFeedbackModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-medium rounded-xl shadow-lg shadow-purple-500/20 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+              >
+                Send Feedback
+              </button>
+            </div>
+          </div>
+          
           <div className="text-center pt-8 border-t border-white/5">
             <p className="text-sm text-neutral-500">
               Data from{' '}
@@ -1995,6 +2018,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
         onClose={() => setShowQuickReport(false)}
         earthquakes={realtimeQuakes}
         userLocation={myCity ? { lat: myCity.lat, lon: myCity.lon } : null}
+      />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
       />
 
       {/* Earthquake Detail Modal */}
