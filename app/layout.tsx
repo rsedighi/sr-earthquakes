@@ -181,19 +181,6 @@ export default function RootLayout({
         </Script>
         
         <DatadogRUM />
-        
-        {/* Hidden form for Netlify Forms detection (required for SSR/Next.js) */}
-        <form name="feedback" netlify-honeypot="bot-field" data-netlify="true" hidden>
-          <input type="hidden" name="form-name" value="feedback" />
-          <input name="bot-field" />
-          <input name="feedback-type" />
-          <input name="name" />
-          <input name="email" />
-          <textarea name="message" />
-          <input name="page" />
-          <input name="timestamp" />
-        </form>
-        
         {children}
       </body>
     </html>
