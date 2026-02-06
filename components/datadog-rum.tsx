@@ -12,6 +12,7 @@ import { datadogRum } from '@datadog/browser-rum';
  * - JavaScript errors and crashes
  * - Performance metrics (Core Web Vitals)
  * - API call tracking
+ * - Feature flag evaluations
  * 
  * Required environment variables in Netlify:
  * - NEXT_PUBLIC_DD_APPLICATION_ID: Your Datadog RUM Application ID
@@ -55,6 +56,8 @@ export function DatadogRUM() {
       trackResources: true,
       trackLongTasks: true,
       defaultPrivacyLevel: 'mask-user-input',
+      // Enable feature flag tracking
+      enableExperimentalFeatures: ['feature_flags'],
       allowedTracingUrls: [
         { match: /https:\/\/.*\.baytremor\.com/, propagatorTypes: ['tracecontext', 'datadog'] },
         { match: /https:\/\/.*\.netlify\.app/, propagatorTypes: ['tracecontext', 'datadog'] },
@@ -100,6 +103,23 @@ export function setUser(user: { id?: string; name?: string; email?: string }) {
  */
 export function trackView(name: string) {
   datadogRum.startView({ name });
+}
+
+/**
+ * Track a feature flag evaluation in Datadog RUM
+ * This enables feature flag tracking in the Datadog UI
+ */
+export function trackFeatureFlag(flagKey: string, value: boolean | string) {
+  datadogRum.addFeatureFlagEvaluation(flagKey, value);
+}
+
+/**
+ * Track multiple feature flags at once
+ */
+export function trackFeatureFlags(flags: Record<string, boolean | string>) {
+  Object.entries(flags).forEach(([key, value]) => {
+    datadogRum.addFeatureFlagEvaluation(key, value);
+  });
 }
 
 export default DatadogRUM;

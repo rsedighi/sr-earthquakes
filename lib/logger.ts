@@ -34,7 +34,7 @@ interface LogContext {
   errorType?: string;
   
   // External service context
-  service?: 'usgs' | 'mongodb' | 'openai' | 'pusher';
+  service?: 'usgs' | 'mongodb' | 'openai' | 'pusher' | 'feature-flags';
   
   // Custom attributes
   [key: string]: unknown;
