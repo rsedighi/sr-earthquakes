@@ -120,33 +120,32 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     setIsSubmitting(true);
 
     try {
-      // Submit to Netlify Forms
-      const formData = new URLSearchParams();
-      formData.append('form-name', 'feedback');
-      formData.append('feedback-type', feedbackType);
-      formData.append('name', name.trim() || 'Anonymous');
-      formData.append('email', email.trim() || 'Not provided');
-      formData.append('message', message.trim());
-      formData.append('page', typeof window !== 'undefined' ? window.location.pathname : '/');
-      formData.append('timestamp', new Date().toISOString());
+      // Submit to MongoDB via API
+      const payload = {
+        type: feedbackType,
+        name: name.trim() || 'Anonymous',
+        email: email.trim() || 'Not provided',
+        message: message.trim(),
+        page: typeof window !== 'undefined' ? window.location.pathname : '/',
+      };
 
-      console.log('[Feedback Form] Submitting:', Object.fromEntries(formData));
+      console.log('[Feedback Form] Submitting to API:', payload);
 
-      const response = await fetch('/', {
+      const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      console.log('[Feedback Form] Response status:', response.status);
+      const data = await response.json();
+      console.log('[Feedback Form] Response:', response.status, data);
       
       if (response.ok) {
         console.log('[Feedback Form] Success!');
         setStep('success');
       } else {
-        const text = await response.text();
-        console.error('[Feedback Form] Error response:', response.status, text);
-        // Still show success - Netlify may have captured it
+        console.error('[Feedback Form] Error response:', response.status, data);
+        // Still show success for better UX - don't discourage users from trying again
         setStep('success');
       }
     } catch (err) {
@@ -261,10 +260,6 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
             {/* Step 2: Form */}
             {step === 'form' && selectedType && (
               <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                {/* Hidden inputs for Netlify Forms */}
-                <input type="hidden" name="form-name" value="feedback" />
-                <input type="hidden" name="feedback-type" value={feedbackType || ''} />
-
                 {/* Name field */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-300 mb-2">

@@ -1025,6 +1025,168 @@ export async function getBlogImageStats(): Promise<{
   return { totalImages, imagesThisWeek, byCategory };
 }
 
+// ============================================
+// User Feedback
+// ============================================
+
+export type FeedbackType = 'feedback' | 'improvement' | 'bug' | 'feature' | 'advertising';
+
+export interface Feedback {
+  _id?: ObjectId;
+  type: FeedbackType;
+  name: string;
+  email: string;
+  message: string;
+  page: string; // Which page the feedback was submitted from
+  createdAt: Date;
+  userAgent?: string;
+  ipHash?: string;
+  status: 'new' | 'reviewed' | 'resolved' | 'archived';
+  notes?: string; // Admin notes
+}
+
+export interface FeedbackWithId extends Omit<Feedback, '_id'> {
+  _id: string;
+}
+
+export async function getFeedbackCollection(): Promise<Collection<Feedback> | null> {
+  const db = await getDatabase();
+  if (!db) return null;
+  return db.collection<Feedback>('feedback');
+}
+
+// Create a new feedback entry
+export async function createFeedback(data: {
+  type: FeedbackType;
+  name: string;
+  email: string;
+  message: string;
+  page: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<FeedbackWithId | null> {
+  const collection = await getFeedbackCollection();
+  if (!collection) return null;
+
+  const newFeedback: Feedback = {
+    type: data.type,
+    name: data.name,
+    email: data.email,
+    message: data.message,
+    page: data.page,
+    createdAt: new Date(),
+    userAgent: data.userAgent,
+    ipHash: data.ipHash,
+    status: 'new',
+  };
+
+  const result = await collection.insertOne(newFeedback);
+
+  return {
+    ...newFeedback,
+    _id: result.insertedId.toString(),
+  };
+}
+
+// Get all feedback entries (for admin)
+export async function getAllFeedback(options?: {
+  limit?: number;
+  skip?: number;
+  status?: Feedback['status'];
+  type?: FeedbackType;
+}): Promise<{ feedback: FeedbackWithId[]; total: number }> {
+  const collection = await getFeedbackCollection();
+  if (!collection) return { feedback: [], total: 0 };
+
+  const query: Record<string, unknown> = {};
+  if (options?.status) query.status = options.status;
+  if (options?.type) query.type = options.type;
+
+  const [feedback, total] = await Promise.all([
+    collection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(options?.skip || 0)
+      .limit(options?.limit || 50)
+      .toArray(),
+    collection.countDocuments(query),
+  ]);
+
+  return {
+    feedback: feedback.map(f => ({ ...f, _id: f._id!.toString() })),
+    total,
+  };
+}
+
+// Get feedback statistics
+export async function getFeedbackStats(): Promise<{
+  total: number;
+  newCount: number;
+  byType: Record<FeedbackType, number>;
+  last24h: number;
+  lastWeek: number;
+}> {
+  const collection = await getFeedbackCollection();
+  if (!collection) {
+    return { 
+      total: 0, 
+      newCount: 0, 
+      byType: { feedback: 0, improvement: 0, bug: 0, feature: 0, advertising: 0 },
+      last24h: 0,
+      lastWeek: 0,
+    };
+  }
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [total, newCount, last24h, lastWeek, typeAgg] = await Promise.all([
+    collection.countDocuments({}),
+    collection.countDocuments({ status: 'new' }),
+    collection.countDocuments({ createdAt: { $gte: oneDayAgo } }),
+    collection.countDocuments({ createdAt: { $gte: oneWeekAgo } }),
+    collection.aggregate([
+      { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray(),
+  ]);
+
+  const byType: Record<FeedbackType, number> = { 
+    feedback: 0, 
+    improvement: 0, 
+    bug: 0, 
+    feature: 0, 
+    advertising: 0 
+  };
+  
+  for (const item of typeAgg) {
+    if (item._id in byType) {
+      byType[item._id as FeedbackType] = item.count;
+    }
+  }
+
+  return { total, newCount, byType, last24h, lastWeek };
+}
+
+// Update feedback status (for admin)
+export async function updateFeedbackStatus(
+  feedbackId: string, 
+  status: Feedback['status'],
+  notes?: string
+): Promise<boolean> {
+  const collection = await getFeedbackCollection();
+  if (!collection) return false;
+
+  const updateData: Record<string, unknown> = { status };
+  if (notes !== undefined) updateData.notes = notes;
+
+  const result = await collection.updateOne(
+    { _id: new ObjectId(feedbackId) },
+    { $set: updateData }
+  );
+
+  return result.modifiedCount > 0;
+}
+
 export default clientPromise;
 
 
