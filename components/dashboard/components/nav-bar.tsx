@@ -18,6 +18,8 @@ import {
   Zap,
   Shield,
   Layers,
+  Menu,
+  X,
 } from 'lucide-react';
 import { UnitToggle } from '@/components/unit-toggle';
 
@@ -69,6 +71,7 @@ interface NavBarProps {
 export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
   const [regionsOpen, setRegionsOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (href: string) => {
     if (href === '/') return currentPath === '/';
@@ -77,7 +80,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
 
   return (
     <>
-      {/* Desktop Navigation - hidden on mobile, Dashboard has its own mobile bottom nav */}
+      {/* Desktop Navigation */}
       <nav className="hidden md:block border-t border-white/5 bg-neutral-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-12">
@@ -234,6 +237,175 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-neutral-950/95 to-neutral-900/90 backdrop-blur-xl border-t border-white/20 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-around px-2 py-1 pb-safe safe-area-bottom">
+          {PRIMARY_NAV.map(item => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all ${
+                  active 
+                    ? 'text-white bg-white/10 backdrop-blur-sm shadow-lg' 
+                    : 'text-neutral-500 hover:text-neutral-300 active:scale-95'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-colors ${active ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : ''}`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+          
+          {/* More Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all text-neutral-500 hover:text-neutral-300 active:scale-95"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile More Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[60]">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="absolute bottom-0 left-0 right-0 bg-neutral-900 rounded-t-3xl border-t border-white/10 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-white/20 rounded-full" />
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {/* Menu Content */}
+            <div className="px-4 pb-8 pt-2">
+              {/* Secondary Navigation */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3 px-2">Explore</h3>
+                <div className="space-y-1">
+                  {SECONDARY_NAV.map(item => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                          active 
+                            ? 'bg-white/10 text-white' 
+                            : 'text-neutral-400 hover:bg-white/5 active:bg-white/10'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : ''}`} />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Safety & Guides */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3 px-2">Safety & Guides</h3>
+                <div className="space-y-1">
+                  {SAFETY_GUIDES.map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-neutral-400 hover:bg-white/5 active:bg-white/10 transition-all"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-white">{item.label}</div>
+                          <div className="text-xs text-neutral-500">{item.description}</div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Regions */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3 px-2">Regions</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {REGIONS.slice(0, 6).map(region => (
+                    <Link
+                      key={region.id}
+                      href={`/region/${region.id}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-neutral-400 hover:bg-white/5 active:bg-white/10 transition-all"
+                    >
+                      <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-white">
+                        {region.areaCode}
+                      </span>
+                      <span className="text-sm truncate">{region.name.split(' / ')[0]}</span>
+                    </Link>
+                  ))}
+                </div>
+                <Link
+                  href="/region/san-francisco"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 mt-3 px-4 py-2.5 rounded-xl text-blue-400 hover:bg-white/5 transition-all text-sm font-medium"
+                >
+                  <Globe className="w-4 h-4" />
+                  View All Regions
+                </Link>
+              </div>
+              
+              {/* About & FAQ */}
+              <div className="flex gap-2 mb-6">
+                <Link
+                  href="/about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-neutral-300 hover:bg-white/10 transition-all"
+                >
+                  <FileText className="w-4 h-4" />
+                  About
+                </Link>
+                <Link
+                  href="/faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-neutral-300 hover:bg-white/10 transition-all"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  FAQ
+                </Link>
+              </div>
+              
+              {/* Unit Toggle */}
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5">
+                <span className="text-sm text-neutral-400">Distance Unit</span>
+                <UnitToggle size="sm" showLabel={true} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
