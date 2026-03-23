@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { connection } from 'next/server';
 import { logger } from '@/lib/logger';
 import { 
   evaluateFeatureFlags, 
   getAllFeatureFlags,
   type FeatureFlagContext 
 } from '@/lib/datadog-feature-flags';
-
-export const dynamic = 'force-dynamic';
 
 /**
  * Feature Flags API Endpoint
@@ -33,6 +32,7 @@ export const dynamic = 'force-dynamic';
  * }
  */
 export async function GET(request: NextRequest) {
+  await connection();
   const startTime = Date.now();
   
   try {

@@ -49,9 +49,9 @@ Some pages needed a cached wrapper function around their data loading:
 
 ### 5. Dynamic API Routes
 
-API routes that rely on request-specific data (`nextUrl.searchParams`) cannot be prerendered under `dynamicIO`. These are marked as explicitly dynamic:
+API routes that rely on request-specific data (`nextUrl.searchParams`) cannot be prerendered under `dynamicIO`. Route segment configs like `dynamic` are incompatible with `cacheComponents`, so we use `await connection()` instead to signal dynamic rendering:
 
-- **`app/api/feature-flags/route.ts`** — Added `export const dynamic = 'force-dynamic'` (uses `searchParams` for flag evaluation context)
+- **`app/api/feature-flags/route.ts`** — Added `await connection()` before accessing `searchParams` (opts out of prerendering at runtime)
 
 ### 6. Removed Incompatible Route Segment Configs
 
