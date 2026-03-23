@@ -145,6 +145,9 @@ async function getCachedBlogPosts() {
 }
 
 export default async function BlogPage() {
+  'use cache';
+  cacheLife('hours');
+
   const allPosts = await getCachedBlogPosts();
   
   // Separate featured and regular posts

@@ -6,6 +6,8 @@ import {
   type FeatureFlagContext 
 } from '@/lib/datadog-feature-flags';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Feature Flags API Endpoint
  * 

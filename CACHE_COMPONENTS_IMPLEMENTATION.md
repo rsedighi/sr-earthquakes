@@ -28,6 +28,7 @@ Pages that use time-sensitive filtering (e.g., `Date.now()` for "last 7 days") n
 
 | Page | Cache Duration | Why |
 |---|---|---|
+| `app/blog/page.tsx` | `cacheLife('hours')` | MongoDB `getBlogImagesBySlugs` uses `new Date()` internally |
 | `app/today/page.tsx` | `cacheLife('minutes')` | Filters by last 7 days using `Date.now()` |
 | `app/city/[slug]/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` for recency filtering |
 | `app/region/[id]/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` for recency filtering |
@@ -46,7 +47,13 @@ Some pages needed a cached wrapper function around their data loading:
 - **`app/today/page.tsx`** — `getRecentEarthquakes()` with `cacheLife('minutes')`
 - **`app/earthquake/[id]/page.tsx`** — `getEarthquake(id)` with `cacheLife('minutes')`
 
-### 5. Removed Incompatible Route Segment Configs
+### 5. Dynamic API Routes
+
+API routes that rely on request-specific data (`nextUrl.searchParams`) cannot be prerendered under `dynamicIO`. These are marked as explicitly dynamic:
+
+- **`app/api/feature-flags/route.ts`** — Added `export const dynamic = 'force-dynamic'` (uses `searchParams` for flag evaluation context)
+
+### 6. Removed Incompatible Route Segment Configs
 
 `cacheComponents` is incompatible with `export const revalidate` and `export const runtime`. All instances were removed:
 
@@ -61,7 +68,7 @@ Some pages needed a cached wrapper function around their data loading:
 - `app/api/earthquake/[id]/share-image/route.tsx`
 - `app/opengraph-image.tsx`
 
-### 6. Dynamic Date Handling for Static Pages
+### 7. Dynamic Date Handling for Static Pages
 
 Pages that were otherwise fully static but used `new Date()` for trivial purposes (like a copyright year) needed special treatment under `dynamicIO`:
 
