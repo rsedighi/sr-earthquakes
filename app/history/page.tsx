@@ -14,15 +14,13 @@ export const metadata: Metadata = {
 };
 
 export default async function HistoryPage() {
-  const summary = generateHistoricalSummary();
-  
+  const summary = await generateHistoricalSummary();
+
   return (
     <Suspense fallback={<DashboardLoading />}>
       <Dashboard historicalSummary={summary} initialTab="history" />
     </Suspense>
   );
 }
-
-export const revalidate = 3600;
 
 

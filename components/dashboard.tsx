@@ -933,7 +933,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
     isRefreshing 
   } = useRealtimeEarthquakes({
     feed: 'all_week',
-    refreshInterval: 10000, // 10 seconds for near-real-time updates
+    refreshInterval: 30000,
   });
   
   // Detect new earthquakes and show toast

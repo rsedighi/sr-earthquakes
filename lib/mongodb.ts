@@ -33,17 +33,25 @@ if (!uri) {
 let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient> | null = null;
 
+/** Tuned for serverless (e.g. Netlify): small pool, bounded selection time, idle cleanup. */
+const MONGO_CLIENT_OPTIONS = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 10_000,
+  socketTimeoutMS: 45_000,
+  maxIdleTimeMS: 55_000,
+} as const;
+
 if (uri) {
   if (process.env.NODE_ENV === 'development') {
     // In development mode, use a global variable so the client is not recreated on every HMR
     if (!global._mongoClientPromise) {
-      client = new MongoClient(uri);
+      client = new MongoClient(uri, MONGO_CLIENT_OPTIONS);
       global._mongoClientPromise = client.connect();
     }
     clientPromise = global._mongoClientPromise;
   } else {
     // In production mode, create a new client for each instance
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, MONGO_CLIENT_OPTIONS);
     clientPromise = client.connect();
   }
 }

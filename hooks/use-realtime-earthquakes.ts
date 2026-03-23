@@ -54,7 +54,7 @@ function convertFeature(feature: USGSFeature): Earthquake {
 
 export function useRealtimeEarthquakes({
   feed = 'all_day',
-  refreshInterval = 10000, // 10 seconds for near-real-time updates
+  refreshInterval = 30000, // 30s — server caches upstream for 30s anyway
   enabled = true,
 }: UseRealtimeEarthquakesOptions = {}): UseRealtimeEarthquakesResult {
   const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
@@ -72,25 +72,17 @@ export function useRealtimeEarthquakes({
     setError(null);
 
     try {
-      // Add cache-busting for real-time data with timestamp
-      const timestamp = Date.now();
-      const response = await fetch(`/api/earthquakes?feed=${feed}&_=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      
+      const response = await fetch(`/api/earthquakes?feed=${feed}`);
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       const converted = data.features.map(convertFeature);
       converted.sort((a: Earthquake, b: Earthquake) => b.timestamp - a.timestamp);
-      
+
       setEarthquakes(converted);
       setLastUpdated(new Date());
     } catch (err) {
@@ -112,15 +104,39 @@ export function useRealtimeEarthquakes({
     }
   }, [enabled, fetchData]);
 
-  // Auto-refresh
+  // Auto-refresh — pause when tab is hidden to avoid wasted requests
   useEffect(() => {
     if (!enabled || refreshInterval <= 0) return;
 
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, refreshInterval);
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    return () => clearInterval(interval);
+    const start = () => {
+      if (!intervalId) {
+        intervalId = setInterval(() => fetchData(true), refreshInterval);
+      }
+    };
+    const stop = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        fetchData(true);
+        start();
+      }
+    };
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [enabled, refreshInterval, fetchData]);
 
   return {

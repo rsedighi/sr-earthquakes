@@ -3,14 +3,19 @@ import { getCommentsByEarthquakeId, createComment, getCommentCountsForEarthquake
 import { getPusherServer, getEarthquakeChannel, PUSHER_EVENTS } from '@/lib/pusher';
 import { logger, logExternalCall } from '@/lib/logger';
 
-// Check MongoDB connection status
+// Check MongoDB connection status (one short retry softens cold-start / transient blips)
 async function checkMongoStatus(): Promise<boolean> {
-  try {
-    const db = await getDatabase();
-    return db !== null;
-  } catch {
-    return false;
-  }
+  const attempt = async (): Promise<boolean> => {
+    try {
+      const db = await getDatabase();
+      return db !== null;
+    } catch {
+      return false;
+    }
+  };
+  if (await attempt()) return true;
+  await new Promise((r) => setTimeout(r, 400));
+  return attempt();
 }
 
 // Check Pusher connection status
@@ -31,16 +36,22 @@ export async function GET(request: NextRequest) {
   if (checkStatus === 'true') {
     const mongoConnected = await checkMongoStatus();
     const pusherConnected = checkPusherStatus();
-    
-    logger.info('Service health check', {
+    const duration = Date.now() - startTime;
+    const baseContext = {
       path: '/api/comments',
       method: 'GET',
       statusCode: 200,
-      duration: Date.now() - startTime,
+      duration,
       mongodbConnected: mongoConnected,
       pusherConnected: pusherConnected,
-    });
-    
+    };
+    // Avoid log volume on every probe (can trip log-based monitors); surface issues at warn.
+    if (!mongoConnected || !pusherConnected) {
+      logger.warn('Service health check degraded', baseContext);
+    } else {
+      logger.debug('Service health check', baseContext);
+    }
+
     return NextResponse.json({
       status: 'ok',
       services: {

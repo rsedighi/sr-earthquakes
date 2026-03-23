@@ -4,6 +4,7 @@
 import 'server-only';
 import fs from 'fs';
 import path from 'path';
+import { unstable_cache } from 'next/cache';
 import { Earthquake, SwarmEvent } from './types';
 import { getRegionForCoordinates, REGIONS } from './regions';
 import { detectSwarms } from './analysis';
@@ -120,8 +121,8 @@ export interface HistoricalSummary {
   avgWeeklyRate: number; // Average weekly earthquakes in San Ramon area
 }
 
-// Generate lightweight summary for client-side rendering
-export function generateHistoricalSummary(): HistoricalSummary {
+// Inner implementation — heavy; called through the cached wrapper below.
+function computeHistoricalSummary(): HistoricalSummary {
   const earthquakes = loadAllEarthquakes();
   
   if (earthquakes.length === 0) {
@@ -217,6 +218,14 @@ export function generateHistoricalSummary(): HistoricalSummary {
     avgWeeklyRate,
   };
 }
+
+// Framework-level cache: shared across pages/requests, revalidated hourly.
+// Replaces per-page `export const revalidate = 3600` with a single cached function.
+export const generateHistoricalSummary = unstable_cache(
+  async () => computeHistoricalSummary(),
+  ['historical-summary'],
+  { revalidate: 3600 }
+);
 
 // Get paginated earthquakes for a region (for API routes)
 export function getEarthquakesPage(options: {

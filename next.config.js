@@ -62,7 +62,17 @@ const nextConfig = {
         ],
       },
       {
-        // API routes - no caching
+        // Live earthquake API — allow short-lived CDN + browser cache
+        source: '/api/earthquakes',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=15, stale-while-revalidate=30',
+          },
+        ],
+      },
+      {
+        // Other API routes - no caching
         source: '/api/:path*',
         headers: [
           {
