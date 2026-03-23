@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Calendar, TrendingUp, AlertTriangle, ChevronRight, BarChart3 } from 'lucide-react';
@@ -136,6 +137,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CityYearPage({ params }: PageProps) {
+  'use cache';
+  cacheLife('days');
+
   const resolvedParams = await params;
   const parsed = parseSlug(resolvedParams.cityYear);
   
@@ -161,7 +165,7 @@ export default async function CityYearPage({ params }: PageProps) {
   });
   
   // Load earthquakes
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const yearStart = new Date(year, 0, 1).getTime();
   const yearEnd = new Date(year + 1, 0, 1).getTime();
   
@@ -249,7 +253,7 @@ export default async function CityYearPage({ params }: PageProps) {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -562,6 +566,3 @@ export default async function CityYearPage({ params }: PageProps) {
     </div>
   );
 }
-
-// Revalidate daily
-export const revalidate = 86400;

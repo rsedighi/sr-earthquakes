@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Activity, TrendingUp, AlertTriangle, ChevronDown, Shield, HelpCircle } from 'lucide-react';
@@ -66,6 +67,9 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export default async function CityPage({ params }: CityPageProps) {
+  'use cache';
+  cacheLife('hours');
+
   const { slug } = await params;
   const cityData = getCityData(slug);
   
@@ -76,7 +80,7 @@ export default async function CityPage({ params }: CityPageProps) {
   const { city, region } = cityData;
   
   // Load earthquakes near this city (within 25 miles)
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const nearbyEarthquakes = allEarthquakes.filter(eq => {
     const distance = haversineDistance(city.lat, city.lon, eq.latitude, eq.longitude);
     return distance <= 25;
@@ -134,7 +138,7 @@ export default async function CityPage({ params }: CityPageProps) {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -412,10 +416,4 @@ export default async function CityPage({ params }: CityPageProps) {
     </div>
   );
 }
-
-export const revalidate = 3600;
-
-
-
-
 

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { cacheLife } from 'next/cache';
 import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, TrendingUp, Radio } from 'lucide-react';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
@@ -70,10 +71,10 @@ function formatTimeAgo(timestamp: number): string {
 }
 
 // Get day label
-function getDayLabel(timestamp: number): string {
+function getDayLabel(timestamp: number, nowMs: number): string {
   const date = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date(today);
+  const today = new Date(nowMs);
+  const yesterday = new Date(nowMs);
   yesterday.setDate(yesterday.getDate() - 1);
   
   if (date.toDateString() === today.toDateString()) return 'Today';
@@ -81,20 +82,28 @@ function getDayLabel(timestamp: number): string {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
+async function getRecentEarthquakes() {
+  'use cache';
+  cacheLife('minutes');
+
+  const allEarthquakes = await loadAllEarthquakes();
+  const now = Date.now();
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  return allEarthquakes.filter(eq => eq.timestamp > sevenDaysAgo);
+}
+
 export default async function TodayPage() {
-  const allEarthquakes = loadAllEarthquakes();
+  'use cache';
+  cacheLife('minutes');
+
+  const recentEarthquakes = await getRecentEarthquakes();
   const now = Date.now();
   
-  // Filter earthquakes from the last 7 days
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-  const recentEarthquakes = allEarthquakes.filter(eq => eq.timestamp > sevenDaysAgo);
-  
-  // Categorize by time
   const last24Hours = recentEarthquakes.filter(eq => eq.timestamp > now - 24 * 60 * 60 * 1000);
   const lastHour = last24Hours.filter(eq => eq.timestamp > now - 60 * 60 * 1000);
   const todayQuakes = last24Hours.filter(eq => {
     const eqDate = new Date(eq.timestamp).toDateString();
-    return eqDate === new Date().toDateString();
+    return eqDate === new Date(now).toDateString();
   });
   
   // Find the most recent earthquake
@@ -111,7 +120,7 @@ export default async function TodayPage() {
   
   // Group earthquakes by day for display
   const earthquakesByDay = recentEarthquakes.reduce((acc, eq) => {
-    const dayKey = getDayLabel(eq.timestamp);
+    const dayKey = getDayLabel(eq.timestamp, now);
     if (!acc[dayKey]) acc[dayKey] = [];
     acc[dayKey].push(eq);
     return acc;
@@ -145,7 +154,9 @@ export default async function TodayPage() {
     name: 'Bay Area Earthquakes Today',
     description: 'Real-time earthquake updates for the San Francisco Bay Area',
     url: `${baseUrl}/today`,
-    dateModified: new Date().toISOString(),
+    dateModified: mostRecent
+      ? new Date(mostRecent.timestamp).toISOString()
+      : new Date(now).toISOString(),
     isPartOf: {
       '@type': 'WebSite',
       name: 'Bay Tremor',
@@ -182,7 +193,7 @@ export default async function TodayPage() {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -220,7 +231,7 @@ export default async function TodayPage() {
               <span className="text-sm text-red-400 font-medium">LIVE</span>
             </div>
             <span className="text-sm text-neutral-500">
-              Updated {new Date().toLocaleTimeString()}
+              Updated {new Date(now).toLocaleTimeString()}
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -438,8 +449,3 @@ export default async function TodayPage() {
     </div>
   );
 }
-
-// Revalidate every 5 minutes for fresh content
-export const revalidate = 300;
-
-

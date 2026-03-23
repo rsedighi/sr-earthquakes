@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cacheLife } from 'next/cache';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { generateEarthquakeEventSchema, generateEarthquakeArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
@@ -28,11 +29,12 @@ interface Earthquake {
 }
 
 async function getEarthquake(id: string): Promise<Earthquake | null> {
-  // First try USGS API
+  'use cache';
+  cacheLife('minutes');
+
   try {
     const response = await fetch(
-      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`,
-      { next: { revalidate: 300 } }
+      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`
     );
     
     if (response.ok) {
@@ -144,7 +146,7 @@ export async function generateMetadata({
       description,
       type: 'article',
       publishedTime: date.toISOString(),
-      modifiedTime: new Date().toISOString(),
+      modifiedTime: date.toISOString(),
       authors: ['Bay Tremor'],
       tags: keywords,
       url: `${baseUrl}/earthquake/${id}`,
@@ -233,7 +235,7 @@ export default async function EarthquakePage({
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* JSON-LD Structured Data for rich snippets */}
       <script
         type="application/ld+json"

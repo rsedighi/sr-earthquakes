@@ -6,7 +6,7 @@ import { DashboardLoading } from '@/components/dashboard-loading';
 // Load lightweight summary at build time - NOT the full earthquake array
 // Full earthquake data stays on the server and is fetched on-demand via API
 export default async function Home() {
-  const summary = generateHistoricalSummary();
+  const summary = await generateHistoricalSummary();
   
   return (
     <Suspense fallback={<DashboardLoading />}>
@@ -14,6 +14,3 @@ export default async function Home() {
     </Suspense>
   );
 }
-
-// Revalidate every hour
-export const revalidate = 3600;

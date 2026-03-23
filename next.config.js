@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  cacheComponents: true,
+
   // Explicitly set output file tracing root to silence the warning
   outputFileTracingRoot: process.cwd(),
 

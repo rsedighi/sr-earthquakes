@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { ThreadDetailView } from '@/components/bay-tremor-community';
-import { NavBar } from '@/components/dashboard/components/nav-bar';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
@@ -52,13 +51,10 @@ export default async function ThreadPage({ params }: Props) {
   }
   
   return (
-    <>
-      <NavBar currentPath={`/community/${category}/${thread}`} />
+    <div className="pb-20 md:pb-0">
       <Suspense fallback={<ThreadLoading />}>
         <ThreadDetailView slug={thread} category={category as ForumCategory} />
       </Suspense>
-    </>
+    </div>
   );
 }
-
-export const revalidate = 60;

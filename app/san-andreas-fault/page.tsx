@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { 
@@ -201,7 +202,10 @@ function formatTimeAgo(timestamp: number): string {
 }
 
 export default async function SanAndreasFaultPage() {
-  const allEarthquakes = loadAllEarthquakes();
+  'use cache';
+  cacheLife('hours');
+
+  const allEarthquakes = await loadAllEarthquakes();
   
   // Filter earthquakes near San Andreas Fault (Peninsula and SF)
   // Approximate bounding box for San Andreas in Bay Area
@@ -228,7 +232,7 @@ export default async function SanAndreasFaultPage() {
   const faqSchema = generateSanAndreasFAQSchema();
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -630,6 +634,3 @@ export default async function SanAndreasFaultPage() {
     </div>
   );
 }
-
-// Revalidate every hour
-export const revalidate = 3600;

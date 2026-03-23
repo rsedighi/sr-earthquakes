@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MyAreaPage() {
-  const summary = generateHistoricalSummary();
+  const summary = await generateHistoricalSummary();
   
   return (
     <Suspense fallback={<DashboardLoading />}>
@@ -22,7 +22,3 @@ export default async function MyAreaPage() {
     </Suspense>
   );
 }
-
-export const revalidate = 3600;
-
-

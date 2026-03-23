@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Radio, TrendingUp, ChevronDown, Shield, HelpCircle } from 'lucide-react';
@@ -193,6 +194,9 @@ export async function generateMetadata({ params }: CityTodayPageProps): Promise<
 }
 
 export default async function CityEarthquakeTodayPage({ params }: CityTodayPageProps) {
+  'use cache';
+  cacheLife('minutes');
+
   const resolvedParams = await params;
   const fullSlug = resolvedParams?.city;
   const citySlug = extractCitySlug(fullSlug);
@@ -217,7 +221,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
            cityData.lon >= minLon && cityData.lon <= maxLon;
   });
   
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const now = Date.now();
   
   // Filter earthquakes within 30 miles of the city
@@ -256,14 +260,18 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
   const faqSchema = generateCityFAQSchema(cityName, cityData.county, region?.faultLine);
   const faqs = generateCityFAQs(cityName, cityData.county, region?.faultLine);
   
+  const pageDateIso = mostRecent
+    ? new Date(mostRecent.timestamp).toISOString()
+    : '2020-01-01T00:00:00.000Z';
+
   const cityEarthquakeSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${cityName} Earthquake Today - Live Seismic Activity`,
     description: `Real-time earthquake tracking for ${cityName}, ${cityData.county} County, California. Live USGS data updated every minute.`,
     url: `${baseUrl}/${citySlug}-earthquake-today`,
-    dateModified: new Date().toISOString(),
-    datePublished: new Date().toISOString(),
+    dateModified: pageDateIso,
+    datePublished: pageDateIso,
     inLanguage: 'en-US',
     isPartOf: {
       '@type': 'WebSite',
@@ -292,7 +300,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -571,7 +579,3 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
     </div>
   );
 }
-
-// Revalidate every 5 minutes
-export const revalidate = 300;
-

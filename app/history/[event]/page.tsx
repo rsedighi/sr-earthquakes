@@ -242,7 +242,7 @@ export default async function HistoricalEventPage({ params }: PageProps) {
     headline: event.name,
     description: event.summary,
     datePublished: '2024-01-01',
-    dateModified: new Date().toISOString(),
+    dateModified: '2024-01-01',
     author: {
       '@type': 'Organization',
       name: 'Bay Tremor',
@@ -278,7 +278,7 @@ export default async function HistoricalEventPage({ params }: PageProps) {
     .slice(0, 3);
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

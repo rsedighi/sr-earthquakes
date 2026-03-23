@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { cacheLife } from 'next/cache';
 import { Calendar, TrendingUp, AlertTriangle, Zap, BarChart3, ChevronRight, Newspaper, Activity, ArrowRight, Clock, MapPin, Flame } from 'lucide-react';
 import { getBlogImagesBySlugs } from '@/lib/mongodb';
 import { loadAllEarthquakes } from '@/lib/server-data';
@@ -135,9 +136,16 @@ function getCategoryLabel(category: BlogPost['category']) {
   }
 }
 
+async function getCachedBlogPosts() {
+  'use cache';
+  cacheLife('hours');
+
+  const earthquakes = await loadAllEarthquakes();
+  return getAllBlogPosts(earthquakes);
+}
+
 export default async function BlogPage() {
-  const earthquakes = loadAllEarthquakes();
-  const allPosts = getAllBlogPosts(earthquakes);
+  const allPosts = await getCachedBlogPosts();
   
   // Separate featured and regular posts
   const featuredPosts = allPosts.filter(p => p.featured).slice(0, 3);
@@ -183,7 +191,7 @@ export default async function BlogPage() {
   const breakingNews = allPosts.filter(p => p.category === 'breaking' || (p.maxMagnitude && p.maxMagnitude >= 4.0)).slice(0, 3);
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -530,5 +538,3 @@ export default async function BlogPage() {
   );
 }
 
-// Revalidate every hour
-export const revalidate = 3600;

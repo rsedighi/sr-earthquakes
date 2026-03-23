@@ -5,7 +5,7 @@ import { getRegionById } from '@/lib/regions';
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 export async function GET() {
-  const earthquakes = loadAllEarthquakes();
+  const earthquakes = await loadAllEarthquakes();
   const recentEarthquakes = earthquakes.slice(0, 50); // Latest 50 earthquakes
   
   const rssItems = recentEarthquakes.map(eq => {

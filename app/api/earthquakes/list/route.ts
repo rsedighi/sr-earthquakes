@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     // For history/swarm views, fetch all data at once (region-filtered)
     if (fetchAll) {
-      let allQuakes = loadAllEarthquakes();
+      let allQuakes = await loadAllEarthquakes();
       
       // Apply region filter if specified
       if (region && region !== 'all') {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    const result = getEarthquakesPage({
+    const result = await getEarthquakesPage({
       region,
       page,
       limit,
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     }> | undefined = undefined;
     
     if (includeSwarms && region && region !== 'all') {
-      const regionSwarms = getSwarmsForRegion(region);
+      const regionSwarms = await getSwarmsForRegion(region);
       swarms = regionSwarms.slice(0, 20).map(swarm => ({
         id: swarm.id,
         startTime: swarm.startTime.toISOString(),

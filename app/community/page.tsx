@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { BayTremorCommunity } from '@/components/bay-tremor-community';
-import { NavBar } from '@/components/dashboard/components/nav-bar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -30,12 +29,9 @@ function CommunityLoading() {
 export default function CommunityPage() {
   return (
     <div className="pb-20 md:pb-0">
-      <NavBar currentPath="/community" />
       <Suspense fallback={<CommunityLoading />}>
         <BayTremorCommunity />
       </Suspense>
     </div>
   );
 }
-
-export const revalidate = 60;

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
 import { 
   ArrowLeft, Calendar, TrendingUp, AlertTriangle, Zap, BarChart3, 
@@ -78,9 +79,24 @@ function getCategoryLabel(category: BlogPost['category']) {
 }
 
 
+async function getCachedBlogPosts() {
+  'use cache';
+  cacheLife('hours');
+
+  const earthquakes = await loadAllEarthquakes();
+  return getAllBlogPosts(earthquakes);
+}
+
+async function getCachedBlogPostBySlug(slug: string) {
+  'use cache';
+  cacheLife('hours');
+
+  const earthquakes = await loadAllEarthquakes();
+  return getBlogPostBySlug(earthquakes, slug);
+}
+
 export async function generateStaticParams() {
-  const earthquakes = loadAllEarthquakes();
-  const posts = getAllBlogPosts(earthquakes);
+  const posts = await getCachedBlogPosts();
   
   return posts.slice(0, 50).map(post => ({
     slug: post.slug,
@@ -89,8 +105,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const earthquakes = loadAllEarthquakes();
-  const post = getBlogPostBySlug(earthquakes, resolvedParams.slug);
+  const post = await getCachedBlogPostBySlug(resolvedParams.slug);
   
   if (!post) {
     return { title: 'Post Not Found' };
@@ -105,7 +120,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: post.description,
       type: 'article',
       publishedTime: post.date.toISOString(),
-      modifiedTime: new Date().toISOString(),
+      modifiedTime: post.date.toISOString(),
       url: `${baseUrl}/blog/${post.slug}`,
       images: [{
         url: `${baseUrl}/og-image.png`,
@@ -395,8 +410,7 @@ function ContentRenderer({ sections, category }: { sections: ContentSection[]; c
 
 export default async function BlogPostPage({ params }: PageProps) {
   const resolvedParams = await params;
-  const earthquakes = loadAllEarthquakes();
-  const post = getBlogPostBySlug(earthquakes, resolvedParams.slug);
+  const post = await getCachedBlogPostBySlug(resolvedParams.slug);
   
   if (!post) {
     notFound();
@@ -406,7 +420,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const contentSections = parseContent(post.content);
   
   // Get related posts (same category, different slug)
-  const allPosts = getAllBlogPosts(earthquakes);
+  const allPosts = await getCachedBlogPosts();
   const relatedPosts = allPosts
     .filter(p => p.category === post.category && p.slug !== post.slug)
     .slice(0, 3);
@@ -428,7 +442,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     headline: post.title,
     description: post.description,
     datePublished: post.date.toISOString(),
-    dateModified: new Date().toISOString(),
+    dateModified: post.date.toISOString(),
     author: {
       '@type': 'Organization',
       name: 'Bay Tremor',
@@ -452,7 +466,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -756,6 +770,3 @@ export default async function BlogPostPage({ params }: PageProps) {
     </div>
   );
 }
-
-// Revalidate every hour
-export const revalidate = 3600;

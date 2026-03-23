@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { CurrentYear } from '@/components/current-year';
 
 export const metadata: Metadata = {
   title: 'Support',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SupportPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white pb-20 md:pb-0">
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
@@ -225,7 +226,7 @@ export default function SupportPage() {
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-neutral-800">
           <p className="text-neutral-500 text-sm">
-            © {new Date().getFullYear()} Bay Tremor. All rights reserved.
+            © <CurrentYear /> Bay Tremor. All rights reserved.
           </p>
         </div>
       </div>

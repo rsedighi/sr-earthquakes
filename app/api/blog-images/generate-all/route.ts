@@ -161,7 +161,7 @@ async function generateImageForPost(
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const earthquakes = loadAllEarthquakes();
+    const earthquakes = await loadAllEarthquakes();
     const allPosts = getAllBlogPosts(earthquakes);
     
     // Get all existing images
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
     
-    const earthquakes = loadAllEarthquakes();
+    const earthquakes = await loadAllEarthquakes();
     let allPosts = getAllBlogPosts(earthquakes);
     
     // Filter by category if specified

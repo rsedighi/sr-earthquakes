@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'nodejs';
 export const alt = 'Bay Tremor - Live Bay Area Earthquake Tracking';
 export const size = {
   width: 1200,
