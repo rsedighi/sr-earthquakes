@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { cacheLife } from 'next/cache';
 import { Calendar, TrendingUp, AlertTriangle, Zap, BarChart3, ChevronRight, Newspaper, Activity, ArrowRight, Clock, MapPin, Flame } from 'lucide-react';
 import { getBlogImagesBySlugs } from '@/lib/mongodb';
-import { loadAllEarthquakes } from '@/lib/server-data';
+import { loadRecentEarthquakes } from '@/lib/server-data';
 import { getAllBlogPosts, BlogPost } from '@/lib/blog-generator';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 import { getTimeOfDay } from '@/lib/image-prompts';
@@ -141,7 +141,9 @@ async function getCachedBlogPosts() {
   'use cache';
   cacheLife('hours');
 
-  const earthquakes = await loadAllEarthquakes();
+  // Use recent earthquakes only (last 6 months, max 3000 records)
+  // Blog posts don't need 15 years of granular data
+  const earthquakes = await loadRecentEarthquakes(3000);
   return getAllBlogPosts(earthquakes);
 }
 

@@ -63,6 +63,70 @@ export async function loadAllEarthquakes(): Promise<Earthquake[]> {
   return allEarthquakes;
 }
 
+// Lightweight version: loads only recent data (last 6 months, max 3000 records)
+// Use this for blog generation to avoid loading the full 31MB dataset
+export async function loadRecentEarthquakes(maxRecords = 3000): Promise<Earthquake[]> {
+  'use cache';
+  cacheLife('hours');
+
+  const dataDir = path.join(process.cwd(), 'data');
+  const sixMonthsAgo = Date.now() - 6 * 30 * 24 * 60 * 60 * 1000;
+  const allEarthquakes: Earthquake[] = [];
+  
+  try {
+    const files = fs.readdirSync(dataDir)
+      .filter(f => f.endsWith('.json'))
+      .sort()
+      .reverse(); // Start with most recent files
+    
+    for (const file of files) {
+      if (allEarthquakes.length >= maxRecords) break;
+      
+      const filePath = path.join(dataDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const data = JSON.parse(content);
+      
+      if (data.features) {
+        for (const feature of data.features) {
+          if (
+            !feature.properties?.time ||
+            feature.geometry?.type !== 'Point' ||
+            feature.properties?.mag == null
+          ) {
+            continue;
+          }
+          
+          // Skip entries older than 6 months
+          if (feature.properties.time < sixMonthsAgo) continue;
+
+          const [longitude, latitude, depth] = feature.geometry.coordinates;
+          const earthquake: Earthquake = {
+            id: feature.id,
+            magnitude: feature.properties.mag,
+            place: feature.properties.place,
+            time: new Date(feature.properties.time),
+            timestamp: feature.properties.time,
+            latitude,
+            longitude,
+            depth,
+            felt: feature.properties.felt,
+            significance: feature.properties.sig,
+            url: feature.properties.url,
+            region: getRegionForCoordinates(latitude, longitude),
+          };
+          allEarthquakes.push(earthquake);
+          if (allEarthquakes.length >= maxRecords) break;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading recent earthquake data:', error);
+  }
+
+  allEarthquakes.sort((a, b) => b.timestamp - a.timestamp);
+  return allEarthquakes;
+}
+
 // Summary data that's small enough to send to client
 export interface HistoricalSummary {
   totalCount: number;
