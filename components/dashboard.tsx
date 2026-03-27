@@ -84,8 +84,11 @@ const LeafletMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+      <div className="w-full h-full min-h-[400px] bg-[#0a0a0a] rounded-xl relative overflow-hidden flex items-center justify-center">
+        <div className="absolute top-4 left-4 w-8 h-16 bg-white/5 border border-white/10 rounded-md animate-pulse z-10"></div>
+        <div className="absolute top-4 right-4 w-32 h-10 bg-white/5 border border-white/10 rounded-xl animate-pulse z-10"></div>
+        <div className="absolute bottom-6 right-4 w-24 h-6 bg-white/5 border border-white/10 rounded animate-pulse z-10"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-600" />
       </div>
     )
   }
@@ -97,8 +100,11 @@ const FaultMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+      <div className="w-full h-full min-h-[400px] bg-[#0a0a0a] rounded-xl relative overflow-hidden flex items-center justify-center">
+        <div className="absolute top-4 left-4 w-8 h-16 bg-white/5 border border-white/10 rounded-md animate-pulse z-10"></div>
+        <div className="absolute top-4 right-4 w-32 h-10 bg-white/5 border border-white/10 rounded-xl animate-pulse z-10"></div>
+        <div className="absolute bottom-6 right-4 w-24 h-6 bg-white/5 border border-white/10 rounded animate-pulse z-10"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-600" />
       </div>
     )
   }
@@ -447,7 +453,7 @@ function IOSAppBanner() {
     <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 border-b border-orange-500/20">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-2.5">
         <div className="flex items-center justify-between gap-3">
-          <Link 
+          <Link prefetch={false} 
             href="/ios" 
             className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 group"
           >
@@ -651,7 +657,7 @@ function CollapsibleAlert({
             
             {/* Quick links */}
             <div className="flex items-center gap-3 pt-2">
-              <Link 
+              <Link prefetch={false} 
                 href="/history"
                 className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${
                   severityColor === 'red' 
@@ -664,7 +670,7 @@ function CollapsibleAlert({
                 <BarChart3 className="w-3 h-3" />
                 Historical Analysis
               </Link>
-              <Link 
+              <Link prefetch={false} 
                 href="/learn"
                 className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 text-neutral-300 hover:bg-white/10 transition-colors"
               >
@@ -1450,7 +1456,13 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   {isLoading ? (
                     <div className="p-4 space-y-3">
                       {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="h-16 skeleton rounded-lg" />
+                        <div key={i} className="h-[104px] bg-white/[0.02] border border-white/5 rounded-xl animate-pulse flex p-4 gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-white/5 flex-shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-2/3 bg-white/5 rounded" />
+                            <div className="h-3 w-1/2 bg-white/5 rounded" />
+                          </div>
+                        </div>
                       ))}
                     </div>
                   ) : magnitudeFilteredQuakes.length === 0 ? (
@@ -1882,42 +1894,42 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Navigation</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/" className="text-neutral-500 hover:text-white transition-colors">
                     Live Earthquakes
                   </Link>
                 </li>
                 <li>
-                  <Link href="/today" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/today" className="text-neutral-500 hover:text-white transition-colors">
                     Today&apos;s Activity
                   </Link>
                 </li>
                 <li>
-                  <Link href="/my-area" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/my-area" className="text-neutral-500 hover:text-white transition-colors">
                     My Area
                   </Link>
                 </li>
                 <li>
-                  <Link href="/blog" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/blog" className="text-neutral-500 hover:text-white transition-colors">
                     News & Reports
                   </Link>
                 </li>
                 <li>
-                  <Link href="/community" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/community" className="text-neutral-500 hover:text-white transition-colors">
                     Community
                   </Link>
                 </li>
                 <li>
-                  <Link href="/history" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/history" className="text-neutral-500 hover:text-white transition-colors">
                     History
                   </Link>
                 </li>
                 <li>
-                  <Link href="/compare" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/compare" className="text-neutral-500 hover:text-white transition-colors">
                     Compare Regions
                   </Link>
                 </li>
                 <li>
-                  <Link href="/learn" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/learn" className="text-neutral-500 hover:text-white transition-colors">
                     Learn
                   </Link>
                 </li>
@@ -1929,32 +1941,32 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Safety & Guides</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/felt-earthquake" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/felt-earthquake" className="text-neutral-500 hover:text-white transition-colors">
                     Did You Feel It?
                   </Link>
                 </li>
                 <li>
-                  <Link href="/earthquake-preparedness" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/earthquake-preparedness" className="text-neutral-500 hover:text-white transition-colors">
                     Preparedness Guide
                   </Link>
                 </li>
                 <li>
-                  <Link href="/san-andreas-fault" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/san-andreas-fault" className="text-neutral-500 hover:text-white transition-colors">
                     San Andreas Fault
                   </Link>
                 </li>
                 <li>
-                  <Link href="/hayward-fault" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/hayward-fault" className="text-neutral-500 hover:text-white transition-colors">
                     Hayward Fault
                   </Link>
                 </li>
                 <li>
-                  <Link href="/calaveras-fault" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/calaveras-fault" className="text-neutral-500 hover:text-white transition-colors">
                     Calaveras Fault
                   </Link>
                 </li>
                 <li>
-                  <Link href="/faq" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/faq" className="text-neutral-500 hover:text-white transition-colors">
                     FAQ
                   </Link>
                 </li>
@@ -1966,22 +1978,22 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Historical Events</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/history/1906-san-francisco" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/history/1906-san-francisco" className="text-neutral-500 hover:text-white transition-colors">
                     1906 San Francisco
                   </Link>
                 </li>
                 <li>
-                  <Link href="/history/1989-loma-prieta" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/history/1989-loma-prieta" className="text-neutral-500 hover:text-white transition-colors">
                     1989 Loma Prieta
                   </Link>
                 </li>
                 <li>
-                  <Link href="/history/1868-hayward" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/history/1868-hayward" className="text-neutral-500 hover:text-white transition-colors">
                     1868 Hayward
                   </Link>
                 </li>
                 <li>
-                  <Link href="/history/2014-napa" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/history/2014-napa" className="text-neutral-500 hover:text-white transition-colors">
                     2014 South Napa
                   </Link>
                 </li>
@@ -1993,27 +2005,27 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Popular Regions</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/region/san-ramon" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/region/san-ramon" className="text-neutral-500 hover:text-white transition-colors">
                     San Ramon / Dublin
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/berkeley-oakland" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/region/berkeley-oakland" className="text-neutral-500 hover:text-white transition-colors">
                     Berkeley / Oakland
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/sf-peninsula" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/region/sf-peninsula" className="text-neutral-500 hover:text-white transition-colors">
                     SF Peninsula
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/santa-clara" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/region/santa-clara" className="text-neutral-500 hover:text-white transition-colors">
                     Santa Clara / San Jose
                   </Link>
                 </li>
                 <li>
-                  <Link href="/region/sonoma-napa" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/region/sonoma-napa" className="text-neutral-500 hover:text-white transition-colors">
                     Sonoma / Napa
                   </Link>
                 </li>
@@ -2025,27 +2037,27 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Popular Cities</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/san-francisco-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/san-francisco-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
                     San Francisco Today
                   </Link>
                 </li>
                 <li>
-                  <Link href="/oakland-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/oakland-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
                     Oakland Today
                   </Link>
                 </li>
                 <li>
-                  <Link href="/san-jose-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/san-jose-earthquake-today" className="text-neutral-500 hover:text-white transition-colors">
                     San Jose Today
                   </Link>
                 </li>
                 <li>
-                  <Link href="/city/berkeley" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/city/berkeley" className="text-neutral-500 hover:text-white transition-colors">
                     Berkeley
                   </Link>
                 </li>
                 <li>
-                  <Link href="/city/fremont" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/city/fremont" className="text-neutral-500 hover:text-white transition-colors">
                     Fremont
                   </Link>
                 </li>
@@ -2057,7 +2069,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <h4 className="font-semibold text-sm mb-3">Resources</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/about" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/about" className="text-neutral-500 hover:text-white transition-colors">
                     About Bay Tremor
                   </Link>
                 </li>
@@ -2092,12 +2104,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   </a>
                 </li>
                 <li>
-                  <Link href="/feed.xml" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/feed.xml" className="text-neutral-500 hover:text-white transition-colors">
                     RSS Feed
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-neutral-500 hover:text-white transition-colors">
+                  <Link prefetch={false} href="/privacy" className="text-neutral-500 hover:text-white transition-colors">
                     Privacy Policy
                   </Link>
                 </li>
@@ -2315,7 +2327,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 ? false // Blog is external, never "active" in tab system
                 : TAB_ROUTES[activeTab] === item.href;
             return (
-              <Link
+              <Link prefetch={false}
                 key={item.id}
                 href={item.href}
                 className={`flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all ${
@@ -2376,7 +2388,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 const Icon = item.icon;
                 const active = activeTab === item.id;
                 return (
-                  <Link
+                  <Link prefetch={false}
                     key={item.id}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
@@ -2400,7 +2412,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                   Safety & Guides
                 </div>
-                <Link
+                <Link prefetch={false}
                   href="/felt-earthquake"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2408,7 +2420,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   <Zap className="w-5 h-5 text-amber-400" />
                   <span className="font-medium">Did You Feel It?</span>
                 </Link>
-                <Link
+                <Link prefetch={false}
                   href="/earthquake-preparedness"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2416,7 +2428,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   <AlertTriangle className="w-5 h-5 text-green-400" />
                   <span className="font-medium">Preparedness Guide</span>
                 </Link>
-                <Link
+                <Link prefetch={false}
                   href="/san-andreas-fault"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2424,7 +2436,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   <Layers className="w-5 h-5 text-red-400" />
                   <span className="font-medium">San Andreas Fault</span>
                 </Link>
-                <Link
+                <Link prefetch={false}
                   href="/hayward-fault"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2432,7 +2444,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                   <Layers className="w-5 h-5 text-orange-400" />
                   <span className="font-medium">Hayward Fault</span>
                 </Link>
-                <Link
+                <Link prefetch={false}
                   href="/calaveras-fault"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2446,7 +2458,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
               <div className="border-t border-white/10 my-4" />
               
               {/* About & FAQ */}
-              <Link
+              <Link prefetch={false}
                 href="/about"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2454,7 +2466,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                 <FileText className="w-5 h-5" />
                 <span className="font-medium">About</span>
               </Link>
-              <Link
+              <Link prefetch={false}
                 href="/faq"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-4 p-4 rounded-xl text-neutral-300 hover:bg-white/5 transition-all"
@@ -2477,7 +2489,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
                     { id: 'marin', name: 'Marin', areaCode: '415' },
                     { id: 'san-ramon', name: 'San Ramon', areaCode: '925' },
                   ].map(region => (
-                    <Link
+                    <Link prefetch={false}
                       key={region.id}
                       href={`/region/${region.id}`}
                       onClick={() => setMobileMenuOpen(false)}

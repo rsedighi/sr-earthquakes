@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Shield,
   Star,
@@ -25,6 +26,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { AFFILIATE_PRODUCTS, AffiliateProduct } from '@/lib/affiliate-products';
+
 
 // Table of contents sections
 const TABLE_OF_CONTENTS = [
@@ -78,11 +80,12 @@ function ProductPick({
           {/* Product Image */}
           <div className="sm:w-48 flex-shrink-0">
             <div className="aspect-square bg-white rounded-xl overflow-hidden relative">
-              <img
+              <Image
                 src={product.imageUrl}
                 alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain p-4"
-                loading="lazy"
+                fill
+                className="object-contain p-4"
+                unoptimized
               />
             </div>
             {product.primeEligible && (
@@ -164,11 +167,12 @@ function AlternativePicks({ products }: { products: AffiliateProduct[] }) {
             className="group flex gap-4 p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-amber-500/30 rounded-xl transition-all"
           >
             <div className="w-20 h-20 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
-              <img
+              <Image
                 src={product.imageUrl}
                 alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain p-2"
-                loading="lazy"
+                fill
+                className="object-contain p-2"
+                unoptimized
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -389,10 +393,12 @@ export default function EarthquakeKitGuidePage() {
                   className="group flex items-center gap-4 p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-amber-500/30 rounded-xl transition-all"
                 >
                   <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
-                    <img
+                    <Image
                       src={item.product!.imageUrl}
                       alt={item.product!.name}
-                      className="absolute inset-0 w-full h-full object-contain p-2"
+                      fill
+                      className="object-contain p-2"
+                      unoptimized
                     />
                   </div>
                   <div className="flex-1 min-w-0">

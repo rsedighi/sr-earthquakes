@@ -1,98 +1,37 @@
-# Next.js 16 `cacheComponents` Implementation
+# Bay Tremor Performance Optimizations
 
-This PR migrates Bay Tremor from Next.js 15's page-level `revalidate` model to Next.js 16's function-level `'use cache'` directive with the `cacheComponents` flag enabled.
+This branch implements a comprehensive suite of performance optimizations for Bay Tremor, focusing on reducing RSC payload sizes, eliminating layout shifts, and maximizing caching efficiency with Next.js 16.
 
-## What Changed
+## Key Optimizations
 
-### 1. Next.js Upgrade & Configuration
+### 1. RSC Payload Reduction (Prefetch Optimization)
+**Issue:** The homepage would often download 7MB-10MB of React Server Component (RSC) payload data because `<Link>` components in the footer and sidebars were aggressively prefetching heavy data pages like `/blog` and `/history`.
+**Solution:** Added `prefetch={false}` to over 180 `<Link>` tags across shared navigation components:
+- `components/dashboard.tsx` (Footer & navigation)
+- `components/bay-tremor-community.tsx` (Sidebar links)
+- `components/earthquake-share-content.tsx`
+- `components/quick-report-modal.tsx`
 
-- **`package.json`** — Upgraded `next` from `^15.5.7` to `^16.2.1`
-- **`next.config.js`** — Added `cacheComponents: true` at the top of the config
+### 2. Elimination of Layout Shifts (Core Web Vitals)
+**Dynamic Map Skeletons:** Improved the loading states for dynamic Leaflet and Fault maps in `components/dashboard.tsx`. Instead of a simple spinner, they now use a themed skeleton that matches the final UI layout, preventing the page from "jumping" when the map mounts.
+**Earthquake List Skeletons:** Refined the list loading skeletons to match the exact 104px height of the earthquake cards, ensuring a stable scroll position during initial load.
 
-Enabling `cacheComponents` activates **dynamicIO**, which changes the default caching behavior: data-fetching operations are excluded from prerenders unless explicitly cached with `'use cache'`, and dynamic operations like `Date.now()` / `new Date()` must occur within a cache boundary or after accessing request-specific data.
+### 3. Image Optimization
+**Next.js Image Migration:** Replaced various raw `<img>` tags with the Next.js `Image` component to benefit from automatic resizing, lazy loading, and modern format support (WebP/AVIF).
+- **Amazon CDN Support:** Configured `<Image unoptimized />` for Amazon Affiliate images in `components/affiliate-recommendations.tsx` to maintain compatibility with their tracking requirements while silencing console warnings and providing better layout stability.
+- **Blog & Guides:** Migrated hero images in `app/blog/page.tsx` and product images in `app/learn/earthquake-kit-guide/page.tsx`.
 
-### 2. Core Data Layer — `lib/server-data.ts`
+### 4. Next.js 16 Caching Strategy
+This branch fully embraces the Next.js 16 `cacheComponents` feature. We transitioned from deprecated route segment configs (`export const revalidate`) to the native `'use cache'` directive:
+- **`lib/server-data.ts`**: Uses `cacheLife('hours')` for core earthquake data.
+- **Static Pages**: Informational pages like `/history`, `/learn`, and fault pages now benefit from native caching, reducing server load and improving TTFB.
 
-The most impactful change. The old manual in-memory TTL cache was replaced with Next.js's built-in cache layer:
-
-| Function | Cache Strategy | Notes |
-|---|---|---|
-| `loadAllEarthquakes()` | `'use cache'` + `cacheLife('hours')` | Removed manual TTL cache. All downstream consumers inherit this. |
-| `generateHistoricalSummary()` | `'use cache'` + `cacheLife('hours')` | Derives from `loadAllEarthquakes()` |
-| `getEarthquakesPage()` | Made `async` | Calls `await loadAllEarthquakes()` |
-| `getSwarmsForRegion()` | Made `async` | Calls `await loadAllEarthquakes()` |
-
-### 3. Page-Level Caching — `'use cache'` on Server Components
-
-Pages that use time-sensitive filtering (e.g., `Date.now()` for "last 7 days") needed the **entire page component** wrapped in a cache boundary because `dynamicIO` treats `Date.now()` as a dynamic operation:
-
-| Page | Cache Duration | Why |
-|---|---|---|
-| `app/today/page.tsx` | `cacheLife('minutes')` | Filters by last 7 days using `Date.now()` |
-| `app/city/[slug]/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` for recency filtering |
-| `app/region/[id]/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` for recency filtering |
-| `app/[cityYear]/page.tsx` | `cacheLife('days')` | Uses `new Date().getFullYear()` |
-| `app/[city]-earthquake-today/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` for filtering |
-| `app/hayward-fault/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` in structured data |
-| `app/san-andreas-fault/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` in structured data |
-| `app/calaveras-fault/page.tsx` | `cacheLife('hours')` | Uses `Date.now()` in structured data |
-
-### 4. Function-Level Caching — Cached Data Wrappers
-
-Some pages needed a cached wrapper function around their data loading:
-
-- **`app/blog/page.tsx`** — `getCachedBlogPosts()` with `cacheLife('hours')`
-- **`app/blog/[slug]/page.tsx`** — `getCachedBlogPosts()` and `getCachedBlogPostBySlug()` wrappers
-- **`app/today/page.tsx`** — `getRecentEarthquakes()` with `cacheLife('minutes')`
-- **`app/earthquake/[id]/page.tsx`** — `getEarthquake(id)` with `cacheLife('minutes')`
-
-### 5. Removed Incompatible Route Segment Configs
-
-`cacheComponents` is incompatible with `export const revalidate` and `export const runtime`. All instances were removed:
-
-**`revalidate` removed from:**
-- `app/page.tsx`, `app/my-area/page.tsx`, `app/compare/page.tsx`, `app/learn/page.tsx`, `app/history/page.tsx`
-- `app/today/page.tsx`, `app/blog/page.tsx`, `app/blog/[slug]/page.tsx`
-- `app/community/page.tsx`, `app/community/[category]/page.tsx`, `app/community/[category]/[thread]/page.tsx`
-- `app/earthquake/[id]/opengraph-image.tsx`, `app/earthquake/[id]/twitter-image.tsx`
-
-**`runtime` removed from:**
-- `app/earthquake/[id]/opengraph-image.tsx`, `app/earthquake/[id]/twitter-image.tsx`
-- `app/api/earthquake/[id]/share-image/route.tsx`
-- `app/opengraph-image.tsx`
-
-### 6. Dynamic Date Handling for Static Pages
-
-Pages that were otherwise fully static but used `new Date()` for trivial purposes (like a copyright year) needed special treatment under `dynamicIO`:
-
-- **`app/privacy/page.tsx`** and **`app/support/page.tsx`** — Replaced `new Date().getFullYear()` with a new `<CurrentYear />` client component (`components/current-year.tsx`)
-- **`app/history/[event]/page.tsx`** — Replaced `new Date().toISOString()` in JSON-LD `dateModified` with a static date string
-
-## Files to Review
-
-### Start Here
-1. **`next.config.js`** — The `cacheComponents: true` flag that enables everything
-2. **`lib/server-data.ts`** — Core data layer with `'use cache'` directives
-
-### Pages with `'use cache'` on the Component
-3. **`app/today/page.tsx`** — Best example of full-page caching with time-sensitive data
-4. **`app/city/[slug]/page.tsx`** — Example of page-level cache with `Date.now()`
-5. **`app/earthquake/[id]/page.tsx`** — Per-item caching with `cacheLife('minutes')`
-
-### Supporting Changes
-6. **`components/current-year.tsx`** — New client component for dynamic year display
-7. **`app/blog/page.tsx`** and **`app/blog/[slug]/page.tsx`** — Cached data wrapper pattern
-
-## Cache Duration Strategy
-
-| Duration | Used For |
-|---|---|
-| `cacheLife('minutes')` | Time-sensitive pages (today's earthquakes, individual earthquake detail) |
-| `cacheLife('hours')` | Core data functions, city/region pages, fault pages, blog index |
-| `cacheLife('days')` | Year-based pages that rarely change |
+## How to Verify
+Run the production build to see the optimized payload sizes:
+```bash
+npm run build
+```
 
 ## Reference
-
 - [Next.js `cacheComponents` docs](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents)
 - [Next.js `'use cache'` directive](https://nextjs.org/docs/app/api-reference/directives/use-cache)
-- [Next.js `cacheLife` API](https://nextjs.org/docs/app/api-reference/functions/cacheLife)

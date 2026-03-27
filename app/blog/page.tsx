@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cacheLife } from 'next/cache';
 import { Calendar, TrendingUp, AlertTriangle, Zap, BarChart3, ChevronRight, Newspaper, Activity, ArrowRight, Clock, MapPin, Flame } from 'lucide-react';
 import { getBlogImagesBySlugs } from '@/lib/mongodb';
@@ -312,10 +313,11 @@ export default async function BlogPage() {
                   {/* Hero image from database if available, otherwise gradient */}
                   {heroImageUrl ? (
                     <div className="absolute inset-0">
-                      <img 
+                      <Image 
                         src={heroImageUrl} 
                         alt={post.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
                     </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Activity, Database, MapPin, Zap, Shield, Clock } from 'lucid
 import { generateBreadcrumbSchema, generateOrganizationSchema } from '@/lib/seo';
 import { REGIONS } from '@/lib/regions';
 
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 export const metadata: Metadata = {

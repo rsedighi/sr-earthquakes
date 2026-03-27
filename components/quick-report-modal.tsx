@@ -509,7 +509,7 @@ export function QuickReportModal({
 
                 {/* Actions */}
                 <div className="space-y-3">
-                  <Link
+                  <Link prefetch={false}
                     href={`/earthquake/${selectedQuake.id}`}
                     onClick={onClose}
                     className="flex items-center justify-center gap-2 w-full py-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-white font-medium transition-colors"

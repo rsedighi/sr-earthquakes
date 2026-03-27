@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, HelpCircle, ChevronDown } from 'lucide-react';
 import { generateFAQSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 export const metadata: Metadata = {

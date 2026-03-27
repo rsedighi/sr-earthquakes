@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Calendar, MapPin, AlertTriangle, History, ExternalLink, BookOpen } from 'lucide-react';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 // Historical earthquake events

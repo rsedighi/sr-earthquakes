@@ -19,6 +19,7 @@ import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 export const metadata: Metadata = {
