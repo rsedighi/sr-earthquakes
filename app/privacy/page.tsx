@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8"
           >
@@ -213,7 +213,7 @@ export default function PrivacyPage() {
             </p>
             <p className="text-neutral-300 mt-4">
               For support issues, visit{' '}
-              <Link href="/support" className="text-cyan-400 hover:text-cyan-300">
+              <Link prefetch={false} href="/support" className="text-cyan-400 hover:text-cyan-300">
                 Support
               </Link>
               .

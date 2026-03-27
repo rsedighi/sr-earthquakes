@@ -105,7 +105,7 @@ export default function FAQPage() {
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li className="text-white">FAQ</li>
@@ -113,7 +113,7 @@ export default function FAQPage() {
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -207,7 +207,7 @@ export default function FAQPage() {
           <p className="text-neutral-400 mb-4">
             Have more questions? Start exploring earthquake data on our dashboard.
           </p>
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors"
           >

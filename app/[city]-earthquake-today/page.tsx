@@ -314,11 +314,11 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li>
-              <Link href="/today" className="hover:text-white transition-colors">Earthquakes Today</Link>
+              <Link prefetch={false} href="/today" className="hover:text-white transition-colors">Earthquakes Today</Link>
             </li>
             <li>/</li>
             <li className="text-white">{cityName}</li>
@@ -326,7 +326,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/today"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -413,7 +413,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <p className="text-neutral-300">
               A M{lastHour[0].magnitude.toFixed(1)} earthquake was detected {formatTimeAgo(lastHour[0].timestamp)}.
               {' '}
-              <Link href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
+              <Link prefetch={false} href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
                 View details →
               </Link>
             </p>
@@ -433,7 +433,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
                   const distance = haversineDistance(cityData.lat, cityData.lon, eq.latitude, eq.longitude);
                   return (
                     <li key={eq.id}>
-                      <Link 
+                      <Link prefetch={false} 
                         href={`/earthquake/${eq.id}`}
                         className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                       >
@@ -529,7 +529,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
                 Learn how to protect yourself and your family before, during, and after an earthquake in {cityName}.
               </p>
             </div>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors whitespace-nowrap"
             >
@@ -540,7 +540,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         
         {/* Related Links */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link 
+          <Link prefetch={false} 
             href={`/city/${citySlug}`}
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >
@@ -549,7 +549,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <span className="text-sm text-neutral-500">Historical data & analysis</span>
           </Link>
           {region && (
-            <Link 
+            <Link prefetch={false} 
               href={`/region/${region.id}`}
               className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
             >
@@ -558,7 +558,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
               <span className="text-sm text-neutral-500">All regional activity</span>
             </Link>
           )}
-          <Link 
+          <Link prefetch={false} 
             href="/today"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >
@@ -566,7 +566,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <span className="block font-semibold">All Bay Area</span>
             <span className="text-sm text-neutral-500">Today's earthquakes</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/felt-earthquake"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >

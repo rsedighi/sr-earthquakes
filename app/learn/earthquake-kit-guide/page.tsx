@@ -249,9 +249,9 @@ export default function EarthquakeKitGuidePage() {
         <div className="max-w-4xl mx-auto relative">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-neutral-500 mb-6">
-            <Link href="/" className="hover:text-white transition-colors">Bay Tremor</Link>
+            <Link prefetch={false} href="/" className="hover:text-white transition-colors">Bay Tremor</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link href="/learn" className="hover:text-white transition-colors">Learn</Link>
+            <Link prefetch={false} href="/learn" className="hover:text-white transition-colors">Learn</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-neutral-400">Earthquake Kit Guide</span>
           </nav>
@@ -699,6 +699,7 @@ export default function EarthquakeKitGuidePage() {
           <h3 className="font-semibold text-white mb-4">More from Bay Tremor</h3>
           <div className="grid sm:grid-cols-2 gap-4">
             <Link
+              prefetch={false}
               href="/my-area"
               className="flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
             >
@@ -709,6 +710,7 @@ export default function EarthquakeKitGuidePage() {
               </div>
             </Link>
             <Link
+              prefetch={false}
               href="/learn"
               className="flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
             >

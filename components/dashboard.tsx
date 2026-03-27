@@ -66,9 +66,10 @@ export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
 
 import { formatDepth, formatDepthDeep, formatRadius, formatDistanceBoth, formatDistance, kmToMiles, getDepthDescription } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
-import { RegionComparison } from './region-comparison';
-import { MyNeighborhood } from './my-neighborhood';
-import { HistoricalSwarms } from './historical-swarms';
+// Dynamically import heavy tab components so they don't bundle into the homepage
+const RegionComparison = dynamic(() => import('./region-comparison').then(mod => mod.RegionComparison), { ssr: false });
+const MyNeighborhood = dynamic(() => import('./my-neighborhood').then(mod => mod.MyNeighborhood), { ssr: false });
+const HistoricalSwarms = dynamic(() => import('./historical-swarms').then(mod => mod.HistoricalSwarms), { ssr: false });
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { CommunityWidget } from './bay-tremor-community';
@@ -1026,12 +1027,14 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   }, []);
 
   // Recent earthquake data (since Dec 8, 2025) - supplements the historical data
+  // Only autoFetch when the user is on a tab that actually needs historical data
+  const isHistoricalTab = activeTab === 'neighborhood' || activeTab === 'compare' || activeTab === 'history';
   const {
     earthquakes: recentQuakes,
     isLoading: isLoadingRecent,
   } = useHistoricalEarthquakes({
     minMagnitude: 0.1,
-    autoFetch: true,
+    autoFetch: isHistoricalTab,
   });
   
   // User's selected city for personalized widget

@@ -17,6 +17,7 @@ export default function EarthquakeNotFound() {
         
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
+            prefetch={false}
             href="/"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors font-medium"
           >
@@ -24,6 +25,7 @@ export default function EarthquakeNotFound() {
             Go to Dashboard
           </Link>
           <Link
+            prefetch={false}
             href="/"
             className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-neutral-400 rounded-lg hover:bg-white/10 transition-colors"
           >

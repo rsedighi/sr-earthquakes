@@ -214,7 +214,7 @@ export default async function BlogPage() {
             <div className="overflow-hidden flex-1">
               <div className="flex gap-8 animate-marquee whitespace-nowrap">
                 {breakingNews.map((post) => (
-                  <Link key={post.slug} href={`/blog/${post.slug}`} className="hover:underline inline-flex items-center gap-2">
+                  <Link prefetch={false} key={post.slug} href={`/blog/${post.slug}`} className="hover:underline inline-flex items-center gap-2">
                     <span className="font-semibold">{post.maxMagnitude && post.maxMagnitude >= 4.0 ? `M${post.maxMagnitude.toFixed(1)}` : ''}</span>
                     <span>{post.title}</span>
                   </Link>
@@ -232,7 +232,7 @@ export default async function BlogPage() {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
             <li className="text-white">Blog</li>
           </ol>
@@ -261,7 +261,7 @@ export default async function BlogPage() {
           
           {/* Latest Update Callout */}
           {allPosts[0] && (
-            <Link 
+            <Link prefetch={false} 
               href={`/blog/${allPosts[0].slug}`}
               className="group block mt-8 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 rounded-2xl p-5 hover:border-amber-500/40 transition-all"
             >
@@ -304,6 +304,7 @@ export default async function BlogPage() {
                 
                 return (
                 <Link
+                  prefetch={false}
                   key={post.slug}
                   href={`/blog/${post.slug}`}
                   className={`group relative rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-black/30 transition-all ${
@@ -420,6 +421,7 @@ export default async function BlogPage() {
             <div className="space-y-4">
               {recentPosts.map(post => (
                 <Link
+                  prefetch={false}
                   key={post.slug}
                   href={`/blog/${post.slug}`}
                   className="group block bg-neutral-900/50 rounded-xl border border-white/10 p-5 hover:border-white/20 hover:bg-neutral-900 transition-all"
@@ -491,19 +493,19 @@ export default async function BlogPage() {
                 <h3 className="font-bold mb-4">Quick Links</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
-                    <Link href="/" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
+                    <Link prefetch={false} href="/" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
                       <Activity className="w-4 h-4 text-blue-400" />
                       Live Earthquake Map
                     </Link>
                   </li>
                   <li>
-                    <Link href="/felt-earthquake" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
+                    <Link prefetch={false} href="/felt-earthquake" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
                       <AlertTriangle className="w-4 h-4 text-amber-400" />
                       Did You Feel It?
                     </Link>
                   </li>
                   <li>
-                    <Link href="/earthquake-preparedness" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
+                    <Link prefetch={false} href="/earthquake-preparedness" className="text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5">
                       <Calendar className="w-4 h-4 text-green-400" />
                       Preparedness Guide
                     </Link>
@@ -530,7 +532,7 @@ export default async function BlogPage() {
                   <p className="text-sm text-neutral-400 leading-relaxed mb-3">
                     Real-time alerts, widgets & maps. Be first to get notified when we launch.
                   </p>
-                  <Link href="/ios" className="block w-full text-center py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-orange-500/20">
+                  <Link prefetch={false} href="/ios" className="block w-full text-center py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-lg text-sm font-semibold transition-all shadow-lg shadow-orange-500/20">
                     Join Waitlist →
                   </Link>
                 </div>

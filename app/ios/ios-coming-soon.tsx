@@ -81,7 +81,7 @@ export function IOSComingSoon() {
       {/* Header */}
       <header className="relative z-10 px-6 py-6">
         <nav className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link prefetch={false} href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
               <SeismicBridgeLogo />
             </div>
@@ -90,7 +90,7 @@ export function IOSComingSoon() {
             </span>
           </Link>
           
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="text-sm text-white/60 hover:text-white transition-colors"
           >
@@ -257,10 +257,10 @@ export function IOSComingSoon() {
             © {new Date().getFullYear()} Bay Tremor. Real-time earthquake tracking for the Bay Area.
           </p>
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-sm text-white/40 hover:text-white/60 transition-colors">
+            <Link prefetch={false} href="/privacy" className="text-sm text-white/40 hover:text-white/60 transition-colors">
               Privacy
             </Link>
-            <Link href="/" className="text-sm text-white/40 hover:text-white/60 transition-colors">
+            <Link prefetch={false} href="/" className="text-sm text-white/40 hover:text-white/60 transition-colors">
               Dashboard
             </Link>
           </div>

@@ -248,7 +248,7 @@ export default async function EarthquakePage({
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="flex items-center gap-3 text-neutral-400 hover:text-white transition-colors group"
             >
@@ -270,13 +270,13 @@ export default async function EarthquakePage({
         <nav className="max-w-4xl mx-auto mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             {region && (
               <>
                 <li>
-                  <Link href={`/region/${region.id}`} className="hover:text-white transition-colors">
+                  <Link prefetch={false} href={`/region/${region.id}`} className="hover:text-white transition-colors">
                     {region.name.split(' / ')[0]}
                   </Link>
                 </li>

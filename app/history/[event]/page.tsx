@@ -291,16 +291,16 @@ export default async function HistoricalEventPage({ params }: PageProps) {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
-            <li><Link href="/history" className="hover:text-white transition-colors">History</Link></li>
+            <li><Link prefetch={false} href="/history" className="hover:text-white transition-colors">History</Link></li>
             <li>/</li>
             <li className="text-white truncate max-w-[200px]">{event.name}</li>
           </ol>
         </nav>
         
         {/* Back Link */}
-        <Link 
+        <Link prefetch={false} 
           href="/history"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -403,7 +403,7 @@ export default async function HistoricalEventPage({ params }: PageProps) {
           <h2 className="text-2xl font-bold mb-4">Other Historic Earthquakes</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {otherEvents.map(([id, ev]) => (
-              <Link 
+              <Link prefetch={false} 
                 key={id}
                 href={`/history/${id}`}
                 className="bg-neutral-900 rounded-xl p-5 border border-white/10 hover:bg-white/5 transition-colors"
@@ -421,7 +421,7 @@ export default async function HistoricalEventPage({ params }: PageProps) {
           <p className="text-neutral-400 mb-4">
             Learn how to protect yourself and your family from future earthquakes.
           </p>
-          <Link 
+          <Link prefetch={false} 
             href="/earthquake-preparedness"
             className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors"
           >

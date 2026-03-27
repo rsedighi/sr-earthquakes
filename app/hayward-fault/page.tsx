@@ -243,14 +243,14 @@ export default async function HaywardFaultPage() {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
             <li className="text-white">Hayward Fault</li>
           </ol>
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -404,7 +404,7 @@ export default async function HaywardFaultPage() {
                   {citiesAtRisk.map((city, index) => (
                     <tr key={index} className="hover:bg-white/5">
                       <td className="px-6 py-4">
-                        <Link 
+                        <Link prefetch={false} 
                           href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`}
                           className="text-white hover:text-blue-400 transition-colors font-medium"
                         >
@@ -507,7 +507,7 @@ export default async function HaywardFaultPage() {
               <Radio className="w-8 h-8 text-red-400 animate-pulse" />
               Recent Earthquakes Near the Fault
             </h2>
-            <Link 
+            <Link prefetch={false} 
               href="/today" 
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
@@ -520,7 +520,7 @@ export default async function HaywardFaultPage() {
               <ul className="divide-y divide-white/5">
                 {recentQuakes.map(eq => (
                   <li key={eq.id}>
-                    <Link 
+                    <Link prefetch={false} 
                       href={`/earthquake/${eq.id}`}
                       className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                     >
@@ -582,21 +582,21 @@ export default async function HaywardFaultPage() {
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Related Resources</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/san-andreas-fault"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
               <h3 className="font-semibold mb-2 group-hover:text-amber-400 transition-colors">San Andreas Fault</h3>
               <p className="text-sm text-neutral-400">California's most famous fault, 800 miles long</p>
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
               <h3 className="font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Preparedness Guide</h3>
               <p className="text-sm text-neutral-400">Emergency kits, safety tips, and family plans</p>
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/region/berkeley-oakland"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
@@ -612,13 +612,13 @@ export default async function HaywardFaultPage() {
             Stay informed about earthquake activity in the East Bay.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors"
             >
               View Live Dashboard
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
             >

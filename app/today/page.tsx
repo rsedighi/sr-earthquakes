@@ -207,7 +207,7 @@ export default async function TodayPage() {
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li className="text-white">Earthquakes Today</li>
@@ -215,7 +215,7 @@ export default async function TodayPage() {
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -295,7 +295,7 @@ export default async function TodayPage() {
             <p className="text-neutral-300">
               A M{lastHour[0].magnitude.toFixed(1)} earthquake occurred {formatTimeAgo(lastHour[0].timestamp)} near {lastHour[0].place}.
               {' '}
-              <Link href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
+              <Link prefetch={false} href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
                 View details and report if you felt it →
               </Link>
             </p>
@@ -312,6 +312,7 @@ export default async function TodayPage() {
             <div className="flex flex-wrap gap-2">
               {Array.from(affectedCities).slice(0, 15).map(city => (
                 <Link
+                  prefetch={false}
                   key={city}
                   href={`/city/${city.toLowerCase().replace(/\s+/g, '-')}`}
                   className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-sm transition-colors"
@@ -345,7 +346,7 @@ export default async function TodayPage() {
                     const region = getRegionById(eq.region);
                     return (
                       <li key={eq.id}>
-                        <Link 
+                        <Link prefetch={false} 
                           href={`/earthquake/${eq.id}`}
                           className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                         >
@@ -416,28 +417,28 @@ export default async function TodayPage() {
         
         {/* Quick Links */}
         <section className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link 
+          <Link prefetch={false} 
             href="/learn"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-center"
           >
             <span className="block text-sm text-neutral-400">Learn About</span>
             <span className="font-semibold">Earthquakes</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/faq"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-center"
           >
             <span className="block text-sm text-neutral-400">Frequently Asked</span>
             <span className="font-semibold">Questions</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/my-area"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-center"
           >
             <span className="block text-sm text-neutral-400">Earthquakes In</span>
             <span className="font-semibold">My Area</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/history"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-center"
           >

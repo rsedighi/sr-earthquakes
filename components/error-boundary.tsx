@@ -73,6 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Try Again
               </button>
               <Link
+                prefetch={false}
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors font-medium"
               >

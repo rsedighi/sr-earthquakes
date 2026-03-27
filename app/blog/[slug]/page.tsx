@@ -279,7 +279,7 @@ function formatInlineText(text: string): React.ReactNode {
       return (
         <span key={i}>
           {before}
-          <Link href={href} className="text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+          <Link prefetch={false} href={href} className="text-blue-400 hover:text-blue-300 hover:underline transition-colors">
             {linkText}
           </Link>
           {after}
@@ -380,6 +380,7 @@ function ContentRenderer({ sections, category }: { sections: ContentSection[]; c
           case 'link-card':
             return (
               <Link
+                prefetch={false}
                 key={index}
                 href={section.href || '#'}
                 className="block p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:bg-white/[0.05] hover:border-white/20 transition-all group my-4"
@@ -481,16 +482,16 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
-            <li><Link href="/" className="hover:text-white transition-colors flex items-center gap-1"><HomeIcon className="w-3.5 h-3.5" /> Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors flex items-center gap-1"><HomeIcon className="w-3.5 h-3.5" /> Home</Link></li>
             <li className="text-neutral-600">/</li>
-            <li><Link href="/blog" className="hover:text-white transition-colors flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Blog</Link></li>
+            <li><Link prefetch={false} href="/blog" className="hover:text-white transition-colors flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Blog</Link></li>
             <li className="text-neutral-600">/</li>
             <li className="text-neutral-300">{getCategoryLabel(post.category)}</li>
           </ol>
         </nav>
         
         {/* Back Link */}
-        <Link 
+        <Link prefetch={false} 
           href="/blog"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -601,7 +602,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-colors group"
           >
@@ -613,7 +614,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <div className="text-sm text-neutral-500">View real-time data</div>
             </div>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/felt-earthquake"
             className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-colors group"
           >
@@ -625,7 +626,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <div className="text-sm text-neutral-500">Did you feel it?</div>
             </div>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/earthquake-preparedness"
             className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl hover:bg-green-500/20 transition-colors group"
           >
@@ -701,6 +702,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {relatedPosts.map(related => (
                 <Link
+                  prefetch={false}
                   key={related.slug}
                   href={`/blog/${related.slug}`}
                   className="bg-neutral-900 rounded-xl border border-white/10 p-5 hover:border-white/20 hover:bg-neutral-900/80 transition-all group"
@@ -731,6 +733,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             {recentPosts.map(recent => (
               <li key={recent.slug}>
                 <Link
+                  prefetch={false}
                   href={`/blog/${recent.slug}`}
                   className="flex items-center justify-between gap-4 p-3 -mx-3 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-all group"
                 >
@@ -748,7 +751,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               </li>
             ))}
           </ul>
-          <Link 
+          <Link prefetch={false} 
             href="/blog"
             className="inline-flex items-center gap-2 mt-4 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
           >

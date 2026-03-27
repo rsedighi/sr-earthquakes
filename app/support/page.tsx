@@ -13,7 +13,7 @@ export default function SupportPage() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8"
           >
@@ -158,7 +158,7 @@ export default function SupportPage() {
           <section>
             <h2 className="text-2xl font-semibold mb-6">Helpful Links</h2>
             <div className="grid sm:grid-cols-2 gap-4">
-              <Link 
+              <Link prefetch={false} 
                 href="/privacy"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >
@@ -173,7 +173,7 @@ export default function SupportPage() {
                 </div>
               </Link>
 
-              <Link 
+              <Link prefetch={false} 
                 href="/faq"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >
@@ -205,7 +205,7 @@ export default function SupportPage() {
                 </div>
               </a>
 
-              <Link 
+              <Link prefetch={false} 
                 href="/about"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >

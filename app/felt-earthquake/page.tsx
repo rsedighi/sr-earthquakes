@@ -191,14 +191,14 @@ export default function FeltEarthquakePage() {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
             <li className="text-white">Did You Feel It?</li>
           </ol>
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -287,7 +287,7 @@ export default function FeltEarthquakePage() {
                     <> It was <strong className="text-white">{(mostRecentQuake as any).distance.toFixed(1)} miles</strong> from your location.</>
                   )}
                 </p>
-                <Link 
+                <Link prefetch={false} 
                   href={`/earthquake/${mostRecentQuake.id}`}
                   className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-medium"
                 >
@@ -363,7 +363,7 @@ export default function FeltEarthquakePage() {
               )}
             </div>
             
-            <Link 
+            <Link prefetch={false} 
               href="/today"
               className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 mt-4 text-sm"
             >
@@ -548,8 +548,8 @@ export default function FeltEarthquakePage() {
             </p>
             <p className="text-neutral-300 mb-4">
               The San Francisco Bay Area is one of the most seismically active regions in the United States. 
-              With major fault lines like the <Link href="/san-andreas-fault" className="text-blue-400 hover:text-blue-300">San Andreas Fault</Link> and 
-              the <Link href="/hayward-fault" className="text-blue-400 hover:text-blue-300">Hayward Fault</Link> running 
+              With major fault lines like the <Link prefetch={false} href="/san-andreas-fault" className="text-blue-400 hover:text-blue-300">San Andreas Fault</Link> and 
+              the <Link prefetch={false} href="/hayward-fault" className="text-blue-400 hover:text-blue-300">Hayward Fault</Link> running 
               through the region, earthquakes are a regular occurrence.
             </p>
             <p className="text-neutral-300">
@@ -562,7 +562,7 @@ export default function FeltEarthquakePage() {
         
         {/* Related Links */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link 
+          <Link prefetch={false} 
             href="/today"
             className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
           >
@@ -570,7 +570,7 @@ export default function FeltEarthquakePage() {
             <h3 className="font-semibold mb-1 group-hover:text-red-400 transition-colors">Today's Earthquakes</h3>
             <p className="text-sm text-neutral-400">See all Bay Area earthquakes today</p>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/earthquake-preparedness"
             className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
           >
@@ -578,7 +578,7 @@ export default function FeltEarthquakePage() {
             <h3 className="font-semibold mb-1 group-hover:text-emerald-400 transition-colors">Preparedness Guide</h3>
             <p className="text-sm text-neutral-400">Learn how to prepare for earthquakes</p>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/faq"
             className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
           >
