@@ -67,9 +67,59 @@ export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
 import { formatDepth, formatDepthDeep, formatRadius, formatDistanceBoth, formatDistance, kmToMiles, getDepthDescription } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 // Dynamically import heavy tab components so they don't bundle into the homepage
-const RegionComparison = dynamic(() => import('./region-comparison').then(mod => mod.RegionComparison), { ssr: false });
-const MyNeighborhood = dynamic(() => import('./my-neighborhood').then(mod => mod.MyNeighborhood), { ssr: false });
-const HistoricalSwarms = dynamic(() => import('./historical-swarms').then(mod => mod.HistoricalSwarms), { ssr: false });
+const RegionComparison = dynamic(() => import('./region-comparison').then(mod => mod.RegionComparison), { 
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-white/10 flex-shrink-0" />
+        <div className="space-y-2 flex-1">
+          <div className="h-6 bg-white/10 rounded w-1/4" />
+          <div className="h-4 bg-white/5 rounded w-1/3" />
+        </div>
+      </div>
+      <div className="flex justify-center my-6"><div className="h-12 bg-white/5 rounded-xl w-64" /></div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="h-[500px] bg-white/5 rounded-2xl border border-white/10" />
+        <div className="h-[500px] bg-white/5 rounded-2xl border border-white/10" />
+      </div>
+    </div>
+  )
+});
+const MyNeighborhood = dynamic(() => import('./my-neighborhood').then(mod => mod.MyNeighborhood), { 
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl border border-white/10" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white/5 rounded-xl border border-white/5" />)}
+      </div>
+      <div className="h-[400px] bg-white/5 rounded-xl border border-white/5" />
+    </div>
+  )
+});
+const HistoricalSwarms = dynamic(() => import('./historical-swarms').then(mod => mod.HistoricalSwarms), { 
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-white/10 flex-shrink-0" />
+        <div className="space-y-2 flex-1">
+          <div className="h-6 bg-white/10 rounded w-1/3" />
+          <div className="h-4 bg-white/5 rounded w-1/2" />
+        </div>
+      </div>
+      <div className="flex gap-4">
+        <div className="h-12 bg-white/5 rounded-xl w-48" />
+        <div className="h-12 bg-white/5 rounded-xl w-40" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white/5 rounded-xl border border-white/5" />)}
+      </div>
+      <div className="h-96 bg-white/5 rounded-xl border border-white/10 mt-6" />
+    </div>
+  )
+});
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { BayAreaLogo } from './bay-area-logo';
 import { CommunityWidget } from './bay-tremor-community';
@@ -1813,10 +1863,26 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           <>
             {/* Historical Swarms by Region - New Feature */}
             {historicalLoading && !historicalLoaded ? (
-              <div className="card p-12 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-neutral-500 mx-auto mb-4" />
-                <p className="text-neutral-500">Loading 15 years of earthquake data...</p>
-                <p className="text-xs text-neutral-600 mt-2">This may take a moment</p>
+              <div className="space-y-6 animate-pulse">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex-shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-6 bg-white/10 rounded w-1/3" />
+                    <div className="h-4 bg-white/5 rounded w-1/2" />
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="h-12 bg-white/5 rounded-xl w-48" />
+                  <div className="h-12 bg-white/5 rounded-xl w-40" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-24 bg-white/5 rounded-xl border border-white/5" />)}
+                </div>
+                <div className="h-96 bg-white/5 rounded-xl border border-white/10 mt-6" />
+                <div className="text-center mt-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-neutral-500 mx-auto mb-2" />
+                  <p className="text-xs text-neutral-500">Loading historical data...</p>
+                </div>
               </div>
             ) : (
               <HistoricalSwarms 

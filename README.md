@@ -15,6 +15,7 @@ This branch implements a comprehensive suite of performance optimizations for Ba
 ### 2. Elimination of Layout Shifts (Core Web Vitals)
 **Dynamic Map Skeletons:** Improved the loading states for dynamic Leaflet and Fault maps in `components/dashboard.tsx`. Instead of a simple spinner, they now use a themed skeleton that matches the final UI layout, preventing the page from "jumping" when the map mounts.
 **Earthquake List Skeletons:** Refined the list loading skeletons to match the exact 104px height of the earthquake cards, ensuring a stable scroll position during initial load.
+**History & Dashboard Tab Skeletons:** Replaced simple spinners with robust, layout-matching skeletons for heavy dynamic tabs (`HistoricalSwarms`, `RegionComparison`, `MyNeighborhood`) and client-side history data fetches in `components/dashboard.tsx`. This eliminates the massive layout shift previously seen on the History page.
 
 ### 3. Image Optimization
 **Next.js Image Migration:** Replaced various raw `<img>` tags with the Next.js `Image` component to benefit from automatic resizing, lazy loading, and modern format support (WebP/AVIF).
