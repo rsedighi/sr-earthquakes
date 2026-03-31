@@ -2,7 +2,7 @@
 // This file contains heavy data operations that should NEVER be serialized to the client
 
 import 'server-only';
-import { cacheLife } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 import { Earthquake, SwarmEvent } from './types';
@@ -13,6 +13,7 @@ import { detectSwarms } from './analysis';
 export async function loadAllEarthquakes(): Promise<Earthquake[]> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes');
 
   const dataDir = path.join(process.cwd(), 'data');
   const allEarthquakes: Earthquake[] = [];
@@ -67,6 +68,7 @@ export async function loadAllEarthquakes(): Promise<Earthquake[]> {
 export async function loadRecentEarthquakes(maxRecords = 3000): Promise<Earthquake[]> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes');
 
   const dataDir = path.join(process.cwd(), 'data');
   const sixMonthsAgo = Date.now() - 6 * 30 * 24 * 60 * 60 * 1000;
@@ -172,6 +174,7 @@ export interface HistoricalSummary {
 export async function generateHistoricalSummary(): Promise<HistoricalSummary> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes', 'history');
 
   const earthquakes = await loadAllEarthquakes();
   
