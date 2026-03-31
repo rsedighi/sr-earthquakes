@@ -54,18 +54,6 @@ const RegionComparison = dynamic(() => import('@/components/region-comparison').
   )
 });
 
-const MyNeighborhood = dynamic(() => import('@/components/my-neighborhood').then(mod => mod.MyNeighborhood), { 
-  ssr: false,
-  loading: () => (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl border border-white/10" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white/5 rounded-xl border border-white/5" />)}
-      </div>
-      <div className="h-[400px] bg-white/5 rounded-xl border border-white/5" />
-    </div>
-  )
-});
 
 export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardProps) {
   const { unitSystem } = useUnits();
@@ -132,7 +120,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
   const [historicalLoading, setHistoricalLoading] = useState(false);
   const [historicalLoaded, setHistoricalLoaded] = useState(false);
 
-  const isHistoricalTab = activeTab === 'neighborhood' || activeTab === 'compare' || activeTab === 'history';
+  const isHistoricalTab = activeTab === 'compare' || activeTab === 'history';
   const {
     earthquakes: recentQuakes,
   } = useHistoricalEarthquakes({
@@ -427,14 +415,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
             m3PlusCount={m3PlusCount}
             avgDepth={avgDepth}
             strongestToday={strongestToday}
-          />
-        )}
-
-        {activeTab === 'neighborhood' && (
-          <MyNeighborhood 
-            historicalEarthquakes={allHistoricalQuakes}
-            isLoadingHistorical={historicalLoading}
-            onRequestHistoricalData={loadHistoricalQuakes}
           />
         )}
 

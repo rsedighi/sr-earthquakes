@@ -17,7 +17,6 @@ import {
   Clock,
   Activity,
   AlertCircle,
-  Home,
   ChevronRight,
   Loader2
 } from 'lucide-react';
@@ -248,17 +247,6 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Page Header */}
-      <header className="flex items-center gap-3" role="banner" aria-label="My Neighborhood page header">
-        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center" aria-hidden="true">
-          <Home className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-white">My Neighborhood</h1>
-          <p className="text-sm text-neutral-400">Find earthquakes people felt near your address</p>
-        </div>
-      </header>
-      
       {/* Address Search */}
       <AddressSearch
         onLocationSelect={handleLocationSelect}
