@@ -40,6 +40,7 @@ interface MyNeighborhoodProps {
   // Historical earthquakes - ideally 10 years of data
   historicalEarthquakes: Earthquake[];
   isLoadingHistorical?: boolean;
+  onRequestHistoricalData?: () => void;
   className?: string;
 }
 
@@ -71,7 +72,7 @@ interface SavedAddress {
   lastSearchAt: string;
 }
 
-export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = false, className = '' }: MyNeighborhoodProps) {
+export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = false, onRequestHistoricalData, className = '' }: MyNeighborhoodProps) {
   const { unitSystem } = useUnits();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -125,6 +126,13 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
     
     loadAddresses();
   }, []);
+  
+  // Request historical data once we have a user location
+  useEffect(() => {
+    if (userLocation && !isLoadingHistorical && historicalEarthquakes.length === 0 && onRequestHistoricalData) {
+      onRequestHistoricalData();
+    }
+  }, [userLocation, isLoadingHistorical, historicalEarthquakes.length, onRequestHistoricalData]);
   
   // Save location to MongoDB when user selects an address
   const handleLocationSelect = async (location: { lat: number; lon: number; address: string }) => {
