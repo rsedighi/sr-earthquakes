@@ -302,7 +302,7 @@ export default async function BlogPage() {
                 const timestamp = post.imageContext?.timestamp || post.date.getTime();
                 const city = post.imageContext?.primaryCity || post.affectedCities?.[0] || 'Bay Area';
                 const dbImage = blogImages.get(post.slug);
-                const heroImageUrl = dbImage?.imageUrl;
+                const heroImageUrl = dbImage?.imageUrl?.startsWith('https://') ? dbImage.imageUrl : undefined;
                 
                 return (
                 <Link
@@ -320,6 +320,7 @@ export default async function BlogPage() {
                         src={heroImageUrl} 
                         alt={post.title}
                         fill
+                        sizes={index === 0 ? '(max-width: 768px) 100vw, 66vw' : '(max-width: 768px) 100vw, 33vw'}
                         className="object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
