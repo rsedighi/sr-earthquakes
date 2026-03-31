@@ -8,9 +8,13 @@ const nextConfig = {
   // Ensure consistent compression behavior
   compress: true,
 
-  // Allow Amazon product images
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'm.media-amazon.com',

@@ -10,6 +10,7 @@ import {
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getAllBlogPosts, getBlogPostBySlug, BlogPost } from '@/lib/blog-generator';
 import { generateBreadcrumbSchema } from '@/lib/seo';
+import { getBlogImage } from '@/lib/mongodb';
 import HeroImageGenerator from '@/components/HeroImageGenerator';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
@@ -93,6 +94,16 @@ async function getCachedBlogPostBySlug(slug: string) {
 
   const earthquakes = await loadAllEarthquakes();
   return getBlogPostBySlug(earthquakes, slug);
+}
+
+async function getCachedBlogImage(slug: string) {
+  'use cache';
+  cacheLife('hours');
+
+  const image = await getBlogImage(slug);
+  if (!image?.imageUrl) return null;
+  if (image.imageUrl.startsWith('data:')) return null;
+  return image.imageUrl;
 }
 
 export async function generateStaticParams() {
@@ -416,6 +427,8 @@ export default async function BlogPostPage({ params }: PageProps) {
   if (!post) {
     notFound();
   }
+
+  const heroImageUrl = await getCachedBlogImage(resolvedParams.slug);
   
   // Parse content into sections
   const contentSections = parseContent(post.content);
@@ -558,13 +571,14 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </header>
         
-        {/* Hero Image Section - Interactive AI Generation */}
+        {/* Hero Image Section */}
         <HeroImageGenerator 
           imageContext={post.imageContext}
           title={post.title}
           category={post.category}
           slug={post.slug}
           date={post.date}
+          imageUrl={heroImageUrl}
         />
         
         {/* Key Stats Cards (for roundups and reports) */}

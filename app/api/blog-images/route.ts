@@ -210,21 +210,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!cloudinaryResult.success || !cloudinaryResult.url) {
       console.error('Cloudinary upload failed:', cloudinaryResult.error);
-      // Fall back to base64 if Cloudinary fails
-      const fallbackUrl = `data:image/png;base64,${base64Data}`;
-      return NextResponse.json({
-        success: true,
-        cached: false,
-        cloudinaryError: cloudinaryResult.error,
-        image: {
-          imageUrl: fallbackUrl,
-          city: generatedPrompt.metadata.city,
-          timeOfDay: generatedPrompt.metadata.timeOfDay,
-          weather: generatedPrompt.metadata.weather,
-          season: generatedPrompt.metadata.season,
-        },
-        generationTime: Date.now() - startTime,
-      });
+      return NextResponse.json(
+        { success: false, error: 'Image generated but CDN upload failed. Please retry.' },
+        { status: 502 }
+      );
     }
 
     const imageUrl = cloudinaryResult.url;
