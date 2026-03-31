@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { 
   MessageCircle, 
@@ -28,7 +28,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
   const [comments, setComments] = useState<CommentWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true); // Start expanded for prominence
+  const [isExpanded, setIsExpanded] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -39,39 +39,102 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
   const [location, setLocation] = useState('');
   const [feltIt, setFeltIt] = useState(false);
   
-  // Load comments
-  const loadComments = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/comments?earthquakeId=${earthquakeId}`);
-      if (!res.ok) throw new Error('Failed to load comments');
-      const data = await res.json();
-      setComments(data.comments || []);
-    } catch (err) {
-      console.error('Error loading comments:', err);
-      setError('Failed to load comments');
-    } finally {
-      setIsLoading(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const loadComments = useCallback(async (signal?: AbortSignal) => {
+    const MAX_RETRIES = 3;
+    const BASE_DELAY_MS = 500;
+    const TIMEOUT_MS = 8000;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (signal?.aborted) return;
+
+      try {
+        const timeoutController = new AbortController();
+        const timeoutId = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
+
+        const combinedSignal = signal
+          ? AbortSignal.any([signal, timeoutController.signal])
+          : timeoutController.signal;
+
+        const res = await fetch(
+          `/api/comments?earthquakeId=${earthquakeId}`,
+          { signal: combinedSignal }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          setComments(data.comments || []);
+          setError(null);
+          return;
+        }
+
+        const isRetryable = res.status >= 500 || res.status === 403 || res.status === 429 || res.status === 469;
+        if (!isRetryable || attempt === MAX_RETRIES) {
+          throw new Error(`Failed to load comments (${res.status})`);
+        }
+      } catch (err: unknown) {
+        if (signal?.aborted) return;
+
+        const isAbort = err instanceof DOMException && err.name === 'AbortError';
+        if (isAbort && !signal?.aborted) {
+          if (attempt === MAX_RETRIES) {
+            setError('Comments took too long to load');
+            setIsLoading(false);
+            return;
+          }
+        } else if (isAbort) {
+          return;
+        }
+
+        if (attempt === MAX_RETRIES) {
+          console.error('Error loading comments:', err);
+          setError('Failed to load comments');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, delay));
     }
   }, [earthquakeId]);
   
-  // Set up real-time subscription
+  const retryLoad = useCallback(() => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setIsLoading(true);
+    setError(null);
+    loadComments(controller.signal).finally(() => setIsLoading(false));
+  }, [loadComments]);
+
   useEffect(() => {
-    loadComments();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsLoading(true);
+    setError(null);
+    loadComments(controller.signal).finally(() => {
+      if (!controller.signal.aborted) setIsLoading(false);
+    });
     
     const pusher = getPusherClient();
-    if (!pusher) return;
+    if (!pusher) return () => controller.abort();
     
     const channel = pusher.subscribe(getEarthquakeChannel(earthquakeId));
     
     channel.bind(PUSHER_EVENTS.NEW_COMMENT, (newComment: CommentWithId) => {
       setComments(prev => {
-        // Avoid duplicates
         if (prev.some(c => c._id === newComment._id)) return prev;
         return [newComment, ...prev];
       });
     });
     
     return () => {
+      controller.abort();
       channel.unbind_all();
       pusher.unsubscribe(getEarthquakeChannel(earthquakeId));
     };
@@ -280,7 +343,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
               </button>
             </div>
             
-            {error && (
+            {error && error !== 'Failed to load comments' && error !== 'Comments took too long to load' && (
               <p className="mt-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
             )}
           </form>
@@ -290,6 +353,19 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-5 h-5 animate-spin text-neutral-500" />
+              </div>
+            ) : error && comments.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-900/30 flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 text-red-400/60" />
+                </div>
+                <p className="text-neutral-400 text-sm font-medium">{error}</p>
+                <button
+                  onClick={retryLoad}
+                  className="mt-3 px-4 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors"
+                >
+                  Try again
+                </button>
               </div>
             ) : topLevelComments.length === 0 ? (
               <div className="text-center py-8 px-4">

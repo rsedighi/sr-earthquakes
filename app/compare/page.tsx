@@ -4,6 +4,7 @@ import { generateHistoricalSummary } from '@/lib/server-data';
 import { DashboardLoading } from '@/components/dashboard-loading';
 import type { Metadata } from 'next';
 
+
 export const metadata: Metadata = {
   title: 'Compare Regions',
   description: 'Compare earthquake activity across Bay Area regions. See side-by-side seismic data for San Ramon, Oakland, San Francisco, San Jose, and other areas.',
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ComparePage() {
-  const summary = generateHistoricalSummary();
+  const summary = await generateHistoricalSummary();
   
   return (
     <Suspense fallback={<DashboardLoading />}>
@@ -22,7 +23,3 @@ export default async function ComparePage() {
     </Suspense>
   );
 }
-
-export const revalidate = 3600;
-
-

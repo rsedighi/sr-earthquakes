@@ -92,6 +92,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                 const active = isActive(item.href);
                 return (
                   <Link
+                   prefetch={false}
                     key={item.id}
                     href={item.href}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -120,6 +121,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                 const active = isActive(item.href);
                 return (
                   <Link
+                   prefetch={false}
                     key={item.id}
                     href={item.href}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -159,6 +161,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                       const Icon = item.icon;
                       return (
                         <Link
+                         prefetch={false}
                           key={item.id}
                           href={item.href}
                           className="flex items-center gap-3 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -197,6 +200,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                   <div className="absolute right-0 top-full mt-1 w-[420px] bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-50 py-2 max-h-[70vh] overflow-y-auto">
                     {REGIONS.map(region => (
                       <Link
+                       prefetch={false}
                         key={region.id}
                         href={`/region/${region.id}`}
                         className="flex items-center gap-4 px-4 py-3 text-sm text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -215,6 +219,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
               </div>
               
               <Link
+               prefetch={false}
                 href="/about"
                 className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               >
@@ -222,6 +227,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                 About
               </Link>
               <Link
+               prefetch={false}
                 href="/faq"
                 className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               >
@@ -246,6 +252,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
             const active = isActive(item.href);
             return (
               <Link
+               prefetch={false}
                 key={item.id}
                 href={item.href}
                 className={`flex flex-col items-center gap-1 px-3 py-2 min-w-[50px] rounded-xl transition-all ${
@@ -306,6 +313,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                     const active = isActive(item.href);
                     return (
                       <Link
+                       prefetch={false}
                         key={item.id}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
@@ -331,6 +339,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                     const Icon = item.icon;
                     return (
                       <Link
+                       prefetch={false}
                         key={item.id}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
@@ -355,6 +364,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                 <div className="grid grid-cols-2 gap-2">
                   {REGIONS.slice(0, 6).map(region => (
                     <Link
+                     prefetch={false}
                       key={region.id}
                       href={`/region/${region.id}`}
                       onClick={() => setMobileMenuOpen(false)}
@@ -368,6 +378,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                   ))}
                 </div>
                 <Link
+                 prefetch={false}
                   href="/region/san-francisco"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-2 mt-3 px-4 py-2.5 rounded-xl text-blue-400 hover:bg-white/5 transition-all text-sm font-medium"
@@ -380,6 +391,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
               {/* About & FAQ */}
               <div className="flex gap-2 mb-6">
                 <Link
+                 prefetch={false}
                   href="/about"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-neutral-300 hover:bg-white/10 transition-all"
@@ -388,6 +400,7 @@ export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
                   About
                 </Link>
                 <Link
+                 prefetch={false}
                   href="/faq"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-neutral-300 hover:bg-white/10 transition-all"

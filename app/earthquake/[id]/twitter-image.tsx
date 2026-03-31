@@ -2,17 +2,12 @@ import { ImageResponse } from 'next/og';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 
-// Use edge runtime for faster cold starts
-export const runtime = 'edge';
 export const alt = 'Earthquake details';
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = 'image/png';
-
-// Cache but allow updates (magnitude can change from 2.1 to 2.5)
-export const revalidate = 3600; // 1 hour
 
 interface Earthquake {
   id: string;

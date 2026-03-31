@@ -208,14 +208,14 @@ export default function EarthquakePreparednessPage() {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
             <li className="text-white">Earthquake Preparedness</li>
           </ol>
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -587,7 +587,7 @@ export default function EarthquakePreparednessPage() {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <Link href="/hayward-fault" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
+            <Link prefetch={false} href="/hayward-fault" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
               <h3 className="font-semibold text-lg mb-2 text-red-400 group-hover:text-red-300">Hayward Fault</h3>
               <p className="text-neutral-400 text-sm mb-3">
                 Called "the most dangerous fault in America." Runs through Oakland, Berkeley, Fremont. 
@@ -596,7 +596,7 @@ export default function EarthquakePreparednessPage() {
               <span className="text-xs text-neutral-500">Affected cities: Oakland, Berkeley, Hayward, Fremont →</span>
             </Link>
             
-            <Link href="/san-andreas-fault" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
+            <Link prefetch={false} href="/san-andreas-fault" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
               <h3 className="font-semibold text-lg mb-2 text-red-400 group-hover:text-red-300">San Andreas Fault</h3>
               <p className="text-neutral-400 text-sm mb-3">
                 California's most famous fault. Caused the 1906 San Francisco earthquake. 
@@ -605,7 +605,7 @@ export default function EarthquakePreparednessPage() {
               <span className="text-xs text-neutral-500">Affected cities: San Francisco, Daly City, Pacifica →</span>
             </Link>
             
-            <Link href="/region/san-ramon" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
+            <Link prefetch={false} href="/region/san-ramon" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
               <h3 className="font-semibold text-lg mb-2 text-amber-400 group-hover:text-amber-300">Calaveras Fault</h3>
               <p className="text-neutral-400 text-sm mb-3">
                 Causes frequent earthquake swarms in the Tri-Valley area. 
@@ -614,7 +614,7 @@ export default function EarthquakePreparednessPage() {
               <span className="text-xs text-neutral-500">Affected cities: San Ramon, Dublin, Pleasanton →</span>
             </Link>
             
-            <Link href="/region/sonoma-north" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
+            <Link prefetch={false} href="/region/sonoma-north" className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group">
               <h3 className="font-semibold text-lg mb-2 text-amber-400 group-hover:text-amber-300">Rodgers Creek Fault</h3>
               <p className="text-neutral-400 text-sm mb-3">
                 Northern extension of the Hayward Fault. Runs through Sonoma County 
@@ -790,13 +790,13 @@ export default function EarthquakePreparednessPage() {
             Stay informed about earthquake activity in your area.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors"
             >
               View Live Earthquake Data
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/faq"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
             >

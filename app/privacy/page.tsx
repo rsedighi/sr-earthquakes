@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { CurrentYear } from '@/components/current-year';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
@@ -19,11 +20,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white pb-20 md:pb-0">
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8"
           >
@@ -212,7 +213,7 @@ export default function PrivacyPage() {
             </p>
             <p className="text-neutral-300 mt-4">
               For support issues, visit{' '}
-              <Link href="/support" className="text-cyan-400 hover:text-cyan-300">
+              <Link prefetch={false} href="/support" className="text-cyan-400 hover:text-cyan-300">
                 Support
               </Link>
               .
@@ -230,7 +231,7 @@ export default function PrivacyPage() {
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-neutral-800">
           <p className="text-neutral-500 text-sm">
-            © {new Date().getFullYear()} Bay Tremor. All rights reserved.
+            © <CurrentYear /> Bay Tremor. All rights reserved.
           </p>
         </div>
       </div>

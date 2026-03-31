@@ -516,7 +516,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
                   <p className="text-xs text-neutral-400">Extended discussion with the community</p>
                 </div>
               </div>
-              <Link
+              <Link prefetch={false}
                 href={`/?tab=community`}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-colors text-sm font-medium"
               >
@@ -609,7 +609,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
               Explore the live earthquake map and track all recent seismic activity in the Bay Area.
             </p>
           </div>
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors font-medium"
           >

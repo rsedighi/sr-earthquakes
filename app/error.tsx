@@ -52,6 +52,7 @@ export default function Error({
             Try Again
           </button>
           <Link
+            prefetch={false}
             href="/"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors font-semibold"
           >

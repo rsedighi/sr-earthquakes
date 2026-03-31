@@ -4,6 +4,7 @@ import { ArrowLeft, Activity, Database, MapPin, Zap, Shield, Clock } from 'lucid
 import { generateBreadcrumbSchema, generateOrganizationSchema } from '@/lib/seo';
 import { REGIONS } from '@/lib/regions';
 
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
 export const metadata: Metadata = {
@@ -51,7 +52,7 @@ export default function AboutPage() {
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li className="text-white">About</li>
@@ -59,7 +60,7 @@ export default function AboutPage() {
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -184,6 +185,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {REGIONS.map(region => (
               <Link
+                prefetch={false}
                 key={region.id}
                 href={`/region/${region.id}`}
                 className="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg border border-white/10 hover:bg-white/5 hover:border-white/30 transition-all group"
@@ -215,13 +217,13 @@ export default function AboutPage() {
             Ready to explore earthquake activity in your area?
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors"
             >
               View Live Dashboard
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/faq"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
             >

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cacheLife } from 'next/cache';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { generateEarthquakeEventSchema, generateEarthquakeArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
@@ -28,11 +29,12 @@ interface Earthquake {
 }
 
 async function getEarthquake(id: string): Promise<Earthquake | null> {
-  // First try USGS API
+  'use cache';
+  cacheLife('minutes');
+
   try {
     const response = await fetch(
-      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`,
-      { next: { revalidate: 300 } }
+      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${id}.geojson`
     );
     
     if (response.ok) {
@@ -144,7 +146,7 @@ export async function generateMetadata({
       description,
       type: 'article',
       publishedTime: date.toISOString(),
-      modifiedTime: new Date().toISOString(),
+      modifiedTime: date.toISOString(),
       authors: ['Bay Tremor'],
       tags: keywords,
       url: `${baseUrl}/earthquake/${id}`,
@@ -233,7 +235,7 @@ export default async function EarthquakePage({
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* JSON-LD Structured Data for rich snippets */}
       <script
         type="application/ld+json"
@@ -246,7 +248,7 @@ export default async function EarthquakePage({
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="flex items-center gap-3 text-neutral-400 hover:text-white transition-colors group"
             >
@@ -268,13 +270,13 @@ export default async function EarthquakePage({
         <nav className="max-w-4xl mx-auto mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             {region && (
               <>
                 <li>
-                  <Link href={`/region/${region.id}`} className="hover:text-white transition-colors">
+                  <Link prefetch={false} href={`/region/${region.id}`} className="hover:text-white transition-colors">
                     {region.name.split(' / ')[0]}
                   </Link>
                 </li>

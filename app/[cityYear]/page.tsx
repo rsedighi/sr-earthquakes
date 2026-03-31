@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Calendar, TrendingUp, AlertTriangle, ChevronRight, BarChart3 } from 'lucide-react';
@@ -136,6 +137,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CityYearPage({ params }: PageProps) {
+  'use cache';
+  cacheLife('days');
+
   const resolvedParams = await params;
   const parsed = parseSlug(resolvedParams.cityYear);
   
@@ -161,7 +165,7 @@ export default async function CityYearPage({ params }: PageProps) {
   });
   
   // Load earthquakes
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const yearStart = new Date(year, 0, 1).getTime();
   const yearEnd = new Date(year + 1, 0, 1).getTime();
   
@@ -249,7 +253,7 @@ export default async function CityYearPage({ params }: PageProps) {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -261,16 +265,16 @@ export default async function CityYearPage({ params }: PageProps) {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
-            <li><Link href={`/city/${citySlug}`} className="hover:text-white transition-colors">{cityName}</Link></li>
+            <li><Link prefetch={false} href={`/city/${citySlug}`} className="hover:text-white transition-colors">{cityName}</Link></li>
             <li>/</li>
             <li className="text-white">{year} Earthquakes</li>
           </ol>
         </nav>
         
         {/* Back Link */}
-        <Link 
+        <Link prefetch={false} 
           href={`/city/${citySlug}`}
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -311,6 +315,7 @@ export default async function CityYearPage({ params }: PageProps) {
         <div className="flex flex-wrap gap-2 mb-8">
           {availableYears.map(y => (
             <Link
+              prefetch={false}
               key={y}
               href={`/${citySlug}-earthquakes-${y}`}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -391,7 +396,7 @@ export default async function CityYearPage({ params }: PageProps) {
                   <ul className="divide-y divide-white/5">
                     {significantQuakes.map(eq => (
                       <li key={eq.id}>
-                        <Link 
+                        <Link prefetch={false} 
                           href={`/earthquake/${eq.id}`}
                           className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                         >
@@ -463,7 +468,7 @@ export default async function CityYearPage({ params }: PageProps) {
                     const distance = haversineDistance(cityData.lat, cityData.lon, eq.latitude, eq.longitude);
                     return (
                       <li key={eq.id}>
-                        <Link 
+                        <Link prefetch={false} 
                           href={`/earthquake/${eq.id}`}
                           className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors"
                         >
@@ -505,7 +510,7 @@ export default async function CityYearPage({ params }: PageProps) {
         
         {/* Related Links */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link 
+          <Link prefetch={false} 
             href={`/${citySlug}-earthquake-today`}
             className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors"
           >
@@ -513,7 +518,7 @@ export default async function CityYearPage({ params }: PageProps) {
             <span className="block font-semibold">{cityName} Today</span>
             <span className="text-sm text-neutral-500">Live earthquake activity</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href={`/city/${citySlug}`}
             className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-colors"
           >
@@ -522,7 +527,7 @@ export default async function CityYearPage({ params }: PageProps) {
             <span className="text-sm text-neutral-500">All-time data & analysis</span>
           </Link>
           {region && (
-            <Link 
+            <Link prefetch={false} 
               href={`/region/${region.id}`}
               className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-colors"
             >
@@ -548,11 +553,11 @@ export default async function CityYearPage({ params }: PageProps) {
           </p>
           <p>
             For real-time earthquake information, visit the{' '}
-            <Link href={`/${citySlug}-earthquake-today`} className="text-blue-400 hover:text-blue-300">
+            <Link prefetch={false} href={`/${citySlug}-earthquake-today`} className="text-blue-400 hover:text-blue-300">
               {cityName} Earthquake Today
             </Link>{' '}
             page, or explore our{' '}
-            <Link href="/earthquake-preparedness" className="text-blue-400 hover:text-blue-300">
+            <Link prefetch={false} href="/earthquake-preparedness" className="text-blue-400 hover:text-blue-300">
               earthquake preparedness guide
             </Link>{' '}
             to learn how to stay safe.
@@ -562,6 +567,3 @@ export default async function CityYearPage({ params }: PageProps) {
     </div>
   );
 }
-
-// Revalidate daily
-export const revalidate = 86400;

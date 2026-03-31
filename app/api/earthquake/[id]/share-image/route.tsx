@@ -3,8 +3,6 @@ import { ImageResponse } from 'next/og';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 
-export const runtime = 'nodejs';
-
 interface Earthquake {
   id: string;
   magnitude: number;

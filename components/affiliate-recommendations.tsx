@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-// Note: Using regular <img> tags for Amazon images since Next.js Image optimization doesn't work with Amazon's CDN
+// Note: Using Next.js Image with unoptimized flag for Amazon images since Image optimization doesn't work with Amazon's CDN
+import Image from 'next/image';
 import { 
   ExternalLink, 
   Star, 
@@ -75,15 +76,14 @@ function ProductImage({
         </div>
       )}
       {/* Using img tag for external Amazon images - Next.js Image optimization doesn't work with Amazon's CDN */}
-      <img
+      <Image
+        unoptimized
+        fill
         src={src}
         alt={alt}
-        className={`absolute inset-0 w-full h-full object-contain p-3 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`object-contain p-3 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onLoad={() => setIsLoading(false)}
         onError={() => setHasError(true)}
-        loading={priority ? "eager" : "lazy"}
-        decoding={priority ? "sync" : "async"}
-        fetchPriority={priority ? "high" : "auto"}
       />
     </div>
   );
@@ -447,13 +447,13 @@ export function AffiliateRecommendations({
           >
             {/* Product Image */}
             <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
-              <img
+              <Image
+                unoptimized
+                fill
                 src={product.imageUrl}
                 alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain p-1"
-                loading="eager"
-                decoding="async"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                className="object-contain p-1"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
               />
             </div>
 
@@ -564,13 +564,13 @@ export function AffiliateRecommendationsCompact({
             
             {/* Product Image */}
             <div className="w-full aspect-square bg-white rounded-lg mb-3 overflow-hidden relative">
-              <img
+              <Image
+                unoptimized
+                fill
                 src={product.imageUrl}
                 alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain p-2"
-                loading="eager"
-                decoding="async"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                className="object-contain p-2"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
               />
             </div>
             

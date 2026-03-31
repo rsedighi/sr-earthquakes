@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, AlertTriangle, Radio, TrendingUp, ChevronDown, Shield, HelpCircle } from 'lucide-react';
@@ -193,6 +194,9 @@ export async function generateMetadata({ params }: CityTodayPageProps): Promise<
 }
 
 export default async function CityEarthquakeTodayPage({ params }: CityTodayPageProps) {
+  'use cache';
+  cacheLife('minutes');
+
   const resolvedParams = await params;
   const fullSlug = resolvedParams?.city;
   const citySlug = extractCitySlug(fullSlug);
@@ -217,7 +221,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
            cityData.lon >= minLon && cityData.lon <= maxLon;
   });
   
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const now = Date.now();
   
   // Filter earthquakes within 30 miles of the city
@@ -256,14 +260,18 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
   const faqSchema = generateCityFAQSchema(cityName, cityData.county, region?.faultLine);
   const faqs = generateCityFAQs(cityName, cityData.county, region?.faultLine);
   
+  const pageDateIso = mostRecent
+    ? new Date(mostRecent.timestamp).toISOString()
+    : '2020-01-01T00:00:00.000Z';
+
   const cityEarthquakeSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${cityName} Earthquake Today - Live Seismic Activity`,
     description: `Real-time earthquake tracking for ${cityName}, ${cityData.county} County, California. Live USGS data updated every minute.`,
     url: `${baseUrl}/${citySlug}-earthquake-today`,
-    dateModified: new Date().toISOString(),
-    datePublished: new Date().toISOString(),
+    dateModified: pageDateIso,
+    datePublished: pageDateIso,
     inLanguage: 'en-US',
     isPartOf: {
       '@type': 'WebSite',
@@ -292,7 +300,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -306,11 +314,11 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li>
-              <Link href="/today" className="hover:text-white transition-colors">Earthquakes Today</Link>
+              <Link prefetch={false} href="/today" className="hover:text-white transition-colors">Earthquakes Today</Link>
             </li>
             <li>/</li>
             <li className="text-white">{cityName}</li>
@@ -318,7 +326,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/today"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -405,7 +413,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <p className="text-neutral-300">
               A M{lastHour[0].magnitude.toFixed(1)} earthquake was detected {formatTimeAgo(lastHour[0].timestamp)}.
               {' '}
-              <Link href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
+              <Link prefetch={false} href={`/earthquake/${lastHour[0].id}`} className="text-amber-400 hover:text-amber-300 underline">
                 View details →
               </Link>
             </p>
@@ -425,7 +433,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
                   const distance = haversineDistance(cityData.lat, cityData.lon, eq.latitude, eq.longitude);
                   return (
                     <li key={eq.id}>
-                      <Link 
+                      <Link prefetch={false} 
                         href={`/earthquake/${eq.id}`}
                         className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                       >
@@ -521,7 +529,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
                 Learn how to protect yourself and your family before, during, and after an earthquake in {cityName}.
               </p>
             </div>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors whitespace-nowrap"
             >
@@ -532,7 +540,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
         
         {/* Related Links */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link 
+          <Link prefetch={false} 
             href={`/city/${citySlug}`}
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >
@@ -541,7 +549,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <span className="text-sm text-neutral-500">Historical data & analysis</span>
           </Link>
           {region && (
-            <Link 
+            <Link prefetch={false} 
               href={`/region/${region.id}`}
               className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
             >
@@ -550,7 +558,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
               <span className="text-sm text-neutral-500">All regional activity</span>
             </Link>
           )}
-          <Link 
+          <Link prefetch={false} 
             href="/today"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >
@@ -558,7 +566,7 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
             <span className="block font-semibold">All Bay Area</span>
             <span className="text-sm text-neutral-500">Today's earthquakes</span>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/felt-earthquake"
             className="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
           >
@@ -571,7 +579,3 @@ export default async function CityEarthquakeTodayPage({ params }: CityTodayPageP
     </div>
   );
 }
-
-// Revalidate every 5 minutes
-export const revalidate = 300;
-

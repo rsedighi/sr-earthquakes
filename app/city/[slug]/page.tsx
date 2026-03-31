@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Activity, TrendingUp, AlertTriangle, ChevronDown, Shield, HelpCircle } from 'lucide-react';
@@ -66,6 +67,9 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export default async function CityPage({ params }: CityPageProps) {
+  'use cache';
+  cacheLife('hours');
+
   const { slug } = await params;
   const cityData = getCityData(slug);
   
@@ -76,7 +80,7 @@ export default async function CityPage({ params }: CityPageProps) {
   const { city, region } = cityData;
   
   // Load earthquakes near this city (within 25 miles)
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const nearbyEarthquakes = allEarthquakes.filter(eq => {
     const distance = haversineDistance(city.lat, city.lon, eq.latitude, eq.longitude);
     return distance <= 25;
@@ -134,7 +138,7 @@ export default async function CityPage({ params }: CityPageProps) {
   };
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -148,13 +152,13 @@ export default async function CityPage({ params }: CityPageProps) {
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             {region && (
               <>
                 <li>
-                  <Link href={`/region/${region.id}`} className="hover:text-white transition-colors">
+                  <Link prefetch={false} href={`/region/${region.id}`} className="hover:text-white transition-colors">
                     {region.name.split(' / ')[0]}
                   </Link>
                 </li>
@@ -166,7 +170,7 @@ export default async function CityPage({ params }: CityPageProps) {
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -294,7 +298,7 @@ export default async function CityPage({ params }: CityPageProps) {
                 Learn essential safety tips for before, during, and after an earthquake in {city.name}.
               </p>
             </div>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors whitespace-nowrap"
             >
@@ -313,7 +317,7 @@ export default async function CityPage({ params }: CityPageProps) {
                   const distance = haversineDistance(city.lat, city.lon, eq.latitude, eq.longitude);
                   return (
                     <li key={eq.id}>
-                      <Link 
+                      <Link prefetch={false} 
                         href={`/earthquake/${eq.id}`}
                         className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                       >
@@ -355,6 +359,7 @@ export default async function CityPage({ params }: CityPageProps) {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {nearbyCities.map(nearbyCity => (
                 <Link
+                  prefetch={false}
                   key={nearbyCity.name}
                   href={`/city/${nearbyCity.name.toLowerCase().replace(/\s+/g, '-')}`}
                   className="flex items-center gap-3 p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors"
@@ -372,7 +377,7 @@ export default async function CityPage({ params }: CityPageProps) {
         
         {/* Quick Links */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Link 
+          <Link prefetch={false} 
             href={`/${slug}-earthquake-today`}
             className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors group"
           >
@@ -382,7 +387,7 @@ export default async function CityPage({ params }: CityPageProps) {
             </div>
             <p className="text-sm text-neutral-400">Live earthquake updates for {city.name} today</p>
           </Link>
-          <Link 
+          <Link prefetch={false} 
             href="/felt-earthquake"
             className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl hover:bg-amber-500/20 transition-colors group"
           >
@@ -400,7 +405,7 @@ export default async function CityPage({ params }: CityPageProps) {
             <p className="text-neutral-400 mb-4">
               View all earthquake activity in the {region.name} region.
             </p>
-            <Link 
+            <Link prefetch={false} 
               href={`/region/${region.id}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
             >
@@ -412,10 +417,4 @@ export default async function CityPage({ params }: CityPageProps) {
     </div>
   );
 }
-
-export const revalidate = 3600;
-
-
-
-
 

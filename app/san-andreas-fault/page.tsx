@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { 
@@ -17,6 +18,7 @@ import {
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { generateBreadcrumbSchema } from '@/lib/seo';
+
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
 
@@ -201,7 +203,10 @@ function formatTimeAgo(timestamp: number): string {
 }
 
 export default async function SanAndreasFaultPage() {
-  const allEarthquakes = loadAllEarthquakes();
+  'use cache';
+  cacheLife('hours');
+
+  const allEarthquakes = await loadAllEarthquakes();
   
   // Filter earthquakes near San Andreas Fault (Peninsula and SF)
   // Approximate bounding box for San Andreas in Bay Area
@@ -228,7 +233,7 @@ export default async function SanAndreasFaultPage() {
   const faqSchema = generateSanAndreasFAQSchema();
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -241,14 +246,14 @@ export default async function SanAndreasFaultPage() {
         {/* Breadcrumb */}
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
-            <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+            <li><Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li>/</li>
             <li className="text-white">San Andreas Fault</li>
           </ol>
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -390,7 +395,7 @@ export default async function SanAndreasFaultPage() {
                   {citiesAtRisk.map((city, index) => (
                     <tr key={index} className="hover:bg-white/5">
                       <td className="px-6 py-4">
-                        <Link 
+                        <Link prefetch={false} 
                           href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`}
                           className="text-white hover:text-blue-400 transition-colors font-medium"
                         >
@@ -507,7 +512,7 @@ export default async function SanAndreasFaultPage() {
               <Radio className="w-8 h-8 text-red-400 animate-pulse" />
               Recent Earthquakes Near the Fault
             </h2>
-            <Link 
+            <Link prefetch={false} 
               href="/today" 
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
@@ -520,7 +525,7 @@ export default async function SanAndreasFaultPage() {
               <ul className="divide-y divide-white/5">
                 {recentQuakes.map(eq => (
                   <li key={eq.id}>
-                    <Link 
+                    <Link prefetch={false} 
                       href={`/earthquake/${eq.id}`}
                       className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                     >
@@ -582,21 +587,21 @@ export default async function SanAndreasFaultPage() {
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Related Resources</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/hayward-fault"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
               <h3 className="font-semibold mb-2 group-hover:text-red-400 transition-colors">Hayward Fault</h3>
               <p className="text-sm text-neutral-400">The "most dangerous fault in America" runs through the East Bay</p>
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
               <h3 className="font-semibold mb-2 group-hover:text-emerald-400 transition-colors">Preparedness Guide</h3>
               <p className="text-sm text-neutral-400">Emergency kits, safety tips, and family plans</p>
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/region/san-francisco"
               className="bg-neutral-900 rounded-xl p-6 border border-white/10 hover:bg-white/5 transition-colors group"
             >
@@ -612,13 +617,13 @@ export default async function SanAndreasFaultPage() {
             Monitor earthquake activity across the entire Bay Area.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link 
+            <Link prefetch={false} 
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors"
             >
               View Live Dashboard
             </Link>
-            <Link 
+            <Link prefetch={false} 
               href="/earthquake-preparedness"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
             >
@@ -630,6 +635,3 @@ export default async function SanAndreasFaultPage() {
     </div>
   );
 }
-
-// Revalidate every hour
-export const revalidate = 3600;

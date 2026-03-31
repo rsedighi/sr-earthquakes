@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { CurrentYear } from '@/components/current-year';
 
 export const metadata: Metadata = {
   title: 'Support',
@@ -8,11 +9,11 @@ export const metadata: Metadata = {
 
 export default function SupportPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white pb-20 md:pb-0">
       <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <div className="mb-12">
-          <Link 
+          <Link prefetch={false} 
             href="/"
             className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8"
           >
@@ -157,7 +158,7 @@ export default function SupportPage() {
           <section>
             <h2 className="text-2xl font-semibold mb-6">Helpful Links</h2>
             <div className="grid sm:grid-cols-2 gap-4">
-              <Link 
+              <Link prefetch={false} 
                 href="/privacy"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >
@@ -172,7 +173,7 @@ export default function SupportPage() {
                 </div>
               </Link>
 
-              <Link 
+              <Link prefetch={false} 
                 href="/faq"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >
@@ -204,7 +205,7 @@ export default function SupportPage() {
                 </div>
               </a>
 
-              <Link 
+              <Link prefetch={false} 
                 href="/about"
                 className="flex items-center gap-3 bg-neutral-900/50 hover:bg-neutral-800/50 rounded-xl p-4 border border-neutral-800 transition-colors"
               >
@@ -225,7 +226,7 @@ export default function SupportPage() {
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-neutral-800">
           <p className="text-neutral-500 text-sm">
-            © {new Date().getFullYear()} Bay Tremor. All rights reserved.
+            © <CurrentYear /> Bay Tremor. All rights reserved.
           </p>
         </div>
       </div>

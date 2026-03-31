@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Activity, TrendingUp, Clock, AlertTriangle, Zap } from 'lucide-react';
@@ -51,6 +52,9 @@ export async function generateMetadata({ params }: RegionPageProps): Promise<Met
 }
 
 export default async function RegionPage({ params }: RegionPageProps) {
+  'use cache';
+  cacheLife('hours');
+
   const { id } = await params;
   const region = REGIONS.find(r => r.id === id);
   
@@ -59,7 +63,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
   }
   
   // Load region-specific earthquake data
-  const allEarthquakes = loadAllEarthquakes();
+  const allEarthquakes = await loadAllEarthquakes();
   const regionEarthquakes = allEarthquakes.filter(eq => eq.region === id);
   const recentEarthquakes = regionEarthquakes.slice(0, 20);
   const swarms = detectSwarms(regionEarthquakes);
@@ -94,7 +98,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
   const recentActivity = regionEarthquakes.filter(eq => eq.timestamp > thirtyDaysAgo);
   
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -108,7 +112,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
         <nav className="mb-6" aria-label="Breadcrumb">
           <ol className="flex items-center gap-2 text-sm text-neutral-400">
             <li>
-              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             <li>/</li>
             <li className="text-white">{region.name}</li>
@@ -116,7 +120,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
         </nav>
         
         {/* Back Navigation */}
-        <Link 
+        <Link prefetch={false} 
           href="/"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group"
         >
@@ -213,7 +217,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
             <h3 className="text-xl font-semibold mt-6 mb-3">Cities in This Region</h3>
             <div className="flex flex-wrap gap-2">
               {citiesInRegion.map(city => (
-                <Link 
+                <Link prefetch={false} 
                   key={city.name}
                   href={`/city/${city.name.toLowerCase().replace(/\s+/g, '-')}`}
                   className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full text-sm transition-colors"
@@ -233,7 +237,7 @@ export default async function RegionPage({ params }: RegionPageProps) {
               <ul className="divide-y divide-white/5">
                 {recentEarthquakes.map(eq => (
                   <li key={eq.id}>
-                    <Link 
+                    <Link prefetch={false} 
                       href={`/earthquake/${eq.id}`}
                       className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
                     >
@@ -281,6 +285,3 @@ export default async function RegionPage({ params }: RegionPageProps) {
     </div>
   );
 }
-
-export const revalidate = 3600; // Revalidate every hour
-

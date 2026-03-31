@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { BayTremorCommunity } from '@/components/bay-tremor-community';
-import { NavBar } from '@/components/dashboard/components/nav-bar';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
@@ -71,17 +70,14 @@ export default async function CategoryPage({ params }: Props) {
   }
   
   return (
-    <>
-      <NavBar currentPath={`/community/${category}`} />
+    <div className="pb-20 md:pb-0">
       <Suspense fallback={<CommunityLoading />}>
         <BayTremorCommunity />
       </Suspense>
-    </>
+    </div>
   );
 }
 
 export function generateStaticParams() {
   return VALID_CATEGORIES.map((category) => ({ category }));
 }
-
-export const revalidate = 60;

@@ -2,26 +2,18 @@
 // This file contains heavy data operations that should NEVER be serialized to the client
 
 import 'server-only';
+import { cacheLife } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 import { Earthquake, SwarmEvent } from './types';
 import { getRegionForCoordinates, REGIONS } from './regions';
 import { detectSwarms } from './analysis';
 
-// Cache for loaded earthquake data (stays on server)
-let cachedEarthquakes: Earthquake[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+// Load all earthquakes from data files (cached via Next.js cache layer)
+export async function loadAllEarthquakes(): Promise<Earthquake[]> {
+  'use cache';
+  cacheLife('hours');
 
-// Load all earthquakes from data files (server-only, cached)
-export function loadAllEarthquakes(): Earthquake[] {
-  const now = Date.now();
-  
-  // Return cache if valid
-  if (cachedEarthquakes && (now - cacheTimestamp) < CACHE_TTL) {
-    return cachedEarthquakes;
-  }
-  
   const dataDir = path.join(process.cwd(), 'data');
   const allEarthquakes: Earthquake[] = [];
   
@@ -35,8 +27,6 @@ export function loadAllEarthquakes(): Earthquake[] {
       
       if (data.features) {
         for (const feature of data.features) {
-          // Skip features that aren't earthquake data (e.g., fault lines)
-          // Earthquakes must have: a valid time, Point geometry, and magnitude
           if (
             !feature.properties?.time ||
             feature.geometry?.type !== 'Point' ||
@@ -68,13 +58,72 @@ export function loadAllEarthquakes(): Earthquake[] {
     console.error('Error loading historical data:', error);
   }
 
-  // Sort by time descending
   allEarthquakes.sort((a, b) => b.timestamp - a.timestamp);
   
-  // Cache the result
-  cachedEarthquakes = allEarthquakes;
-  cacheTimestamp = now;
+  return allEarthquakes;
+}
+
+// Lightweight version: loads only recent data (last 6 months, max 3000 records)
+// Use this for blog generation to avoid loading the full 31MB dataset
+export async function loadRecentEarthquakes(maxRecords = 3000): Promise<Earthquake[]> {
+  'use cache';
+  cacheLife('hours');
+
+  const dataDir = path.join(process.cwd(), 'data');
+  const sixMonthsAgo = Date.now() - 6 * 30 * 24 * 60 * 60 * 1000;
+  const allEarthquakes: Earthquake[] = [];
   
+  try {
+    const files = fs.readdirSync(dataDir)
+      .filter(f => f.endsWith('.json'))
+      .sort()
+      .reverse(); // Start with most recent files
+    
+    for (const file of files) {
+      if (allEarthquakes.length >= maxRecords) break;
+      
+      const filePath = path.join(dataDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const data = JSON.parse(content);
+      
+      if (data.features) {
+        for (const feature of data.features) {
+          if (
+            !feature.properties?.time ||
+            feature.geometry?.type !== 'Point' ||
+            feature.properties?.mag == null
+          ) {
+            continue;
+          }
+          
+          // Skip entries older than 6 months
+          if (feature.properties.time < sixMonthsAgo) continue;
+
+          const [longitude, latitude, depth] = feature.geometry.coordinates;
+          const earthquake: Earthquake = {
+            id: feature.id,
+            magnitude: feature.properties.mag,
+            place: feature.properties.place,
+            time: new Date(feature.properties.time),
+            timestamp: feature.properties.time,
+            latitude,
+            longitude,
+            depth,
+            felt: feature.properties.felt,
+            significance: feature.properties.sig,
+            url: feature.properties.url,
+            region: getRegionForCoordinates(latitude, longitude),
+          };
+          allEarthquakes.push(earthquake);
+          if (allEarthquakes.length >= maxRecords) break;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading recent earthquake data:', error);
+  }
+
+  allEarthquakes.sort((a, b) => b.timestamp - a.timestamp);
   return allEarthquakes;
 }
 
@@ -121,8 +170,11 @@ export interface HistoricalSummary {
 }
 
 // Generate lightweight summary for client-side rendering
-export function generateHistoricalSummary(): HistoricalSummary {
-  const earthquakes = loadAllEarthquakes();
+export async function generateHistoricalSummary(): Promise<HistoricalSummary> {
+  'use cache';
+  cacheLife('hours');
+
+  const earthquakes = await loadAllEarthquakes();
   
   if (earthquakes.length === 0) {
     return {
@@ -219,17 +271,17 @@ export function generateHistoricalSummary(): HistoricalSummary {
 }
 
 // Get paginated earthquakes for a region (for API routes)
-export function getEarthquakesPage(options: {
+export async function getEarthquakesPage(options: {
   region?: string;
   page?: number;
   limit?: number;
   minMagnitude?: number;
   startDate?: number;
   endDate?: number;
-}): { earthquakes: Earthquake[]; total: number; hasMore: boolean } {
+}): Promise<{ earthquakes: Earthquake[]; total: number; hasMore: boolean }> {
   const { region, page = 1, limit = 50, minMagnitude = 0, startDate, endDate } = options;
   
-  let earthquakes = loadAllEarthquakes();
+  let earthquakes = await loadAllEarthquakes();
   
   // Apply filters
   if (region && region !== 'all') {
@@ -257,8 +309,8 @@ export function getEarthquakesPage(options: {
 }
 
 // Get swarms for a specific region with full earthquake data
-export function getSwarmsForRegion(regionId: string): SwarmEvent[] {
-  const earthquakes = loadAllEarthquakes();
+export async function getSwarmsForRegion(regionId: string): Promise<SwarmEvent[]> {
+  const earthquakes = await loadAllEarthquakes();
   const regionQuakes = earthquakes.filter(eq => eq.region === regionId);
   return detectSwarms(regionQuakes);
 }
