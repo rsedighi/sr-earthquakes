@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedActivitySummary, type ActivitySummaryInput } from '@/lib/openai';
 import { logger } from '@/lib/logger';
+import { requireAdminSecret } from '@/lib/admin-auth';
 
 // POST /api/ai-summary
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSecret(request);
+  if (authError) return authError;
+
   const startTime = Date.now();
   
   try {

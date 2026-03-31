@@ -64,7 +64,6 @@ export async function loadAllEarthquakes(): Promise<Earthquake[]> {
 }
 
 // Lightweight version: loads only recent data (last 6 months, max 3000 records)
-// Use this for blog generation to avoid loading the full 31MB dataset
 export async function loadRecentEarthquakes(maxRecords = 3000): Promise<Earthquake[]> {
   'use cache';
   cacheLife('hours');

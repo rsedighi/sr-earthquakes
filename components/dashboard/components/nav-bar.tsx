@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Activity,
   MessageCircle,
@@ -13,7 +14,6 @@ import {
   HelpCircle,
   Globe,
   ChevronDown,
-  Newspaper,
   AlertTriangle,
   Zap,
   Shield,
@@ -27,13 +27,12 @@ import { UnitToggle } from '@/components/unit-toggle';
 const PRIMARY_NAV = [
   { id: 'live', label: 'Live', href: '/', icon: Activity },
   { id: 'neighborhood', label: 'My Area', href: '/my-area', icon: MapPin },
-  { id: 'blog', label: 'News', href: '/blog', icon: Newspaper },
+  { id: 'history', label: 'History', href: '/history', icon: History },
   { id: 'community', label: 'Discuss', href: '/community', icon: MessageCircle },
 ] as const;
 
 // Secondary navigation items (desktop only)
 const SECONDARY_NAV = [
-  { id: 'history', label: 'History', href: '/history', icon: History },
   { id: 'compare', label: 'Compare', href: '/compare', icon: BarChart3 },
   { id: 'learn', label: 'Learn', href: '/learn', icon: BookOpen },
 ] as const;
@@ -68,14 +67,16 @@ interface NavBarProps {
   earthquakeCount?: number;
 }
 
-export function NavBar({ currentPath = '/', earthquakeCount }: NavBarProps) {
+export function NavBar({ currentPath, earthquakeCount }: NavBarProps) {
+  const pathname = usePathname();
+  const activePath = currentPath ?? pathname;
   const [regionsOpen, setRegionsOpen] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (href: string) => {
-    if (href === '/') return currentPath === '/';
-    return currentPath.startsWith(href);
+    if (href === '/') return activePath === '/';
+    return activePath.startsWith(href);
   };
 
   return (

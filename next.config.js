@@ -33,42 +33,69 @@ const nextConfig = {
     ],
   },
 
-  // Configure headers for better cache control
   async headers() {
-    return [
-      // NOTE: OG image caching is handled in netlify.toml to avoid header conflicts
-      // The netlify.toml headers take precedence and are more reliable
+    const securityHeaders = [
       {
-        // HTML pages - short cache, force revalidation
-        // This prevents stale browser tabs from serving outdated content
+        key: 'X-Frame-Options',
+        value: 'DENY',
+      },
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
+      },
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      },
+      {
+        key: 'Content-Security-Policy-Report-Only',
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://*.pusher.com https://*.datadoghq.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https://res.cloudinary.com https://*.tile.openstreetmap.org https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://ws-na.amazon-adsystem.com https://www.google-analytics.com",
+          "font-src 'self'",
+          "connect-src 'self' https://earthquake.usgs.gov https://*.pusher.com wss://*.pusher.com https://*.datadoghq.com https://www.google-analytics.com",
+          "frame-src 'none'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; '),
+      },
+    ];
+
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+      {
         source: '/',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
           },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
         ],
       },
       {
-        // Dynamic pages - short cache
         source: '/:path((?!_next|api|favicon|.*\\..*).*)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
           },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
         ],
       },
       {
-        // API routes - no caching
         source: '/api/:path*',
         headers: [
           {
@@ -78,22 +105,11 @@ const nextConfig = {
         ],
       },
       {
-        // Static assets - long cache, immutable (hashed filenames)
         source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        // Data prefetch requests - short cache
-        source: '/_next/data/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
           },
         ],
       },

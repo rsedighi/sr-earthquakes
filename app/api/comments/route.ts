@@ -1,60 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCommentsByEarthquakeId, createComment, getCommentCountsForEarthquakes, getDatabase } from '@/lib/mongodb';
+import { getCommentsByEarthquakeId, createComment, getCommentCountsForEarthquakes } from '@/lib/mongodb';
 import { getPusherServer, getEarthquakeChannel, PUSHER_EVENTS } from '@/lib/pusher';
 import { logger, logExternalCall } from '@/lib/logger';
 
-// Check MongoDB connection status
-async function checkMongoStatus(): Promise<boolean> {
-  try {
-    const db = await getDatabase();
-    return db !== null;
-  } catch {
-    return false;
-  }
-}
-
-// Check Pusher connection status
-function checkPusherStatus(): boolean {
-  return getPusherServer() !== null;
-}
-
 // GET /api/comments?earthquakeId=xxx or GET /api/comments?earthquakeIds=xxx,yyy,zzz (for counts)
-// GET /api/comments?status=true to check service status
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const searchParams = request.nextUrl.searchParams;
   const earthquakeId = searchParams.get('earthquakeId');
   const earthquakeIds = searchParams.get('earthquakeIds');
-  const checkStatus = searchParams.get('status');
-  
-  // Status check endpoint
-  if (checkStatus === 'true') {
-    const mongoConnected = await checkMongoStatus();
-    const pusherConnected = checkPusherStatus();
-    
-    logger.info('Service health check', {
-      path: '/api/comments',
-      method: 'GET',
-      statusCode: 200,
-      duration: Date.now() - startTime,
-      mongodbConnected: mongoConnected,
-      pusherConnected: pusherConnected,
-    });
-    
-    return NextResponse.json({
-      status: 'ok',
-      services: {
-        mongodb: {
-          connected: mongoConnected,
-          message: mongoConnected ? 'Connected to MongoDB' : 'MongoDB not configured (add MONGODB_URI to .env)',
-        },
-        pusher: {
-          connected: pusherConnected,
-          message: pusherConnected ? 'Pusher configured for real-time updates' : 'Pusher not configured (add PUSHER_* vars to .env)',
-        },
-      },
-    });
-  }
   
   // Get comment counts for multiple earthquakes
   if (earthquakeIds) {
