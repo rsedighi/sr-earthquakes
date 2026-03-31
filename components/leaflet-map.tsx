@@ -58,7 +58,9 @@ function LeafletMapInner({
   
   // All useState hooks at the top
   const [hoveredQuake, setHoveredQuake] = useState<Earthquake | null>(null);
+  const [containerClean, setContainerClean] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
     TileLayer: typeof import('react-leaflet').TileLayer;
@@ -75,6 +77,15 @@ function LeafletMapInner({
     return 'all';
   });
   const [minMagnitudeFilter, setMinMagnitudeFilter] = useState<number | null>(null);
+
+  // Purge stale Leaflet containers surviving cacheComponents restoration
+  useEffect(() => {
+    if (wrapperRef.current) {
+      wrapperRef.current.querySelectorAll('.leaflet-container').forEach(el => el.remove());
+    }
+    setContainerClean(true);
+    return () => setContainerClean(false);
+  }, []);
 
   // Dynamically import leaflet modules
   useEffect(() => {
@@ -188,9 +199,9 @@ function LeafletMapInner({
     }
   }, [userLocation]);
 
-  if (!mapReady || !leaflet) {
+  if (!containerClean || !mapReady || !leaflet) {
     return (
-      <div className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
+      <div ref={wrapperRef} className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
         <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
       </div>
     );
