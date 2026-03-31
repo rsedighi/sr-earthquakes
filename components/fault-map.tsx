@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Import the fault data (stored in lib/ to avoid being processed as earthquake data)
@@ -26,7 +26,9 @@ interface FaultMapProps {
 }
 
 export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
+  const [containerClean, setContainerClean] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
     TileLayer: typeof import('react-leaflet').TileLayer;
@@ -34,6 +36,15 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
     CircleMarker: typeof import('react-leaflet').CircleMarker;
     Tooltip: typeof import('react-leaflet').Tooltip;
   } | null>(null);
+
+  // Purge stale Leaflet containers surviving cacheComponents restoration
+  useEffect(() => {
+    if (wrapperRef.current) {
+      wrapperRef.current.querySelectorAll('.leaflet-container').forEach(el => el.remove());
+    }
+    setContainerClean(true);
+    return () => setContainerClean(false);
+  }, []);
 
   // Dynamically import leaflet modules
   useEffect(() => {
@@ -130,9 +141,10 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
     });
   }, []);
 
-  if (!mapReady || !leaflet) {
+  if (!containerClean || !mapReady || !leaflet) {
     return (
       <div 
+        ref={wrapperRef}
         className={`w-full bg-neutral-900/50 flex items-center justify-center ${className}`}
         style={{ height }}
       >
