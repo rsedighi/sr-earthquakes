@@ -1117,7 +1117,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
   
   // Load historical data when switching to tabs that need it
   useEffect(() => {
-    if ((activeTab === 'neighborhood' || activeTab === 'compare' || activeTab === 'history') && !historicalLoaded) {
+    if ((activeTab === 'compare' || activeTab === 'history') && !historicalLoaded) {
       loadHistoricalQuakes();
     }
   }, [activeTab, historicalLoaded, loadHistoricalQuakes]);
@@ -1850,6 +1850,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', forumCategor
           <MyNeighborhood 
             historicalEarthquakes={allHistoricalQuakes}
             isLoadingHistorical={historicalLoading}
+            onRequestHistoricalData={loadHistoricalQuakes}
           />
         )}
 
