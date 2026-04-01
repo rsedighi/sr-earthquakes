@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-// Note: Using Next.js Image with unoptimized flag for Amazon images since Image optimization doesn't work with Amazon's CDN
 import Image from 'next/image';
 import { 
   ExternalLink, 
@@ -20,7 +19,6 @@ import {
   Radio,
   Heart,
   Check,
-  ImageOff
 } from 'lucide-react';
 import { 
   AffiliateProduct, 
@@ -37,51 +35,54 @@ const CATEGORIES = [
   { id: 'first-aid', label: 'First Aid', icon: Heart, color: 'red' },
 ] as const;
 
-// Product Image Component with fallback (using img tag for external Amazon images)
 function ProductImage({ 
   src, 
   alt, 
   className = '',
   size = 'md',
-  priority = false
+  priority = false,
+  padding = 'p-3',
 }: { 
   src: string; 
   alt: string; 
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   priority?: boolean;
+  padding?: string;
 }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const sizeClasses = {
-    sm: 'w-12 h-12',
-    md: 'w-full aspect-square',
-    lg: 'w-full aspect-[4/3]',
+  const sizeConfig: Record<string, { classes: string; sizes: string }> = {
+    sm: { classes: 'w-16 h-16', sizes: '64px' },
+    md: { classes: 'w-full aspect-square', sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw' },
+    lg: { classes: 'w-full aspect-[4/3]', sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw' },
   };
+
+  const { classes, sizes } = sizeConfig[size];
 
   if (hasError || !src) {
     return (
-      <div className={`${sizeClasses[size]} bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center ${className}`}>
+      <div className={`${classes} bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center ${className}`}>
         <Package className="w-12 h-12 text-neutral-600" />
       </div>
     );
   }
 
   return (
-    <div className={`relative ${sizeClasses[size]} bg-white ${className}`}>
+    <div className={`relative ${classes} bg-white ${className}`}>
       {isLoading && (
         <div className="absolute inset-0 bg-neutral-100 animate-pulse flex items-center justify-center">
           <Package className="w-8 h-8 text-neutral-400" />
         </div>
       )}
-      {/* Using img tag for external Amazon images - Next.js Image optimization doesn't work with Amazon's CDN */}
       <Image
-        unoptimized
         fill
+        sizes={sizes}
         src={src}
         alt={alt}
-        className={`object-contain p-3 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        priority={priority}
+        className={`object-contain ${padding} transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onLoad={() => setIsLoading(false)}
         onError={() => setHasError(true)}
       />
@@ -445,17 +446,13 @@ export function AffiliateRecommendations({
             onClick={() => handleProductClick(product)}
             className="group flex items-center gap-3 p-3 bg-black/20 hover:bg-black/30 border border-white/5 hover:border-white/20 rounded-xl transition-all"
           >
-            {/* Product Image */}
-            <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden relative">
-              <Image
-                unoptimized
-                fill
-                src={product.imageUrl}
-                alt={product.name}
-                className="object-contain p-1"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-            </div>
+            <ProductImage 
+              src={product.imageUrl}
+              alt={product.name}
+              size="sm"
+              padding="p-1"
+              className="rounded-lg flex-shrink-0"
+            />
 
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -562,17 +559,13 @@ export function AffiliateRecommendationsCompact({
               </div>
             )}
             
-            {/* Product Image */}
-            <div className="w-full aspect-square bg-white rounded-lg mb-3 overflow-hidden relative">
-              <Image
-                unoptimized
-                fill
-                src={product.imageUrl}
-                alt={product.name}
-                className="object-contain p-2"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-            </div>
+            <ProductImage
+              src={product.imageUrl}
+              alt={product.name}
+              size="md"
+              padding="p-2"
+              className="rounded-lg mb-3"
+            />
             
             {/* Title */}
             <h5 className="text-xs font-medium text-white line-clamp-2 mb-2 h-8">
