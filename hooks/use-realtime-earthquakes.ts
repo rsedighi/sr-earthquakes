@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Earthquake } from '@/lib/types';
 import { getRegionForCoordinates } from '@/lib/regions';
+import { getPusherClient, EARTHQUAKE_CHANNEL, PUSHER_EVENTS } from '@/lib/pusher';
 
 interface USGSFeature {
   id: string;
@@ -54,7 +55,7 @@ function convertFeature(feature: USGSFeature): Earthquake {
 
 export function useRealtimeEarthquakes({
   feed = 'all_day',
-  refreshInterval = 10000, // 10 seconds for near-real-time updates
+  refreshInterval = 60_000,
   enabled = true,
 }: UseRealtimeEarthquakesOptions = {}): UseRealtimeEarthquakesResult {
   const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
@@ -62,6 +63,7 @@ export function useRealtimeEarthquakes({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const pusherConnected = useRef(false);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -72,25 +74,17 @@ export function useRealtimeEarthquakes({
     setError(null);
 
     try {
-      // Add cache-busting for real-time data with timestamp
-      const timestamp = Date.now();
-      const response = await fetch(`/api/earthquakes?feed=${feed}&_=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      
+      const response = await fetch(`/api/earthquakes?feed=${feed}`);
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       const converted = data.features.map(convertFeature);
       converted.sort((a: Earthquake, b: Earthquake) => b.timestamp - a.timestamp);
-      
+
       setEarthquakes(converted);
       setLastUpdated(new Date());
     } catch (err) {
@@ -112,7 +106,28 @@ export function useRealtimeEarthquakes({
     }
   }, [enabled, fetchData]);
 
-  // Auto-refresh
+  // Pusher: subscribe for instant push notifications of new quakes
+  useEffect(() => {
+    if (!enabled) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channel = pusher.subscribe(EARTHQUAKE_CHANNEL);
+    pusherConnected.current = true;
+
+    channel.bind(PUSHER_EVENTS.NEW_EARTHQUAKE, () => {
+      fetchData(true);
+    });
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.NEW_EARTHQUAKE);
+      pusher.unsubscribe(EARTHQUAKE_CHANNEL);
+      pusherConnected.current = false;
+    };
+  }, [enabled, fetchData]);
+
+  // Fallback polling (60s default — only needed if Pusher is down or unconfigured)
   useEffect(() => {
     if (!enabled || refreshInterval <= 0) return;
 
@@ -132,7 +147,3 @@ export function useRealtimeEarthquakes({
     isRefreshing,
   };
 }
-
-
-
-

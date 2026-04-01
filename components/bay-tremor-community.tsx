@@ -272,8 +272,30 @@ export function BayTremorCommunity() {
 
             {/* Posts Feed */}
             {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="bg-[#1a1a1b] rounded-lg border border-neutral-800 flex overflow-hidden animate-pulse">
+                    <div className="w-10 sm:w-12 bg-neutral-900/50 flex flex-col items-center py-3 gap-2">
+                      <div className="w-5 h-5 rounded bg-white/5" />
+                      <div className="w-4 h-3 rounded bg-white/5" />
+                      <div className="w-5 h-5 rounded bg-white/5" />
+                    </div>
+                    <div className="flex-1 p-3 sm:p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-16 rounded-full bg-white/5" />
+                        <div className="h-3 w-24 rounded bg-white/5" />
+                        <div className="h-3 w-16 rounded bg-white/5" />
+                      </div>
+                      <div className="h-5 rounded bg-white/10 w-4/5" />
+                      <div className="h-4 rounded bg-white/5 w-3/5" />
+                      <div className="flex items-center gap-4 pt-1">
+                        <div className="h-4 w-24 rounded bg-white/5" />
+                        <div className="h-4 w-14 rounded bg-white/5" />
+                        <div className="h-4 w-12 rounded bg-white/5" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : posts.length === 0 ? (
               <EmptyFeed onCreatePost={() => setShowCreatePost(true)} />
@@ -1212,8 +1234,45 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <div className="bg-[#1a1a1b] border-b border-neutral-800">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-2 animate-pulse">
+              <div className="h-4 w-24 rounded bg-white/10" />
+              <div className="h-4 w-4 rounded bg-white/5" />
+              <div className="h-4 w-20 rounded bg-white/5" />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="bg-[#1a1a1b] rounded-lg border border-neutral-800 overflow-hidden animate-pulse">
+            <div className="flex">
+              <div className="w-12 bg-neutral-900/50 flex flex-col items-center py-4 gap-2">
+                <div className="w-6 h-6 rounded bg-white/5" />
+                <div className="w-5 h-4 rounded bg-white/5" />
+                <div className="w-6 h-6 rounded bg-white/5" />
+              </div>
+              <div className="flex-1 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-20 rounded-full bg-white/5" />
+                  <div className="h-3 w-28 rounded bg-white/5" />
+                  <div className="h-3 w-20 rounded bg-white/5" />
+                </div>
+                <div className="h-7 rounded bg-white/10 w-3/4" />
+                <div className="space-y-2">
+                  <div className="h-4 rounded bg-white/5 w-full" />
+                  <div className="h-4 rounded bg-white/5 w-5/6" />
+                  <div className="h-4 rounded bg-white/5 w-2/3" />
+                </div>
+                <div className="flex items-center gap-4 pt-4 border-t border-neutral-800">
+                  <div className="h-4 w-28 rounded bg-white/5" />
+                  <div className="h-4 w-16 rounded bg-white/5" />
+                  <div className="h-4 w-14 rounded bg-white/5" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

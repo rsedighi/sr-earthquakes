@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { apnsClient } from '@/lib/apns';
+import { revalidateEarthquakeCaches } from '@/lib/revalidate-earthquake-cache';
+import { getPusherServer, EARTHQUAKE_CHANNEL, PUSHER_EVENTS } from '@/lib/pusher';
 
 /**
- * Earthquake Monitor Endpoint
- * 
- * Called by a cron job every 30 seconds to:
+ * Earthquake monitor — intended to run on Vercel Cron (`vercel.json`).
+ *
  * 1. Fetch latest earthquakes from USGS
- * 2. Check for new earthquakes not yet processed
- * 3. Send push notifications for significant ones
- * 
- * Setup with Vercel Cron:
- * Add to vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/earthquakes/monitor",
- *     "schedule": "* * * * *"  // Every minute (Vercel min)
- *   }]
- * }
+ * 2. Detect new events (MongoDB `processed_earthquakes`)
+ * 3. Send APNs where configured
+ * 4. Call `revalidateEarthquakeCaches()` when there are new events (on-demand ISR)
+ *
+ * Optional: set `CRON_SECRET` and send `Authorization: Bearer <CRON_SECRET>` (Vercel can inject this for cron).
  */
 
 const USGS_FEED = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
@@ -267,12 +262,26 @@ export async function GET(request: NextRequest) {
       processedAt: { $lt: sevenDaysAgo },
     });
 
+    // 8. Bust earthquake `use cache` entries so History / ISR pick up fresh data paths
+    revalidateEarthquakeCaches();
+
+    // 9. Push real-time event to connected clients via Pusher
+    const pusher = getPusherServer();
+    if (pusher) {
+      await pusher.trigger(EARTHQUAKE_CHANNEL, PUSHER_EVENTS.NEW_EARTHQUAKE, {
+        count: newQuakes.length,
+        latest: results[0],
+        timestamp: Date.now(),
+      }).catch((err: unknown) => console.error('Pusher trigger failed:', err));
+    }
+
     return NextResponse.json({
       success: true,
       newEarthquakes: newQuakes.length,
       results,
       apnsConfigured: apnsClient.isConfigured(),
       totalDevices: devices.length,
+      cacheRevalidated: true,
       duration: Date.now() - startTime,
     });
   } catch (error) {

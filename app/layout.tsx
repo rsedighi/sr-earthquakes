@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import Script from 'next/script';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { generateHomepageSchemas } from '@/lib/seo';
 import { DatadogRUM } from '@/components/datadog-rum';
 import { UnitProvider } from '@/lib/unit-context';
+import { NavBar } from '@/components/dashboard/components/nav-bar';
 import './globals.css';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
@@ -167,22 +169,11 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         
-        {/* Google Analytics - using Next.js Script to avoid hydration issues */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-B6CYF3ZSWW"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-B6CYF3ZSWW');
-          `}
-        </Script>
+        <GoogleAnalytics gaId="G-B6CYF3ZSWW" />
         
         <DatadogRUM />
         <UnitProvider>
+          <NavBar />
           {children}
         </UnitProvider>
       </body>

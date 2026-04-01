@@ -2,17 +2,86 @@
 // This file contains heavy data operations that should NEVER be serialized to the client
 
 import 'server-only';
-import { cacheLife } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 import { Earthquake, SwarmEvent } from './types';
 import { getRegionForCoordinates, REGIONS } from './regions';
 import { detectSwarms } from './analysis';
 
+const BAY_AREA_BOUNDS = {
+  minLat: 36.9,
+  maxLat: 38.35,
+  minLon: -123.0,
+  maxLon: -121.4,
+};
+
+/**
+ * Fetch recent earthquakes from the USGS live feed, filtered to Bay Area.
+ * Cached for a few minutes via ISR — serves as the no-JS / first-byte content.
+ */
+export async function getRecentUSGSQuakes(limit = 15): Promise<Earthquake[]> {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('earthquakes', 'live-feed');
+
+  try {
+    const res = await fetch(
+      'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
+    );
+    if (!res.ok) return [];
+
+    const data = await res.json();
+
+    const quakes: Earthquake[] = [];
+    for (const feature of data.features) {
+      if (
+        !feature.properties?.time ||
+        feature.geometry?.type !== 'Point' ||
+        feature.properties?.mag == null
+      ) {
+        continue;
+      }
+
+      const [longitude, latitude, depth] = feature.geometry.coordinates;
+
+      if (
+        latitude < BAY_AREA_BOUNDS.minLat ||
+        latitude > BAY_AREA_BOUNDS.maxLat ||
+        longitude < BAY_AREA_BOUNDS.minLon ||
+        longitude > BAY_AREA_BOUNDS.maxLon
+      ) {
+        continue;
+      }
+
+      quakes.push({
+        id: feature.id,
+        magnitude: feature.properties.mag,
+        place: feature.properties.place,
+        time: new Date(feature.properties.time),
+        timestamp: feature.properties.time,
+        latitude,
+        longitude,
+        depth,
+        felt: feature.properties.felt,
+        significance: feature.properties.sig,
+        url: feature.properties.url,
+        region: getRegionForCoordinates(latitude, longitude),
+      });
+    }
+
+    quakes.sort((a, b) => b.timestamp - a.timestamp);
+    return quakes.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 // Load all earthquakes from data files (cached via Next.js cache layer)
 export async function loadAllEarthquakes(): Promise<Earthquake[]> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes');
 
   const dataDir = path.join(process.cwd(), 'data');
   const allEarthquakes: Earthquake[] = [];
@@ -64,10 +133,10 @@ export async function loadAllEarthquakes(): Promise<Earthquake[]> {
 }
 
 // Lightweight version: loads only recent data (last 6 months, max 3000 records)
-// Use this for blog generation to avoid loading the full 31MB dataset
 export async function loadRecentEarthquakes(maxRecords = 3000): Promise<Earthquake[]> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes');
 
   const dataDir = path.join(process.cwd(), 'data');
   const sixMonthsAgo = Date.now() - 6 * 30 * 24 * 60 * 60 * 1000;
@@ -173,6 +242,7 @@ export interface HistoricalSummary {
 export async function generateHistoricalSummary(): Promise<HistoricalSummary> {
   'use cache';
   cacheLife('hours');
+  cacheTag('earthquakes', 'history');
 
   const earthquakes = await loadAllEarthquakes();
   

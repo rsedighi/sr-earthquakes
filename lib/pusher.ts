@@ -55,11 +55,14 @@ export function getEarthquakeChannel(earthquakeId: string): string {
   return `earthquake-${earthquakeId}`;
 }
 
+export const EARTHQUAKE_CHANNEL = 'earthquakes';
+
 // Event types
 export const PUSHER_EVENTS = {
   NEW_COMMENT: 'new-comment',
   COMMENT_UPDATED: 'comment-updated',
   COMMENT_DELETED: 'comment-deleted',
+  NEW_EARTHQUAKE: 'new-earthquake',
 } as const;
 
 
