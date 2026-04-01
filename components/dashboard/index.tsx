@@ -112,7 +112,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
     isRefreshing 
   } = useRealtimeEarthquakes({
     feed: 'all_week',
-    refreshInterval: 10000,
   });
 
   // --- Historical data (lazy) ---
@@ -264,20 +263,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
     if (typeof window === 'undefined' || initialTab !== 'live') return;
     const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
     const hasCitySet = localStorage.getItem('baytremor-my-city');
-    const whatsNewDismissed = localStorage.getItem('baytremor-whats-new-dismissed-v3');
-    const whatsNewLaunchDate = new Date('2026-02-03');
-    const whatsNewExpires = new Date(whatsNewLaunchDate.getTime() + 5 * 24 * 60 * 60 * 1000);
-    const isWhatsNewActive = !whatsNewDismissed && new Date() < whatsNewExpires;
     if (!hasSeenPrompt && !hasCitySet && !isLoading) {
-      if (isWhatsNewActive) {
-        const pollInterval = setInterval(() => {
-          if (localStorage.getItem('baytremor-whats-new-dismissed-v3')) {
-            clearInterval(pollInterval);
-            setTimeout(() => setShowFirstVisitPrompt(true), 500);
-          }
-        }, 500);
-        return () => clearInterval(pollInterval);
-      }
       const timer = setTimeout(() => setShowFirstVisitPrompt(true), 3000);
       return () => clearTimeout(timer);
     }
@@ -620,7 +606,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
               </div>
             </div>
             <div className="p-4 border-t border-white/10 flex-shrink-0">
-              <p className="text-xs text-neutral-500 text-center">Data from USGS • Updated every 10 seconds</p>
+              <p className="text-xs text-neutral-500 text-center">Data from USGS • Live updates via push</p>
             </div>
           </div>
         </div>

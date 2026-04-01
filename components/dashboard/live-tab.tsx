@@ -48,6 +48,36 @@ const LeafletMap = dynamic(
   }
 );
 
+function HeroQuakeSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 animate-pulse">
+      <div className="md:col-span-3 card p-4 sm:p-5">
+        <div className="flex items-center gap-1.5 mb-3">
+          <div className="w-3 h-3 rounded bg-white/5" />
+          <div className="h-3 bg-white/5 rounded w-32" />
+        </div>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/5" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-white/5 rounded w-24" />
+            <div className="h-5 bg-white/10 rounded w-48" />
+            <div className="h-3 bg-white/5 rounded w-40" />
+          </div>
+        </div>
+      </div>
+      <div className="md:col-span-1 card p-4 sm:p-5">
+        <div className="flex md:flex-col items-center md:items-center md:justify-center gap-3 sm:gap-4 md:gap-2 h-full md:py-2">
+          <div className="w-14 h-14 md:w-12 md:h-12 rounded-xl bg-white/5" />
+          <div className="space-y-2 md:text-center">
+            <div className="h-4 bg-white/10 rounded w-24" />
+            <div className="h-3 bg-white/5 rounded w-32" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface LiveTabProps {
   realtimeQuakes: Earthquake[];
   isLoading: boolean;
@@ -136,14 +166,18 @@ export function LiveTab({
         />
       )}
 
-      <HeroQuake
-        earthquakes={realtimeQuakes}
-        onViewDetails={onViewDetail}
-        myCity={myCity}
-        myCityStats={myCityStats}
-        myCityLoaded={myCityLoaded}
-        onSetCity={onSetCity}
-      />
+      {isLoading ? (
+        <HeroQuakeSkeleton />
+      ) : (
+        <HeroQuake
+          earthquakes={realtimeQuakes}
+          onViewDetails={onViewDetail}
+          myCity={myCity}
+          myCityStats={myCityStats}
+          myCityLoaded={myCityLoaded}
+          onSetCity={onSetCity}
+        />
+      )}
 
       {/* Map + Feed Side by Side */}
       <div className="flex flex-col-reverse lg:grid lg:grid-cols-5 gap-3 sm:gap-4">

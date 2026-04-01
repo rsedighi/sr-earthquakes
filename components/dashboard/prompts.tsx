@@ -237,20 +237,19 @@ export function LiveTimestamp({ lastUpdated, isRefreshing }: { lastUpdated: Date
 }
 
 export function IOSAppBanner() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isChecked, setIsChecked] = useState(false);
   
   useEffect(() => {
     const dismissedAt = localStorage.getItem('baytremor-ios-banner-dismissed-at');
     
-    if (!dismissedAt) {
-      setIsVisible(true);
-      return;
+    if (dismissedAt) {
+      const daysSinceDismissed = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissed <= 7) {
+        setIsVisible(false);
+      }
     }
-    
-    const daysSinceDismissed = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
-    if (daysSinceDismissed > 7) {
-      setIsVisible(true);
-    }
+    setIsChecked(true);
   }, []);
   
   const handleDismiss = () => {
@@ -258,7 +257,7 @@ export function IOSAppBanner() {
     localStorage.setItem('baytremor-ios-banner-dismissed-at', Date.now().toString());
   };
   
-  if (!isVisible) return null;
+  if (isChecked && !isVisible) return null;
   
   return (
     <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 border-b border-orange-500/20">

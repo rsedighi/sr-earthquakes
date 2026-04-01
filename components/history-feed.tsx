@@ -132,7 +132,7 @@ export function HistoryFeed({ initialData, totalCount }: HistoryFeedProps) {
       </section>
 
       {/* Full Swarm Analysis — progressive enhancement */}
-      <section>
+      <section className="min-h-[200px]">
         {allEarthquakes ? (
           <HistoricalSwarms earthquakes={allEarthquakes} />
         ) : (
