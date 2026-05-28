@@ -4,8 +4,6 @@ import { cacheLife } from 'next/cache';
 import { getRegionForCoordinates, getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { generateEarthquakeEventSchema, generateEarthquakeArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
-import fs from 'fs';
-import path from 'path';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { EarthquakeShareContent } from '@/components/earthquake-share-content';
@@ -58,41 +56,6 @@ async function getEarthquake(id: string): Promise<Earthquake | null> {
     }
   } catch {
     // Continue to local search
-  }
-  
-  // Search local data
-  const dataDir = path.join(process.cwd(), 'data');
-  try {
-    const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-    
-    for (const file of files) {
-      const filePath = path.join(dataDir, file);
-      const content = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(content);
-      
-      if (data.features) {
-        const feature = data.features.find((f: { id: string }) => f.id === id);
-        if (feature) {
-          const [longitude, latitude, depth] = feature.geometry.coordinates;
-          return {
-            id: feature.id,
-            magnitude: feature.properties.mag,
-            place: feature.properties.place,
-            time: new Date(feature.properties.time),
-            timestamp: feature.properties.time,
-            latitude,
-            longitude,
-            depth,
-            felt: feature.properties.felt,
-            significance: feature.properties.sig,
-            url: feature.properties.url,
-            region: getRegionForCoordinates(latitude, longitude),
-          };
-        }
-      }
-    }
-  } catch {
-    // Return null
   }
   
   return null;

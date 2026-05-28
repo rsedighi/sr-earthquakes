@@ -14,6 +14,8 @@ interface CityPageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const dynamicParams = false;
+
 // Generate static params for all cities
 export async function generateStaticParams() {
   const cities = BAY_AREA_LANDMARKS.filter(l => l.type === 'city');

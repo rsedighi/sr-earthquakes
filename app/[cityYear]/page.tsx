@@ -20,8 +20,10 @@ const CITY_SLUGS = [
   'alameda', 'union-city', 'newark', 'cupertino', 'campbell',
 ];
 
-// Years to generate pages for
-const YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+// Years to generate pages for (only recent years to keep build memory within limits)
+const YEARS = [2025, 2026];
+
+export const dynamicParams = false;
 
 interface PageProps {
   params: Promise<{ cityYear: string }>;

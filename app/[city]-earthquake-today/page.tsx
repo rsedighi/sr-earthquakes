@@ -91,6 +91,8 @@ function formatTimeAgo(timestamp: number): string {
   return `${days}d ago`;
 }
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return CITY_SLUGS.map((citySlug) => ({
     city: `${citySlug}-earthquake-today`,
