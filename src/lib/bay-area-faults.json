@@ -1,0 +1,186 @@
+{
+  "type": "FeatureCollection",
+  "name": "Bay Area Major Fault Lines",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "San Andreas Fault",
+        "id": "san-andreas",
+        "risk": "Very High",
+        "color": "#ef4444",
+        "lastMajor": {
+          "year": 1906,
+          "magnitude": 7.9,
+          "location": "San Francisco"
+        },
+        "description": "The most famous fault in California. Runs 800 miles from the Salton Sea to Cape Mendocino. The 1906 San Francisco earthquake (M7.9) caused over 3,000 deaths."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-123.0, 38.8],
+          [-122.88, 38.55],
+          [-122.78, 38.35],
+          [-122.72, 38.2],
+          [-122.65, 38.05],
+          [-122.58, 37.9],
+          [-122.54, 37.78],
+          [-122.52, 37.68],
+          [-122.5, 37.55],
+          [-122.45, 37.42],
+          [-122.38, 37.28],
+          [-122.28, 37.12],
+          [-122.18, 36.98],
+          [-122.05, 36.85],
+          [-121.9, 36.7]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hayward Fault",
+        "id": "hayward",
+        "risk": "Very High",
+        "color": "#f97316",
+        "lastMajor": {
+          "year": 1868,
+          "magnitude": 6.8,
+          "location": "Hayward"
+        },
+        "description": "Runs through the East Bay, directly beneath UC Berkeley, Oakland, and Fremont. Scientists consider it the most dangerous fault in the Bay Area due to urban density."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.31, 37.92],
+          [-122.29, 37.88],
+          [-122.27, 37.84],
+          [-122.25, 37.80],
+          [-122.18, 37.72],
+          [-122.12, 37.65],
+          [-122.07, 37.58],
+          [-122.02, 37.52],
+          [-121.97, 37.47],
+          [-121.92, 37.42],
+          [-121.88, 37.38]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Calaveras Fault",
+        "id": "calaveras",
+        "risk": "High",
+        "color": "#eab308",
+        "lastMajor": {
+          "year": 1984,
+          "magnitude": 6.2,
+          "location": "Morgan Hill"
+        },
+        "description": "Eastern fault zone running through San Ramon, Dublin, Fremont, and into Silicon Valley. Known for frequent earthquake swarms."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-121.95, 37.82],
+          [-121.92, 37.78],
+          [-121.90, 37.72],
+          [-121.86, 37.65],
+          [-121.82, 37.58],
+          [-121.78, 37.52],
+          [-121.73, 37.45],
+          [-121.68, 37.38],
+          [-121.62, 37.30],
+          [-121.55, 37.20],
+          [-121.48, 37.10],
+          [-121.42, 37.00],
+          [-121.38, 36.90]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rodgers Creek Fault",
+        "id": "rodgers-creek",
+        "risk": "High",
+        "color": "#ec4899",
+        "lastMajor": {
+          "year": 2014,
+          "magnitude": 6.0,
+          "location": "South Napa"
+        },
+        "description": "Northern extension of the Hayward Fault, through Sonoma and Napa wine country. Ruptured during the 2014 South Napa earthquake."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.82, 38.65],
+          [-122.75, 38.55],
+          [-122.68, 38.45],
+          [-122.58, 38.35],
+          [-122.48, 38.25],
+          [-122.42, 38.15],
+          [-122.35, 38.05],
+          [-122.32, 37.95]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Concord-Green Valley Fault",
+        "id": "concord-green-valley",
+        "risk": "Moderate",
+        "color": "#a855f7",
+        "lastMajor": {
+          "year": 1955,
+          "magnitude": 5.4,
+          "location": "Concord"
+        },
+        "description": "Runs through Concord and into Napa Valley. Part of the eastern fault system that parallels the Hayward Fault."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.22, 38.42],
+          [-122.15, 38.32],
+          [-122.08, 38.22],
+          [-122.03, 38.12],
+          [-122.00, 38.02],
+          [-121.98, 37.95]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "San Gregorio Fault",
+        "id": "san-gregorio",
+        "risk": "Moderate",
+        "color": "#06b6d4",
+        "lastMajor": {
+          "year": 1926,
+          "magnitude": 5.8,
+          "location": "Half Moon Bay"
+        },
+        "description": "Offshore fault running along the San Mateo County coastline. Capable of producing significant offshore earthquakes."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.72, 37.88],
+          [-122.65, 37.72],
+          [-122.58, 37.55],
+          [-122.52, 37.40],
+          [-122.45, 37.25],
+          [-122.38, 37.08]
+        ]
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,111 @@
+---
+import '../styles/globals.css';
+import { generateHomepageSchemas } from '@/lib/seo';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+  noindex?: boolean;
+}
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const {
+  title = 'Bay Area Earthquake Tracker | Live Seismic Activity Map & Alerts Today',
+  description = '🔴 LIVE Bay Area earthquake tracker with real-time USGS data. Track earthquakes in San Francisco, Oakland, San Jose & 80+ cities. Updated every minute.',
+  canonical = Astro.url.href,
+  ogImage = `${baseUrl}/og-image.png`,
+  noindex = false,
+} = Astro.props;
+
+const schemas = generateHomepageSchemas();
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <link rel="canonical" href={canonical} />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="Bay Tremor" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@baytremor" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Geo -->
+    <meta name="geo.region" content="US-CA" />
+    <meta name="geo.placename" content="San Francisco Bay Area" />
+    <meta name="geo.position" content="37.75;-122.25" />
+    <meta name="ICBM" content="37.75, -122.25" />
+    <meta name="impact-site-verification" content="f0b61dfc-b575-4c4c-ab15-c6c6df6d9cff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- RSS -->
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Bay Tremor - Earthquake Feed"
+      href={`${baseUrl}/feed.xml`}
+    />
+
+    <!-- DNS prefetch -->
+    <link rel="dns-prefetch" href="https://m.media-amazon.com" />
+    <link rel="preconnect" href="https://m.media-amazon.com" crossorigin="anonymous" />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
+
+    <!-- Google Analytics (Sprint 6: move to CF Analytics Engine) -->
+    {import.meta.env.PUBLIC_GA_ID && (
+      <script
+        async
+        src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.PUBLIC_GA_ID}`}
+      />
+      <script define:vars={{ gaId: import.meta.env.PUBLIC_GA_ID }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', gaId);
+      </script>
+    )}
+
+    <!-- AdSense -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2599154949047210"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body class="font-sans antialiased min-h-screen">
+    <slot />
+  </body>
+</html>

@@ -1,5 +1,5 @@
 name = "norcal-quake-tracker"
-main = ".open-next/worker.js"
+main = "dist/_worker.js"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
 
@@ -7,5 +7,52 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 
 [assets]
-directory = ".open-next/assets"
+directory = "dist/client"
 binding = "ASSETS"
+
+# ── Sprint 2: D1 (replace MongoDB) ────────────────────────────────────────────
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "earthquake-tracker"
+# database_id = "TBD"
+
+# ── Sprint 2: KV Namespaces ───────────────────────────────────────────────────
+# [[kv_namespaces]]
+# binding = "EARTHQUAKE_KV"
+# id = "TBD"
+#
+# [[kv_namespaces]]
+# binding = "FEATURE_FLAGS_KV"
+# id = "TBD"
+
+# ── Sprint 2: Durable Objects (replace Pusher) ────────────────────────────────
+# [[durable_objects.bindings]]
+# name = "EARTHQUAKE_ROOM"
+# class_name = "EarthquakeRoom"
+#
+# [[durable_objects.bindings]]
+# name = "COMMENT_ROOM"
+# class_name = "CommentRoom"
+
+# ── Sprint 5: R2 (replace Cloudinary) ─────────────────────────────────────────
+# [[r2_buckets]]
+# binding = "MEDIA_R2"
+# bucket_name = "earthquake-media"
+
+# ── Sprint 4: Queues (async APNs dispatch) ────────────────────────────────────
+# [[queues.producers]]
+# binding = "NOTIFICATION_QUEUE"
+# queue = "earthquake-notifications"
+#
+# [[queues.consumers]]
+# queue = "earthquake-notifications"
+# max_batch_size = 50
+
+# ── Sprint 4: Cron Trigger (USGS polling every 60s) ──────────────────────────
+# [triggers]
+# crons = ["*/1 * * * *"]
+
+# ── Sprint 6: Analytics Engine ────────────────────────────────────────────────
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+# dataset = "earthquake_events"
