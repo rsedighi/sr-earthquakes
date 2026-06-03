@@ -6,28 +6,55 @@
 
 ---
 
-## Sprint 1 — Foundation (Jun 3–6) ✦ Days 1–2
+## Sprint 1 — Foundation (Jun 3–6) ✦ Days 1–2  ✅ CODE COMPLETE — NEEDS npm install
 
 ### Objectives
 - Bootstrap new Astro project with Cloudflare adapter
 - Declare all CF bindings in `wrangler.toml`
 - Port shared utilities and all 26 components unchanged
 
+### Approach taken (manual scaffold — no create-astro CLI)
+> Old Next.js files kept in root for reference. All new Astro code lives in `src/`.
+> Next.js imports (next/link, next/image, next/dynamic, next/navigation) shimmed
+> via Vite aliases — **zero component files modified**.
+
 ### Tasks
-- [ ] `npm create cloudflare@latest` → Astro SSR template
-- [ ] Add `@astrojs/react`, `@astrojs/tailwind`, `@astrojs/cloudflare`
-- [ ] Write full `wrangler.toml` (D1, KV ×2, R2, DO ×2, Queue, Cron, Analytics Engine, Rate Limiting)
-- [ ] Run `wrangler types` → generate `worker-configuration.d.ts`
-- [ ] Copy verbatim: `lib/types.ts`, `lib/regions.ts`, `lib/analysis.ts`, `lib/units.ts`, `lib/seo.ts`, `lib/affiliate-products.ts`, `lib/news-sources.ts`, `lib/logger.ts`
-- [ ] Copy verbatim: all 26 `components/` files (they are plain React — no changes needed)
-- [ ] Copy `hooks/use-historical-earthquakes.ts`, `hooks/use-my-city.ts`
-- [ ] Copy `public/` assets, `globals.css`, tailwind/postcss configs
-- [ ] Configure TypeScript paths (`@/` alias)
-- [ ] Remove: `next.config.js`, `open-next.config.ts`, `next-env.d.ts`, `vercel.json`
-- [ ] Verify `npx wrangler dev` boots with no type errors
+- [x] Replace `package.json` → Astro + `@astrojs/cloudflare` + `@astrojs/react`
+- [x] Create `astro.config.ts` — CF adapter, React integration, Vite Next.js shim aliases
+- [x] Update `wrangler.toml` → `dist/_worker.js` output, all Sprint 2-6 bindings pre-declared (commented)
+- [x] Update `tsconfig.json` → `astro/tsconfigs/strict`, `@/` → `src/*`
+- [x] Update `tailwind.config.ts` → content paths cover `src/**/*.{astro,tsx,...}`
+- [x] Create `src/env.d.ts` — CF Runtime types, Astro.locals extension
+- [x] Create `src/styles/globals.css` — full Leaflet dark theme, CSS var font fallbacks
+- [x] Create `src/lib/shims/next-link.tsx` — `<a>` passthrough
+- [x] Create `src/lib/shims/next-image.tsx` — `<img>` passthrough (fill mode supported)
+- [x] Create `src/lib/shims/next-dynamic.tsx` — React.lazy + Suspense wrapper
+- [x] Create `src/lib/shims/next-navigation.ts` — usePathname, useRouter, useSearchParams stubs
+- [x] Create `src/lib/pusher.ts` — null stub (replaced by Durable Objects in Sprint 2)
+- [x] Copy 13 lib files → `src/lib/` (types, regions, analysis, units, seo, affiliate-products, news-sources, logger, unit-context, feature-flag-context, openai, cloudinary, bay-area-faults.json)
+- [x] Copy all 26 components → `src/components/` (zero modifications)
+- [x] Copy all 3 hooks → `src/hooks/`
+- [x] Create `src/layouts/BaseLayout.astro` — full SEO head, OG, JSON-LD, GA, AdSense
+- [x] Create `src/pages/index.astro` — SSR USGS fetch + `<Dashboard client:load />`
+- [x] Make `DashboardProps.historicalSummary` nullable (Sprint 3 will restore real data)
+- [ ] **USER ACTION: `npm install`** in project terminal
+- [ ] **USER ACTION: `npm run build`** — verify Astro compiles clean
+- [ ] **USER ACTION: `wrangler dev`** — verify local CF preview works
+- [ ] **USER ACTION: `wrangler deploy`** — first CF deploy, test on workers.dev URL
 
 ### Definition of Done
-`wrangler dev` runs, Astro homepage renders, all imports resolve.
+`wrangler dev` runs, Astro homepage renders at workers.dev URL, all imports resolve.
+
+### Files NOT copied (intentionally deferred)
+| File | Reason | Sprint |
+|---|---|---|
+| `lib/server-data.ts` | Uses `next/cache`, `server-only` | Rewrite in Sprint 3 |
+| `lib/mongodb.ts` | Replaced by D1 | Sprint 2 |
+| `lib/pusher.ts` | Replaced by Durable Objects | Sprint 2 |
+| `lib/apns.ts` | Uses `jsonwebtoken` (not CF-compatible) | Sprint 4 |
+| `lib/admin-auth.ts` | Uses `jsonwebtoken` | Sprint 3 |
+| `lib/revalidation-auth.ts` | Uses `jsonwebtoken` | Sprint 3 |
+| `lib/datadog-feature-flags.ts` | Uses `server-only` | Sprint 3 |
 
 ---
 
