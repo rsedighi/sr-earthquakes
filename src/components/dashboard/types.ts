@@ -58,7 +58,7 @@ export interface HistoricalSummary {
 }
 
 export interface DashboardProps {
-  historicalSummary: HistoricalSummary;
+  historicalSummary: HistoricalSummary | null;
   initialTab?: TabId;
   forumCategory?: ForumCategory;
   forumThread?: string;
