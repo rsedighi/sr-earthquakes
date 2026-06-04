@@ -1,4 +1,4 @@
-name = "norcal-quake-tracker"
+name = "sr-earthquakes"
 main = "dist/_worker.js"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
