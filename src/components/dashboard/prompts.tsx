@@ -8,12 +8,45 @@ import {
   House,
   X,
   Loader2,
+  Activity,
+  Globe,
+  ChevronRight,
 } from 'lucide-react';
 
 import type { Earthquake } from '@/lib/types';
 import { getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { useUnits } from '@/lib/unit-context';
+
+const ONBOARDING_STEPS = [
+  {
+    icon: Activity,
+    iconGradient: 'from-blue-500/20 to-cyan-500/20',
+    iconBorder: 'border-blue-500/30',
+    iconColor: 'text-blue-400',
+    title: 'Welcome to Bay Tremor',
+    subtitle: 'Real-time Bay Area earthquake monitoring',
+    body: 'Track every Bay Area earthquake as it happens. A live map, detailed stats, and community reports — all in one place, updated continuously.',
+  },
+  {
+    icon: Globe,
+    iconGradient: 'from-green-500/20 to-emerald-500/20',
+    iconBorder: 'border-green-500/30',
+    iconColor: 'text-green-400',
+    title: 'Explore the Live Map',
+    subtitle: 'Color-coded by magnitude',
+    body: 'Each dot on the map is an earthquake, color-coded from green (minor) to red (significant). Tap any dot or feed item to see depth, felt reports, and nearby activity.',
+  },
+  {
+    icon: House,
+    iconGradient: 'from-purple-500/20 to-violet-500/20',
+    iconBorder: 'border-purple-500/30',
+    iconColor: 'text-purple-400',
+    title: 'Personalize for Your City',
+    subtitle: 'Get local stats and distances',
+    body: 'Set your city to see how many earthquakes happened near you this week, distances to each event, and whether seismic activity in your area is elevated.',
+  },
+] as const;
 
 export function FirstVisitPrompt({
   onSetCity,
@@ -22,42 +55,87 @@ export function FirstVisitPrompt({
   onSetCity: () => void;
   onDismiss: () => void;
 }) {
+  const [step, setStep] = useState(0);
+
+  const current = ONBOARDING_STEPS[step];
+  const Icon = current.icon;
+  const isLast = step === ONBOARDING_STEPS.length - 1;
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-            <House className="w-7 h-7 text-blue-400" />
+        {/* Progress + close */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-1.5">
+            {ONBOARDING_STEPS.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === step ? 'w-6 bg-white' : i < step ? 'w-1.5 bg-white/40' : 'w-1.5 bg-white/15'
+                }`}
+              />
+            ))}
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">Welcome to Bay Tremor</h2>
-            <p className="text-sm text-neutral-400">Stay informed about earthquakes near you</p>
-          </div>
-        </div>
-        
-        <p className="text-sm text-neutral-300 mb-6 leading-relaxed">
-          Set your city to see <span className="text-blue-400 font-medium">personalized earthquake alerts</span> and 
-          distances from your location. You can change this anytime.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={onSetCity}
-            className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-400 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <MapPin className="w-4 h-4" />
-            Set My City
-          </button>
           <button
             onClick={onDismiss}
-            className="px-4 py-3 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-xl transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-neutral-500 hover:text-white"
+            aria-label="Skip tour"
           >
-            Maybe Later
+            <X className="w-4 h-4" />
           </button>
         </div>
-        
-        <p className="text-[10px] text-neutral-500 text-center mt-4">
-          Your location is stored locally and never shared.
+
+        {/* Icon */}
+        <div
+          className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${current.iconGradient} border ${current.iconBorder} flex items-center justify-center mb-4`}
+        >
+          <Icon className={`w-8 h-8 ${current.iconColor}`} />
+        </div>
+
+        {/* Content */}
+        <h2 className="text-xl font-semibold text-white mb-1">{current.title}</h2>
+        <p className="text-sm text-neutral-400 mb-3">{current.subtitle}</p>
+        <p className="text-sm text-neutral-300 leading-relaxed mb-6">{current.body}</p>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          {step > 0 && (
+            <button
+              onClick={() => setStep(step - 1)}
+              className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-xl transition-colors"
+            >
+              Back
+            </button>
+          )}
+          {isLast ? (
+            <>
+              <button
+                onClick={onSetCity}
+                className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-400 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <MapPin className="w-4 h-4" />
+                Set My City
+              </button>
+              <button
+                onClick={onDismiss}
+                className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white rounded-xl transition-colors"
+              >
+                Skip
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setStep(step + 1)}
+              className="flex-1 px-4 py-2.5 bg-white hover:bg-white/90 text-black font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <p className="text-[10px] text-neutral-600 text-center mt-4">
+          Step {step + 1} of {ONBOARDING_STEPS.length} · Your location is stored locally and never shared.
         </p>
       </div>
     </div>

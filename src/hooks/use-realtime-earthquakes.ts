@@ -20,6 +20,17 @@ interface USGSFeature {
   };
 }
 
+const USGS_FEEDS: Record<string, string> = {
+  all_hour: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson',
+  all_day:  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
+  all_week: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson',
+};
+
+const BAY_AREA_BOUNDS = {
+  minLat: 36.9, maxLat: 38.35,
+  minLon: -123.0, maxLon: -121.4,
+};
+
 interface UseRealtimeEarthquakesOptions {
   feed?: 'all_hour' | 'all_day' | 'all_week';
   refreshInterval?: number;
@@ -74,15 +85,24 @@ export function useRealtimeEarthquakes({
     setError(null);
 
     try {
-      const response = await fetch(`/api/earthquakes?feed=${feed}`);
+      const usgsUrl = USGS_FEEDS[feed] ?? USGS_FEEDS.all_day;
+      const response = await fetch(usgsUrl);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`USGS API error: ${response.status}`);
       }
 
       const data = await response.json();
 
-      const converted = data.features.map(convertFeature);
+      const filtered = (data.features as USGSFeature[]).filter((f) => {
+        const [lon, lat] = f.geometry.coordinates;
+        return (
+          lat >= BAY_AREA_BOUNDS.minLat && lat <= BAY_AREA_BOUNDS.maxLat &&
+          lon >= BAY_AREA_BOUNDS.minLon && lon <= BAY_AREA_BOUNDS.maxLon
+        );
+      });
+
+      const converted = filtered.map(convertFeature);
       converted.sort((a: Earthquake, b: Earthquake) => b.timestamp - a.timestamp);
 
       setEarthquakes(converted);

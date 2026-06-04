@@ -2086,17 +2086,33 @@ export function AISummary({ earthquakes, className = '' }: AISummaryProps) {
 
 ---
 
-## Sprint 2 Remaining Tasks
+## Sprint 2 Remaining Tasks — ✅ COMPLETED June 3, 2026
 
-### 2.4 — Improve City Selector Widget
-- Add city names prominently (not just area codes)
-- Add location auto-detect option
-- Explain benefit clearly
+### 2.2 — Value Proposition Above the Fold ✅
+- Added `WeeklyContextBanner` component in `live-tab.tsx`
+- Shows weekly count, largest quake (magnitude + location), felt count
+- Color-coded: amber when M4+ present, neutral otherwise
+- Dismissible per session via `sessionStorage`
+- Renders client-only (mounted guard) to avoid hydration issues
 
-### 2.5 — First-Time User Onboarding
-- Create 3-step tooltip tour
-- Store completion in localStorage
-- Add skip option
+### 2.4 — Improve City Selector Widget ✅
+- City names now the visual focal point (large font)
+- Area codes demoted to small monospace badge on the right
+- Added "Use My Location" button with browser Geolocation API
+- Auto-detects nearest Bay Area city (haversine distance)
+- Error handling: permission denied, outside Bay Area (>200km), unsupported browser
+- "or search" divider between geo button and search input
+- Files modified: `components/dashboard/index.tsx`
+
+### 2.5 — First-Time User Onboarding ✅
+- Upgraded `FirstVisitPrompt` to a 3-step guided tour
+- Step 1: Welcome to Bay Tremor (Activity icon, blue)
+- Step 2: Explore the Live Map (Globe icon, green)
+- Step 3: Personalize for Your City → Set My City CTA (House icon, purple)
+- Progress indicator dots (active = wide white, past = narrow dim, future = narrow faint)
+- Back/Next/Skip/Set My City actions per step
+- X button to skip entire tour
+- Files modified: `components/dashboard/prompts.tsx`
 
 ---
 
@@ -2663,3 +2679,67 @@ The `/region/[id]` and `/city/[slug]` pages exist but appear to be mostly data-d
 | **SEO** | A- | Strong technical SEO; needs content strategy |
 
 **Overall: B-** — A solid foundation with clear product-market fit, but needs significant polish to compete with established earthquake trackers and to justify user retention.
+
+---
+
+## 🛠️ SPRINT 2 SESSION NOTES — What We Did, What Failed, and What Fixed It
+
+### Overview
+Sprint 2 UX tasks (2.2, 2.4, 2.5) were implemented across two coding sessions. The features themselves worked correctly, but the project has a **dual-directory architecture trap** that caused silent failures and required a debugging session to resolve.
+
+---
+
+### The Dual-Directory Problem
+
+The project has two parallel component trees:
+- `components/dashboard/` — root-level, appears to be legacy Next.js source
+- `src/components/dashboard/` — the **actual** Astro build source (`@/` alias points to `./src/`)
+
+The initial session applied all Sprint 2 component changes to `components/dashboard/` (root). The Astro build (`astro build`) only compiles files under `src/`, so those changes were never included in the built output. The build succeeded (exit code 0) because the root `components/` files are valid TypeScript — they just aren't part of the Astro compilation graph.
+
+**Symptom:** UI looked identical after rebuild; sprint features (WeeklyContextBanner, geolocation city selector, 3-step onboarding) were absent in the running app.
+
+**Fix:** Re-applied all three component edits to the correct `src/components/dashboard/` files:
+- `src/components/dashboard/live-tab.tsx` → WeeklyContextBanner
+- `src/components/dashboard/index.tsx` → geolocation + city selector UI
+- `src/components/dashboard/prompts.tsx` → 3-step onboarding tour
+
+---
+
+### The Missing API Endpoint
+
+The client-side hook `use-realtime-earthquakes.ts` called `/api/earthquakes`, which was implemented as a Next.js App Router route (`app/api/earthquakes/route.ts`). Astro does not serve Next.js API routes — those only work on Vercel/Next.js deployments.
+
+In `wrangler dev` (Cloudflare Workers local runtime), every call to `/api/earthquakes` returned **404**, meaning no earthquake data loaded at all. Since `WeeklyContextBanner` guards on `weekCount > 0`, it never rendered.
+
+**First fix attempt:** Created `src/pages/api/earthquakes.ts` as an Astro server endpoint that proxied to USGS and filtered to Bay Area bounds. This is the correct Astro pattern.
+
+**Second failure:** The Astro endpoint returned **500**. Root cause: `url.searchParams.get('feed')` was placed **outside** the `try/catch` block. In the Cloudflare Workers runtime, the `url` context parameter from Astro's `APIRoute` is not always a proper `URL` object, so accessing `.searchParams` on it threw an uncaught error. The runtime surfaced this as a 500 without hitting our catch handler.
+
+**Second fix attempt:** Rewrote the endpoint to use `new URL(request.url)` inside the `try/catch`, and removed `AbortSignal.timeout()` as a potential compat issue. The endpoint now had proper error handling and logged failures via `console.error`.
+
+**Still 500.** The workerd runtime in `wrangler dev` was blocking or failing on the outbound `fetch()` to `earthquake.usgs.gov` — the exact error wasn't surfaced even with logging.
+
+**Final fix:** Removed the proxy endpoint dependency entirely. Modified `src/hooks/use-realtime-earthquakes.ts` to fetch **directly from USGS GeoJSON feeds** (`earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson`). USGS earthquake feeds are public and include `Access-Control-Allow-Origin: *`, so browser-side fetching works without a proxy. Bay Area filtering was moved client-side, matching the pattern already used in `src/pages/index.astro` for SSR initial data.
+
+This eliminated the `/api/earthquakes` dependency entirely. The `src/pages/api/earthquakes.ts` endpoint was kept in place for future use (e.g., server-side caching, rate limiting, or when the D1/KV infrastructure is in place per the Sprint 3 plan).
+
+---
+
+### Sprint 2 Features Shipped
+
+| Task | Feature | File |
+|------|---------|------|
+| 2.2 | `WeeklyContextBanner` — weekly quake count, largest event, felt count; amber tint for M4+; dismissible per session | `src/components/dashboard/live-tab.tsx` |
+| 2.4 | City selector: city names prominent, area codes as badges, "Use My Location" with haversine nearest-city detection, geolocation error states | `src/components/dashboard/index.tsx` |
+| 2.5 | `FirstVisitPrompt` → 3-step guided onboarding tour with progress dots, Back/Next/Skip, localStorage persistence | `src/components/dashboard/prompts.tsx` |
+
+---
+
+### Key Lessons
+
+1. **Always verify which directory the build uses** before editing. Check `tsconfig.json` paths and `astro.config.ts` aliases.
+2. **Astro API routes go in `src/pages/api/`**, not `app/api/` (Next.js) or root-level files.
+3. **Astro's `url` context parameter** in API routes may not be a standard `URL` object in the Cloudflare Workers runtime. Always use `new URL(request.url)` inside a `try/catch`.
+4. **`wrangler dev` outbound fetch** can be unreliable for proxying to external APIs during local development. When the external API supports CORS (like USGS), prefer direct client-side fetching over server-side proxying.
+5. **`npm run build` returning exit 0 does not mean your changes are included** — it means the TypeScript compiles. Always confirm the bundle hash changed and the correct source files were modified.

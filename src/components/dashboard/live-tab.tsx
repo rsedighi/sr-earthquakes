@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
 import {
@@ -47,6 +47,72 @@ const LeafletMap = dynamic(
     )
   }
 );
+
+function WeeklyContextBanner({
+  weekCount,
+  largestRecent,
+  last24HoursCount,
+  feltCount,
+}: {
+  weekCount: number;
+  largestRecent: Earthquake | null;
+  last24HoursCount: number;
+  feltCount: number;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (sessionStorage.getItem('baytremor-weekly-ctx-dismissed')) {
+      setDismissed(true);
+    }
+  }, []);
+
+  if (!mounted || dismissed || weekCount === 0) return null;
+
+  const hasSignificant = largestRecent && largestRecent.magnitude >= 4.0;
+
+  return (
+    <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${
+      hasSignificant
+        ? 'bg-amber-500/10 border-amber-500/20'
+        : 'bg-white/[0.03] border-white/10'
+    }`}>
+      <Activity className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+        hasSignificant ? 'text-amber-400' : 'text-blue-400'
+      }`} />
+      <p className="text-sm text-neutral-300 flex-1 leading-relaxed">
+        <span className="text-white font-semibold">{weekCount} earthquakes</span> in the Bay Area this week
+        {largestRecent && (
+          <>
+            {' — '}the largest was a{' '}
+            <span className="font-medium" style={{ color: getMagnitudeColor(largestRecent.magnitude) }}>
+              M{largestRecent.magnitude.toFixed(1)}
+            </span>
+            {' '}near {largestRecent.place?.split(',')[0] || 'Bay Area'}
+          </>
+        )}
+        {feltCount > 0 && (
+          <span className="text-neutral-400">
+            {' · '}{feltCount} felt by residents
+          </span>
+        )}
+        {'.'}
+      </p>
+      <button
+        onClick={() => {
+          setDismissed(true);
+          sessionStorage.setItem('baytremor-weekly-ctx-dismissed', '1');
+        }}
+        className="p-1 rounded hover:bg-white/10 transition-colors text-neutral-600 hover:text-neutral-400 flex-shrink-0"
+        aria-label="Dismiss"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
 
 function HeroQuakeSkeleton() {
   return (
@@ -157,6 +223,15 @@ export function LiveTab({
   return (
     <>
       <IOSAppBanner />
+
+      {!isLoading && (
+        <WeeklyContextBanner
+          weekCount={realtimeQuakes.length}
+          largestRecent={largestRecent}
+          last24HoursCount={last24Hours.length}
+          feltCount={realtimeQuakes.filter(eq => eq.felt && eq.felt > 0).length}
+        />
+      )}
 
       {hotspotRegion.isElevated && (
         <CollapsibleAlert
