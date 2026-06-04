@@ -215,7 +215,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
     }
     const region = getRegionById(maxRegion);
     const avgForRegion = Math.round(
-      (historicalSummary.regionStats.find(r => r.regionId === maxRegion)?.totalCount || 0) / (15 * 52)
+      (historicalSummary?.regionStats?.find(r => r.regionId === maxRegion)?.totalCount || 0) / (15 * 52)
     );
     const multiplier = avgForRegion > 0 ? maxCount / avgForRegion : 1;
     return {
@@ -225,7 +225,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
       isElevated: multiplier > 2,
       multiplier,
     };
-  }, [realtimeQuakes, historicalSummary.regionStats]);
+  }, [realtimeQuakes, historicalSummary?.regionStats]);
 
   const realtimeQuakesRef = useRef(realtimeQuakes);
   realtimeQuakesRef.current = realtimeQuakes;
