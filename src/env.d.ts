@@ -15,6 +15,7 @@ interface Env {
   APNS_KEY_ID?: string;
   APNS_TEAM_ID?: string;
   APNS_BUNDLE_ID?: string;
+  NOTIFICATION_QUEUE?: Queue;
 }
 
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;

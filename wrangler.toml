@@ -45,17 +45,18 @@ new_sqlite_classes = ["EarthquakeRoom", "CommentRoom"]
 # bucket_name = "earthquake-media"
 
 # ── Sprint 4: Queues (async APNs dispatch) ────────────────────────────────────
-# [[queues.producers]]
-# binding = "NOTIFICATION_QUEUE"
-# queue = "earthquake-notifications"
-#
-# [[queues.consumers]]
-# queue = "earthquake-notifications"
-# max_batch_size = 50
+# Run `wrangler queues create earthquake-notifications` once before deploying.
+[[queues.producers]]
+binding = "NOTIFICATION_QUEUE"
+queue = "earthquake-notifications"
+
+[[queues.consumers]]
+queue = "earthquake-notifications"
+max_batch_size = 50
 
 # ── Sprint 4: Cron Trigger (USGS polling every 60s) ──────────────────────────
-# [triggers]
-# crons = ["*/1 * * * *"]
+[triggers]
+crons = ["*/1 * * * *"]
 
 # ── Sprint 6: Analytics Engine ────────────────────────────────────────────────
 # [[analytics_engine_datasets]]

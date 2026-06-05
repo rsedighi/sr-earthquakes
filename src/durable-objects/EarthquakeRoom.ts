@@ -28,6 +28,15 @@ export class EarthquakeRoom extends DurableObject<Env> {
   }
 
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Internal endpoint: cron worker POSTs new earthquake events here
+    if (request.method === 'POST' && url.pathname === '/broadcast') {
+      const payload = await request.json();
+      this.broadcast(payload);
+      return new Response('ok');
+    }
+
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Expected WebSocket upgrade', { status: 426 });
     }
