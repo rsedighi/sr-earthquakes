@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { Dashboard } from '@/components/dashboard';
+import { DashboardWithProviders } from '@/components/dashboard-with-providers';
 
 const BAY_AREA_BOUNDS = {
   minLat: 36.9, maxLat: 38.35,
@@ -48,7 +48,7 @@ try {
 ---
 
 <BaseLayout>
-  <Dashboard
+  <DashboardWithProviders
     client:load
     historicalSummary={null}
     initialTab="live"

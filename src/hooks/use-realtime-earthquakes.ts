@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getRegionForCoordinates } from '@/lib/regions';
-import { getPusherClient, EARTHQUAKE_CHANNEL, PUSHER_EVENTS } from '@/lib/pusher';
 
 interface USGSFeature {
   id: string;
@@ -19,17 +18,6 @@ interface USGSFeature {
     coordinates: [number, number, number];
   };
 }
-
-const USGS_FEEDS: Record<string, string> = {
-  all_hour: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson',
-  all_day:  'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
-  all_week: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson',
-};
-
-const BAY_AREA_BOUNDS = {
-  minLat: 36.9, maxLat: 38.35,
-  minLon: -123.0, maxLon: -121.4,
-};
 
 interface UseRealtimeEarthquakesOptions {
   feed?: 'all_hour' | 'all_day' | 'all_week';
@@ -74,37 +62,21 @@ export function useRealtimeEarthquakes({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const pusherConnected = useRef(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const wsConnected = useRef(false);
 
   const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
     setError(null);
 
     try {
-      const usgsUrl = USGS_FEEDS[feed] ?? USGS_FEEDS.all_day;
-      const response = await fetch(usgsUrl);
+      const res = await fetch(`/api/earthquakes?feed=${feed}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
 
-      if (!response.ok) {
-        throw new Error(`USGS API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      const filtered = (data.features as USGSFeature[]).filter((f) => {
-        const [lon, lat] = f.geometry.coordinates;
-        return (
-          lat >= BAY_AREA_BOUNDS.minLat && lat <= BAY_AREA_BOUNDS.maxLat &&
-          lon >= BAY_AREA_BOUNDS.minLon && lon <= BAY_AREA_BOUNDS.maxLon
-        );
-      });
-
-      const converted = filtered.map(convertFeature);
-      converted.sort((a: Earthquake, b: Earthquake) => b.timestamp - a.timestamp);
-
+      const data = await res.json() as { features: USGSFeature[] };
+      const converted = data.features.map(convertFeature);
+      converted.sort((a, b) => b.timestamp - a.timestamp);
       setEarthquakes(converted);
       setLastUpdated(new Date());
     } catch (err) {
@@ -115,55 +87,61 @@ export function useRealtimeEarthquakes({
     }
   }, [feed]);
 
-  const refresh = useCallback(async () => {
-    await fetchData(true);
-  }, [fetchData]);
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
 
   // Initial fetch
   useEffect(() => {
-    if (enabled) {
-      fetchData();
-    }
+    if (enabled) fetchData();
   }, [enabled, fetchData]);
 
-  // Pusher: subscribe for instant push notifications of new quakes
+  // WebSocket: connect to EarthquakeRoom DO for instant push on new quakes
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || typeof window === 'undefined') return;
 
-    const pusher = getPusherClient();
-    if (!pusher) return;
+    function connect() {
+      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${window.location.host}/api/ws/earthquakes`);
+      wsRef.current = ws;
 
-    const channel = pusher.subscribe(EARTHQUAKE_CHANNEL);
-    pusherConnected.current = true;
+      ws.onopen = () => {
+        wsConnected.current = true;
+      };
 
-    channel.bind(PUSHER_EVENTS.NEW_EARTHQUAKE, () => {
-      fetchData(true);
-    });
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data as string);
+          if (msg?.type === 'new_earthquake') {
+            fetchData(true);
+          }
+        } catch {
+          // ignore malformed messages
+        }
+      };
+
+      ws.onclose = () => {
+        wsConnected.current = false;
+        wsRef.current = null;
+        // Reconnect after 5s if still enabled
+        setTimeout(connect, 5_000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connect();
 
     return () => {
-      channel.unbind(PUSHER_EVENTS.NEW_EARTHQUAKE);
-      pusher.unsubscribe(EARTHQUAKE_CHANNEL);
-      pusherConnected.current = false;
+      wsRef.current?.close();
+      wsRef.current = null;
     };
   }, [enabled, fetchData]);
 
-  // Fallback polling (60s default — only needed if Pusher is down or unconfigured)
+  // Fallback polling — fires even when WS is connected as a safety net
   useEffect(() => {
     if (!enabled || refreshInterval <= 0) return;
-
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
+    const id = setInterval(() => fetchData(true), refreshInterval);
+    return () => clearInterval(id);
   }, [enabled, refreshInterval, fetchData]);
 
-  return {
-    earthquakes,
-    isLoading,
-    error,
-    lastUpdated,
-    refresh,
-    isRefreshing,
-  };
+  return { earthquakes, isLoading, error, lastUpdated, refresh, isRefreshing };
 }

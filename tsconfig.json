@@ -3,7 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "next/link":       ["src/lib/shims/next-link.tsx"],
+      "next/image":      ["src/lib/shims/next-image.tsx"],
+      "next/dynamic":    ["src/lib/shims/next-dynamic.tsx"],
+      "next/navigation": ["src/lib/shims/next-navigation.ts"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "react",

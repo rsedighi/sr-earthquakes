@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { datadogRum } from '@datadog/browser-rum';
 
 /**
@@ -144,10 +145,10 @@ export function FeatureFlagProvider({
         throw new Error(`Failed to fetch feature flags: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json() as { flags: Record<string, FeatureFlagResult> };
       
       // Track evaluations in Datadog RUM
-      Object.entries(data.flags as Record<string, FeatureFlagResult>).forEach(
+      Object.entries(data.flags).forEach(
         ([key, result]) => {
           trackFeatureFlagEvaluation(key, result);
         }

@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react';
 
 export type UnitSystem = 'imperial' | 'metric';
 

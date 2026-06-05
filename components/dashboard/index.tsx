@@ -9,6 +9,7 @@ import {
   Activity,
   Users,
   Loader2,
+  Navigation,
 } from 'lucide-react';
 
 import type { Earthquake } from '@/lib/types';
@@ -66,6 +67,8 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showCitySelector, setShowCitySelector] = useState(false);
   const [citySearch, setCitySearch] = useState('');
+  const [geolocating, setGeolocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
   const [showFirstVisitPrompt, setShowFirstVisitPrompt] = useState(false);
   const [newQuakesToast, setNewQuakesToast] = useState<Earthquake[]>([]);
@@ -273,6 +276,47 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
     setShowFirstVisitPrompt(false);
     localStorage.setItem('baytremor-seen-welcome', 'true');
   }, []);
+
+  const handleGeolocate = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setGeoError('Geolocation not supported by your browser');
+      return;
+    }
+    setGeolocating(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        function distKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+          const R = 6371;
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLon = (lon2 - lon1) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+        let nearest = availableCities[0];
+        let minDist = Infinity;
+        for (const city of availableCities) {
+          const d = distKm(latitude, longitude, city.lat, city.lon);
+          if (d < minDist) { minDist = d; nearest = city; }
+        }
+        if (minDist > 200) {
+          setGeoError('Your location appears to be outside the Bay Area');
+          setGeolocating(false);
+          return;
+        }
+        setCityByName(nearest.name);
+        setShowCitySelector(false);
+        setCitySearch('');
+        setGeolocating(false);
+      },
+      (err) => {
+        setGeolocating(false);
+        setGeoError(err.code === 1 ? 'Location access denied' : 'Could not detect your location');
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  }, [availableCities, setCityByName]);
 
   // --- AI summary (one attempt per elevated period; null = not tried, '' = failed/unavailable) ---
   useEffect(() => {
@@ -493,9 +537,34 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in overscroll-contain">
           <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col mx-4">
             <h3 className="text-lg font-semibold mb-2">Select Your City</h3>
-            <p className="text-sm text-neutral-400 mb-4">
+            <p className="text-sm text-neutral-400 mb-3">
               Choose a city to see personalized earthquake stats within {formatRadius(16, unitSystem)} of your area.
             </p>
+            <button
+              onClick={handleGeolocate}
+              disabled={geolocating}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 disabled:opacity-50 rounded-xl transition-colors mb-3 text-left"
+            >
+              {geolocating ? (
+                <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+              ) : (
+                <Navigation className="w-5 h-5 text-blue-400 flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                <div className="text-sm font-medium text-white">
+                  {geolocating ? 'Detecting your location…' : 'Use My Location'}
+                </div>
+                <div className="text-xs text-neutral-400">Automatically find the nearest Bay Area city</div>
+              </div>
+            </button>
+            {geoError && (
+              <p className="text-xs text-red-400 mb-3 px-1">{geoError}</p>
+            )}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-neutral-600">or search</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
             <div className="relative mb-4">
               <input
                 type="text"
@@ -524,20 +593,18 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
                       setShowCitySelector(false);
                       setCitySearch('');
                     }}
-                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-colors text-left
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left
                       ${myCity?.cityName === city.name 
                         ? 'bg-white/10 border border-white/20' 
                         : 'hover:bg-white/5'}`}
                   >
-                    <div className="w-12 h-12 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-                      <span className="font-mono text-lg font-bold text-white">{city.areaCode}</span>
-                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium">{city.name}</div>
+                      <div className="font-medium text-white">{city.name}</div>
                       <div className="text-xs text-neutral-500">{city.county} County</div>
                     </div>
+                    <span className="font-mono text-xs px-2 py-1 bg-white/10 rounded text-neutral-400 flex-shrink-0">{city.areaCode}</span>
                     {myCity?.cityName === city.name && (
-                      <span className="text-xs px-2 py-1 bg-white/20 rounded text-white">Selected</span>
+                      <span className="text-xs px-2 py-1 bg-white/20 rounded text-white flex-shrink-0">✓</span>
                     )}
                   </button>
                 ))}
@@ -551,7 +618,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
             </div>
             <div className="flex gap-3 mt-4 pt-4 border-t border-white/10">
               <button
-                onClick={() => { setShowCitySelector(false); setCitySearch(''); }}
+                onClick={() => { setShowCitySelector(false); setCitySearch(''); setGeoError(null); }}
                 className="flex-1 px-4 py-2 bg-white/5 text-neutral-400 rounded-lg hover:bg-white/10 transition-colors"
               >Cancel</button>
               {myCity && (

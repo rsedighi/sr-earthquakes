@@ -10,6 +10,12 @@ out/
 build/
 dist/
 
+# Astro
+.astro/
+
+# Wrangler local state
+.wrangler/
+
 # Testing
 coverage/
 

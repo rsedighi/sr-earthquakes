@@ -11,28 +11,33 @@ directory = "dist"
 binding = "ASSETS"
 
 # ── Sprint 2: D1 (replace MongoDB) ────────────────────────────────────────────
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "earthquake-tracker"
-# database_id = "TBD"
+[[d1_databases]]
+binding = "DB"
+database_name = "earthquake-tracker"
+database_id = "d0b76a3b-6160-4c92-8b75-fa8aeff69741"
+migrations_dir = "migrations"
 
 # ── Sprint 2: KV Namespaces ───────────────────────────────────────────────────
-# [[kv_namespaces]]
-# binding = "EARTHQUAKE_KV"
-# id = "TBD"
-#
-# [[kv_namespaces]]
-# binding = "FEATURE_FLAGS_KV"
-# id = "TBD"
+[[kv_namespaces]]
+binding = "EARTHQUAKE_KV"
+id = "ba9db04d86074366bdf876150573c534"
+
+[[kv_namespaces]]
+binding = "FEATURE_FLAGS_KV"
+id = "09a0d8a2f61f40889377a185c37ec0a5"
 
 # ── Sprint 2: Durable Objects (replace Pusher) ────────────────────────────────
-# [[durable_objects.bindings]]
-# name = "EARTHQUAKE_ROOM"
-# class_name = "EarthquakeRoom"
-#
-# [[durable_objects.bindings]]
-# name = "COMMENT_ROOM"
-# class_name = "CommentRoom"
+[[durable_objects.bindings]]
+name = "EARTHQUAKE_ROOM"
+class_name = "EarthquakeRoom"
+
+[[durable_objects.bindings]]
+name = "COMMENT_ROOM"
+class_name = "CommentRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EarthquakeRoom", "CommentRoom"]
 
 # ── Sprint 5: R2 (replace Cloudinary) ─────────────────────────────────────────
 # [[r2_buckets]]
