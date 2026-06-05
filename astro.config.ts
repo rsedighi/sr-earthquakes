@@ -12,6 +12,10 @@ export default defineConfig({
     platformProxy: {
       enabled: true,
     },
+    workerEntryPoint: {
+      path: './src/worker.ts',
+      namedExports: ['EarthquakeRoom', 'CommentRoom'],
+    },
   }),
   integrations: [react()],
   vite: {
