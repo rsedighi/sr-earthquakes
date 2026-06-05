@@ -1,6 +1,18 @@
 // Custom Cloudflare worker entrypoint.
-// Extends the default @astrojs/cloudflare server handler with Durable Object
-// class exports so wrangler can validate and deploy them in the same bundle.
-export { createExports } from '@astrojs/cloudflare/entrypoints/server.js';
-export { EarthquakeRoom } from './durable-objects/EarthquakeRoom';
-export { CommentRoom } from './durable-objects/CommentRoom';
+// Wraps the default @astrojs/cloudflare createExports so that the generated
+// dist/_worker.js/index.js extracts EarthquakeRoom and CommentRoom from the
+// return value (which is where the generated code looks, via _exports['...'])
+import { createExports as _createExports } from '@astrojs/cloudflare/entrypoints/server.js';
+import { EarthquakeRoom } from './durable-objects/EarthquakeRoom';
+import { CommentRoom } from './durable-objects/CommentRoom';
+
+export { EarthquakeRoom, CommentRoom };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createExports(manifest: any) {
+  return {
+    ..._createExports(manifest),
+    EarthquakeRoom,
+    CommentRoom,
+  };
+}
