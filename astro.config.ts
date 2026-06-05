@@ -29,7 +29,7 @@ export default defineConfig({
       },
     },
     ssr: {
-      external: ['cloudinary'],
+      external: [],
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),

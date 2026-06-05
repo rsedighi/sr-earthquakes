@@ -40,9 +40,10 @@ tag = "v1"
 new_sqlite_classes = ["EarthquakeRoom", "CommentRoom"]
 
 # ── Sprint 5: R2 (replace Cloudinary) ─────────────────────────────────────────
-# [[r2_buckets]]
-# binding = "MEDIA_R2"
-# bucket_name = "earthquake-media"
+# Run `wrangler r2 bucket create earthquake-media` once before deploying.
+[[r2_buckets]]
+binding = "MEDIA_R2"
+bucket_name = "earthquake-media"
 
 # ── Sprint 4: Queues (async APNs dispatch) ────────────────────────────────────
 # Run `wrangler queues create earthquake-notifications` once before deploying.
