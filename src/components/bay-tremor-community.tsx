@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
 import {
   ArrowBigUp,
   ArrowBigDown,
@@ -35,7 +33,7 @@ import {
 import { getMagnitudeColor } from '@/lib/analysis';
 import { formatDepth } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
-import type { ForumThreadWithId, ForumPostWithId, ForumCategory } from '@/lib/mongodb';
+import type { ForumThreadWithId, ForumPostWithId, ForumCategory } from '@/lib/forum-types';
 import { FeedbackModal } from './feedback-modal';
 
 // Sort options
@@ -68,7 +66,6 @@ interface CommunityStats {
 }
 
 export function BayTremorCommunity() {
-  const router = useRouter();
   const { unitSystem } = useUnits();
   const [posts, setPosts] = useState<ForumThreadWithId[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
@@ -94,19 +91,19 @@ export function BayTremorCommunity() {
       let currentPosts: ForumThreadWithId[] = [];
       
       if (postsRes.ok) {
-        const data = await postsRes.json();
+        const data = await postsRes.json() as { threads?: ForumThreadWithId[] };
         currentPosts = data.threads || [];
         setPosts(currentPosts);
       }
       
       if (statsRes.ok) {
-        const data = await statsRes.json();
-        setStats(data.stats);
+        const data = await statsRes.json() as { stats?: { totalThreads: number; totalPosts: number; activeToday: number } };
+        setStats(data.stats ?? null);
       }
       
       // Check if there are newer posts than what's shown in hot/top
       if (latestRes && sortBy !== 'new') {
-        const latestData = await latestRes.json();
+        const latestData = await latestRes.json() as { threads?: ForumThreadWithId[] };
         const latestPosts: ForumThreadWithId[] = latestData.threads || [];
         
         if (latestPosts.length > 0) {
@@ -391,13 +388,13 @@ export function BayTremorCommunity() {
                   <ExternalLink className="w-4 h-4" />
                   Earthquake Preparedness
                 </a>
-                <Link prefetch={false} 
+                <a
                   href="/learn"
                   className="flex items-center gap-2 text-sm text-neutral-400 hover:text-orange-500 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
                   Learn About Earthquakes
-                </Link>
+                </a>
               </div>
             </div>
 
@@ -421,11 +418,11 @@ export function BayTremorCommunity() {
             {/* Footer */}
             <div className="text-xs text-neutral-600 px-2">
               <div className="flex flex-wrap gap-x-2 gap-y-1">
-                <Link prefetch={false} href="/about" className="hover:text-neutral-400">About</Link>
+                <a href="/about" className="hover:text-neutral-400">About</a>
                 <span>·</span>
-                <Link prefetch={false} href="/faq" className="hover:text-neutral-400">FAQ</Link>
+                <a href="/faq" className="hover:text-neutral-400">FAQ</a>
                 <span>·</span>
-                <Link prefetch={false} href="/" className="hover:text-neutral-400">Live Map</Link>
+                <a href="/" className="hover:text-neutral-400">Live Map</a>
               </div>
               <div className="mt-2">
                 Bay Tremor © {new Date().getFullYear()}
@@ -462,10 +459,10 @@ export function BayTremorCommunity() {
           {/* Footer Links & Copyright */}
           <div className="text-center pt-6 border-t border-white/5">
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-neutral-500 mb-4">
-              <Link prefetch={false} href="/about" className="hover:text-white transition-colors">About</Link>
-              <Link prefetch={false} href="/faq" className="hover:text-white transition-colors">FAQ</Link>
-              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Live Map</Link>
-              <Link prefetch={false} href="/learn" className="hover:text-white transition-colors">Learn</Link>
+              <a href="/about" className="hover:text-white transition-colors">About</a>
+              <a href="/faq" className="hover:text-white transition-colors">FAQ</a>
+              <a href="/" className="hover:text-white transition-colors">Live Map</a>
+              <a href="/learn" className="hover:text-white transition-colors">Learn</a>
               <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-1">
                 USGS <ExternalLink className="w-3 h-3" />
               </a>
@@ -497,7 +494,7 @@ export function BayTremorCommunity() {
 // Post Card Component
 function PostCard({ post }: { post: ForumThreadWithId }) {
   const { unitSystem } = useUnits();
-  const [votes, setVotes] = useState(post.viewCount || 0);
+  const [votes, setVotes] = useState<number>(post.viewCount || 0);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
 
   const handleVote = (direction: 'up' | 'down') => {
@@ -528,7 +525,7 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
   const flair = getFlair();
 
   return (
-    <Link prefetch={false}
+    <a
       href={`/community/${post.category}/${post.slug}`}
       className="bg-[#1a1a1b] rounded-lg border border-neutral-800 hover:border-neutral-700 transition-colors flex overflow-hidden group"
     >
@@ -632,7 +629,7 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
           </button>
         </div>
       </div>
-    </Link>
+    </a>
   );
 }
 
@@ -689,7 +686,7 @@ function EarthquakePicker({
       try {
         const res = await fetch('/api/earthquakes?feed=all_week');
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { features?: EarthquakeFeature[] };
           // Sort by most recent first
           const sorted = (data.features || []).sort(
             (a: EarthquakeFeature, b: EarthquakeFeature) => 
@@ -883,7 +880,6 @@ function EarthquakePicker({
 
 // Create Post Modal
 function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const router = useRouter();
   const [postType, setPostType] = useState<'text' | 'felt'>('text');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -930,14 +926,14 @@ function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSucces
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         throw new Error(data.error || 'Failed to create post');
       }
 
-      const data = await res.json();
+      const data = await res.json() as { thread: { slug: string } };
       onSuccess();
       onClose();
-      router.push(`/community/${category}/${data.thread.slug}`);
+      window.location.href = `/community/${category}/${data.thread.slug}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create post');
     } finally {
@@ -1167,7 +1163,6 @@ function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
 // Thread Detail View Component
 export function ThreadDetailView({ slug, category }: { slug: string; category: ForumCategory }) {
-  const router = useRouter();
   const { unitSystem } = useUnits();
   const [thread, setThread] = useState<ForumThreadWithId | null>(null);
   const [posts, setPosts] = useState<ForumPostWithId[]>([]);
@@ -1188,7 +1183,7 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
       try {
         const res = await fetch(`/api/forum/threads/${slug}`);
         if (!res.ok) throw new Error('Thread not found');
-        const data = await res.json();
+        const data = await res.json() as { thread: ForumThreadWithId; posts?: ForumPostWithId[] };
         setThread(data.thread);
         setPosts(data.posts || []);
       } catch (err) {
@@ -1219,9 +1214,9 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
 
       if (!res.ok) throw new Error('Failed to post reply');
 
-      const data = await res.json();
+      const data = await res.json() as { post?: ForumPostWithId };
       if (data.post) {
-        setPosts(prev => [...prev, data.post]);
+        setPosts(prev => [...prev, data.post!]);
       }
       setContent('');
       setShowReplyForm(false);
@@ -1283,9 +1278,9 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-neutral-400 mb-4">{error || 'Thread not found'}</p>
-          <Link prefetch={false} href="/community" className="text-orange-500 hover:underline">
+          <a href="/community" className="text-orange-500 hover:underline">
             Back to Community
-          </Link>
+          </a>
         </div>
       </div>
     );
@@ -1310,10 +1305,10 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
       <div className="bg-[#1a1a1b] border-b border-neutral-800">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-2 text-sm">
-            <Link prefetch={false} href="/community" className="flex items-center gap-1.5 text-orange-500 hover:text-orange-400">
+            <a href="/community" className="flex items-center gap-1.5 text-orange-500 hover:text-orange-400">
               <Activity className="w-4 h-4" />
               Community
-            </Link>
+            </a>
             <span className="text-neutral-600">/</span>
             <span className="text-neutral-400">{thread.category}</span>
           </div>
@@ -1390,12 +1385,12 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
                       Depth: {thread.earthquakeData.depth ? formatDepth(thread.earthquakeData.depth, unitSystem) : '?'}
                     </div>
                   </div>
-                  <Link prefetch={false}
+                  <a
                     href={`/earthquake/${thread.earthquakeId}`}
                     className="px-4 py-2 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
                   >
                     View Details
-                  </Link>
+                  </a>
                 </div>
               )}
 
@@ -1526,9 +1521,9 @@ export function ThreadDetailView({ slug, category }: { slug: string; category: F
           </div>
           <div className="mt-6 text-center">
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-neutral-500 mb-3">
-              <Link prefetch={false} href="/about" className="hover:text-white transition-colors">About</Link>
-              <Link prefetch={false} href="/community" className="hover:text-white transition-colors">Community</Link>
-              <Link prefetch={false} href="/" className="hover:text-white transition-colors">Live Map</Link>
+              <a href="/about" className="hover:text-white transition-colors">About</a>
+              <a href="/community" className="hover:text-white transition-colors">Community</a>
+              <a href="/" className="hover:text-white transition-colors">Live Map</a>
             </div>
             <p className="text-xs text-neutral-700">© {new Date().getFullYear()} Bay Tremor</p>
           </div>
@@ -1649,7 +1644,7 @@ export function CommunityWidget() {
   useEffect(() => {
     fetch('/api/forum/threads?trending=true&limit=3')
       .then(res => res.json())
-      .then(data => setPosts(data.threads || []))
+      .then((data: unknown) => setPosts((data as { threads?: ForumThreadWithId[] }).threads || []))
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
@@ -1663,13 +1658,13 @@ export function CommunityWidget() {
           <Activity className="w-5 h-5 text-orange-500" />
           <h3 className="font-semibold text-white">Bay Tremor Community</h3>
         </div>
-        <Link prefetch={false} href="/community" className="text-xs text-orange-500 hover:text-orange-400">
+        <a href="/community" className="text-xs text-orange-500 hover:text-orange-400">
           View All
-        </Link>
+        </a>
       </div>
       <div className="divide-y divide-neutral-800">
         {posts.map((post, i) => (
-          <Link prefetch={false}
+          <a
             key={post._id}
             href={`/community/${post.category}/${post.slug}`}
             className="flex items-center gap-3 p-3 hover:bg-neutral-800/50 transition-colors"
@@ -1689,7 +1684,7 @@ export function CommunityWidget() {
                 M{post.earthquakeData.magnitude.toFixed(1)}
               </span>
             )}
-          </Link>
+          </a>
         ))}
       </div>
     </section>

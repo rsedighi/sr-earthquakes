@@ -1,0 +1,237 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Earthquake Preparedness', url: `${baseUrl}/earthquake-preparedness` },
+]);
+
+const essentialItems = [
+  { item: 'Water', detail: '1 gallon per person per day for at least 3 days' },
+  { item: 'Non-perishable food', detail: '3-day supply per person (canned goods, energy bars)' },
+  { item: 'First aid kit', detail: 'Bandages, antiseptic, medications, pain relievers' },
+  { item: 'Flashlight', detail: 'With extra batteries (avoid candles due to gas leak risk)' },
+  { item: 'Battery-powered radio', detail: 'NOAA Weather Radio for emergency broadcasts' },
+  { item: 'Extra batteries', detail: 'For flashlights, radio, and other devices' },
+  { item: 'Whistle', detail: 'To signal for help if trapped' },
+  { item: 'Dust masks', detail: 'N95 masks to filter contaminated air' },
+  { item: 'Wrench or pliers', detail: 'To turn off utilities if needed' },
+  { item: 'Manual can opener', detail: 'For canned food supplies' },
+  { item: 'Local maps', detail: 'Physical maps of Bay Area in case GPS fails' },
+  { item: 'Portable phone charger', detail: 'Solar or hand-crank charger recommended' },
+];
+
+const importantItems = [
+  { item: 'Important documents', detail: 'Copies of IDs, insurance, bank records in waterproof container' },
+  { item: 'Cash', detail: 'ATMs and card readers may not work; have small bills' },
+  { item: 'Prescription medications', detail: '7-day supply of any daily medications' },
+  { item: 'Spare glasses/contacts', detail: 'Extra eyewear and contact solution' },
+  { item: 'Sleeping bag or blanket', detail: 'Warm sleeping gear for each person' },
+  { item: 'Change of clothes', detail: 'Including sturdy shoes for walking through debris' },
+  { item: 'Sanitation supplies', detail: 'Toilet paper, garbage bags, hand sanitizer' },
+  { item: 'Pet supplies', detail: 'Food, water, medications, carrier for pets' },
+  { item: 'Fire extinguisher', detail: 'ABC type for home fires' },
+];
+
+const faqs = [
+  { q: 'How much water should I store for earthquake preparedness?', a: "The recommendation is one gallon of water per person per day for at least three days. For a family of four, that means 12 gallons minimum. The Bay Area's unique risks (broken water mains, potential contamination) mean many experts recommend storing a two-week supply if possible." },
+  { q: 'Should I get earthquake insurance in the Bay Area?', a: 'Standard homeowner and renter insurance policies do NOT cover earthquake damage. You need a separate earthquake insurance policy. The California Earthquake Authority (CEA) provides policies for homeowners. Given Bay Area seismic risk, many residents benefit from coverage — consult your insurance agent for the right fit.' },
+  { q: "What's the best room to shelter in during an earthquake?", a: 'The safest place is under a sturdy desk or table away from windows. Interior rooms with no windows are safer than rooms with large glass areas. Avoid the kitchen (knives, appliances), doorways (they are NOT safer in modern construction), and near exterior windows or glass.' },
+  { q: 'How do I turn off gas after an earthquake?', a: 'Only turn off your gas if you smell gas, hear a hissing sound, or see damage to your gas lines. Use a wrench to turn the valve 90 degrees so it runs perpendicular to the pipe. Once turned off, do not attempt to turn it back on yourself — contact PG&E. Keep a wrench near your gas meter.' },
+  { q: 'What is ShakeAlert and how does it work?', a: 'ShakeAlert is the USGS earthquake early warning system for the West Coast. It detects earthquakes as they happen and sends alerts to mobile devices (through Wireless Emergency Alerts) before shaking reaches you. Even a few seconds of warning can be enough to drop, cover, and hold on, move away from hazards, or stop a vehicle.' },
+];
+---
+
+<BaseLayout
+  title="Bay Area Earthquake Preparedness Guide | Safety Checklist & Tips"
+  description="Complete Bay Area earthquake preparedness guide. Emergency kit checklist, safety tips, family communication plan, and local resources for San Francisco, Oakland, San Jose & surrounding cities."
+  keywords="earthquake preparedness california, earthquake emergency kit, earthquake safety, bay area earthquake safety, earthquake kit list"
+  canonical={`${baseUrl}/earthquake-preparedness`}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <!-- Breadcrumb -->
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">Earthquake Preparedness</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <!-- Header -->
+      <header class="mb-10">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <h1 class="text-4xl font-bold">Earthquake Preparedness</h1>
+        </div>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          A complete guide for Bay Area residents to prepare for earthquakes. From emergency kits to family communication plans, everything you need to stay safe.
+        </p>
+      </header>
+
+      <!-- Drop Cover Hold On -->
+      <section class="bg-gradient-to-r from-red-500/10 to-amber-500/10 border border-red-500/20 rounded-2xl p-8 mb-10">
+        <h2 class="text-2xl font-bold mb-4 text-red-400">During an Earthquake: DROP, COVER, HOLD ON</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          {[
+            { step: 'DROP', desc: 'Get down on your hands and knees. This position protects you from being knocked down.', color: 'bg-red-500/20 border-red-500/30 text-red-300' },
+            { step: 'COVER', desc: 'Cover your head and neck with your arms. If nearby, shelter under a sturdy desk or table.', color: 'bg-amber-500/20 border-amber-500/30 text-amber-300' },
+            { step: 'HOLD ON', desc: 'Hold on until shaking stops. If under a table, hold a leg and move with it.', color: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' },
+          ].map(({ step, desc, color }) => (
+            <div class={`p-5 rounded-xl border ${color.split(' ').slice(0, 2).join(' ')} border-opacity-50`}>
+              <div class={`text-2xl font-bold mb-2 ${color.split(' ')[2]}`}>{step}</div>
+              <p class="text-neutral-300 text-sm">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Emergency Kit -->
+      <section class="mb-10">
+        <h2 class="text-3xl font-bold mb-2 flex items-center gap-3">
+          <svg class="w-7 h-7 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v2M8 2v2M3 8h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+          Emergency Kit Checklist
+        </h2>
+        <p class="text-neutral-400 mb-6">Assemble your kit before an earthquake strikes. Store it in a waterproof, portable container in an easily accessible place.</p>
+
+        <h3 class="text-xl font-semibold text-emerald-400 mb-4">✓ Essential Items</h3>
+        <div class="grid md:grid-cols-2 gap-3 mb-8">
+          {essentialItems.map(({ item, detail }) => (
+            <div class="flex gap-3 bg-neutral-900 rounded-xl p-4 border border-white/10">
+              <div class="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex-shrink-0 flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+              </div>
+              <div>
+                <div class="font-medium">{item}</div>
+                <div class="text-sm text-neutral-400">{detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h3 class="text-xl font-semibold text-blue-400 mb-4">+ Important Items</h3>
+        <div class="grid md:grid-cols-2 gap-3">
+          {importantItems.map(({ item, detail }) => (
+            <div class="flex gap-3 bg-neutral-900/50 rounded-xl p-4 border border-white/5">
+              <div class="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex-shrink-0 flex items-center justify-center mt-0.5">
+                <svg class="w-3 h-3 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+              <div>
+                <div class="font-medium">{item}</div>
+                <div class="text-sm text-neutral-400">{detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Family Communication Plan -->
+      <section class="bg-neutral-900 rounded-2xl p-8 border border-white/10 mb-10">
+        <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+          <svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Family Communication Plan
+        </h2>
+        <div class="space-y-4 text-neutral-300">
+          <p>After a major earthquake, local phone networks may be overloaded. Designate an out-of-area contact that everyone can reach to confirm safety.</p>
+          <div class="grid md:grid-cols-2 gap-4 mt-4">
+            {[
+              { title: 'Designate a Meeting Place', desc: 'Choose a specific outdoor location near your home for family to reunite after an earthquake.' },
+              { title: 'Out-of-Area Contact', desc: 'Pick one person outside the Bay Area as your family communication hub.' },
+              { title: 'Know Your Neighbors', desc: "Introduce yourself to neighbors. Community networks are critical in disasters when official help is delayed." },
+              { title: 'Practice the Plan', desc: "Conduct earthquake drills at home twice a year. Know where to find water shut-offs and gas valves." },
+            ].map(({ title, desc }) => (
+              <div class="p-4 bg-white/5 rounded-xl">
+                <div class="font-semibold text-white mb-1">{title}</div>
+                <p class="text-sm text-neutral-400">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <!-- Home Safety -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Secure Your Home
+        </h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          {[
+            { title: 'Secure Heavy Furniture', desc: 'Strap bookshelves, water heaters, and large appliances to walls using L-brackets and safety straps.' },
+            { title: 'Secure Cabinet Latches', desc: 'Install latches on kitchen cabinets to prevent dishes and items from falling out during shaking.' },
+            { title: 'Move Heavy Objects Low', desc: 'Store heavy items on lower shelves. Avoid heavy objects above beds or sitting areas.' },
+            { title: 'Check Foundations', desc: "If your home was built before 1980, have a professional check for seismic vulnerabilities in the foundation." },
+            { title: 'Locate Utility Shutoffs', desc: 'Know how and where to shut off gas, electricity, and water. Post clear instructions near each shutoff.' },
+            { title: 'Identify Safe Spots', desc: 'In every room, identify the safest place to shelter: under a sturdy table, away from windows.' },
+          ].map(({ title, desc }) => (
+            <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+              <h3 class="font-semibold text-amber-400 mb-2">{title}</h3>
+              <p class="text-neutral-300 text-sm">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Local Bay Area Resources -->
+      <section class="bg-neutral-900 rounded-2xl p-8 border border-white/10 mb-10">
+        <h2 class="text-2xl font-bold mb-6">Bay Area Resources</h2>
+        <div class="space-y-3">
+          {[
+            { name: 'Bay Area Earthquake Alliance', url: 'https://bayquakealliance.org', desc: 'Regional earthquake preparedness resources' },
+            { name: "Governor's OES - Earthquake Safety", url: 'https://www.caloes.ca.gov/hazard-mitigation/earthquakes/', desc: 'California earthquake safety resources' },
+            { name: 'ABAG Earthquake & Hazards', url: 'https://abag.ca.gov/our-work/resilience/earthquakes-and-natural-hazards', desc: 'Association of Bay Area Governments hazard resources' },
+            { name: 'Earthquake Country Alliance', url: 'https://www.earthquakecountry.org', desc: 'Seven Steps to Earthquake Safety guide' },
+            { name: 'PG&E Gas Safety', url: 'https://www.pge.com/en_US/safety/emergency-preparedness/natural-disaster/earthquakes/earthquakes.page', desc: 'Gas shutoff and safety after earthquakes' },
+            { name: 'USGS ShakeAlert', url: 'https://www.shakealert.org', desc: 'Earthquake early warning system for the West Coast' },
+          ].map(({ name, url, desc }) => (
+            <a href={url} target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+              <div>
+                <div class="font-medium text-blue-400">{name}</div>
+                <div class="text-sm text-neutral-500">{desc}</div>
+              </div>
+              <svg class="w-4 h-4 text-neutral-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+        <div class="space-y-3">
+          {faqs.map(({ q, a }) => (
+            <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <summary class="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                <h3 class="font-semibold pr-4 text-left">{q}</h3>
+                <svg class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">{a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="text-center border-t border-white/10 pt-10">
+        <p class="text-neutral-400 mb-6">Stay informed about earthquake activity in your area.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/" class="px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors">
+            View Live Earthquake Map
+          </a>
+          <a href="/today" class="px-6 py-3 bg-neutral-800 text-white rounded-xl font-semibold hover:bg-neutral-700 transition-colors border border-white/10">
+            Earthquakes Today
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

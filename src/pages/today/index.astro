@@ -1,0 +1,282 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { getRegionById, BAY_AREA_LANDMARKS } from '@/lib/regions';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+function formatTimeAgo(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
+function getDayLabel(timestamp: number, nowMs: number): string {
+  const date = new Date(timestamp);
+  const today = new Date(nowMs);
+  const yesterday = new Date(nowMs);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const now = Date.now();
+const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+const recentEarthquakes = allEarthquakes.filter(eq => eq.timestamp > sevenDaysAgo);
+
+const last24Hours = recentEarthquakes.filter(eq => eq.timestamp > now - 86400000);
+const lastHour = last24Hours.filter(eq => eq.timestamp > now - 3600000);
+const todayQuakes = last24Hours.filter(eq => new Date(eq.timestamp).toDateString() === new Date(now).toDateString());
+
+const mostRecent = recentEarthquakes[0];
+const timeSinceLastQuake = mostRecent ? formatTimeAgo(mostRecent.timestamp) : 'Unknown';
+
+const avgMagnitude = last24Hours.length > 0
+  ? last24Hours.reduce((sum, eq) => sum + eq.magnitude, 0) / last24Hours.length
+  : 0;
+const maxMagnitude = last24Hours.length > 0
+  ? Math.max(...last24Hours.map(eq => eq.magnitude))
+  : 0;
+
+const earthquakesByDay: Record<string, typeof recentEarthquakes> = {};
+for (const eq of recentEarthquakes) {
+  const key = getDayLabel(eq.timestamp, now);
+  if (!earthquakesByDay[key]) earthquakesByDay[key] = [];
+  earthquakesByDay[key].push(eq);
+}
+
+const affectedCities = new Set<string>();
+for (const eq of last24Hours) {
+  const region = getRegionById(eq.region);
+  if (region) {
+    BAY_AREA_LANDMARKS.filter(l => {
+      if (l.type !== 'city') return false;
+      const { minLat, maxLat, minLon, maxLon } = region.bounds;
+      return l.lat >= minLat && l.lat <= maxLat && l.lon >= minLon && l.lon <= maxLon;
+    }).forEach(c => affectedCities.add(c.name));
+  }
+}
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Earthquakes Today', url: `${baseUrl}/today` },
+]);
+
+const liveUpdateSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Bay Area Earthquakes Today',
+  description: 'Real-time earthquake updates for the San Francisco Bay Area',
+  url: `${baseUrl}/today`,
+  dateModified: mostRecent ? new Date(mostRecent.timestamp).toISOString() : new Date(now).toISOString(),
+  isPartOf: { '@type': 'WebSite', name: 'Bay Tremor', url: baseUrl },
+  mainEntity: {
+    '@type': 'ItemList',
+    name: 'Recent Earthquakes',
+    numberOfItems: last24Hours.length,
+    itemListElement: last24Hours.slice(0, 10).map((eq, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Event',
+        name: `M${eq.magnitude.toFixed(1)} Earthquake - ${eq.place}`,
+        startDate: new Date(eq.timestamp).toISOString(),
+        location: { '@type': 'Place', name: eq.place, geo: { '@type': 'GeoCoordinates', latitude: eq.latitude, longitude: eq.longitude } },
+      },
+    })),
+  },
+};
+
+const updatedAt = new Date(now).toLocaleTimeString();
+---
+
+<BaseLayout
+  title="Bay Area Earthquakes Today | Live Seismic Activity - Bay Tremor"
+  description="See all earthquakes in the San Francisco Bay Area TODAY. Real-time seismic activity tracker with live USGS data. Did you feel an earthquake? Check here for the latest quake information."
+  keywords="earthquake today, bay area earthquake today, san francisco earthquake today, did i feel an earthquake, earthquake just now"
+  canonical={`${baseUrl}/today`}
+  schema={[breadcrumbSchema, liveUpdateSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">Earthquakes Today</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+            <span class="text-sm text-red-400 font-medium">LIVE</span>
+          </div>
+          <span class="text-sm text-neutral-500">Updated {updatedAt}</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">Bay Area Earthquakes Today</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          Real-time seismic activity in the San Francisco Bay Area.
+          Last earthquake: <span class="text-white font-semibold">{timeSinceLastQuake}</span>
+          {mostRecent && (
+            <span class="text-neutral-500"> (M{mostRecent.magnitude.toFixed(1)} {mostRecent.place.split(',')[0]})</span>
+          )}
+        </p>
+      </header>
+
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="text-xs uppercase tracking-wider">Last Hour</span>
+          </div>
+          <div class="text-3xl font-bold">{lastHour.length}</div>
+          <div class="text-xs text-neutral-500">earthquakes</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span class="text-xs uppercase tracking-wider">Today</span>
+          </div>
+          <div class="text-3xl font-bold">{todayQuakes.length}</div>
+          <div class="text-xs text-neutral-500">earthquakes</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span class="text-xs uppercase tracking-wider">24h Average</span>
+          </div>
+          <div class="text-3xl font-bold">M{avgMagnitude.toFixed(1)}</div>
+          <div class="text-xs text-neutral-500">magnitude</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <span class="text-xs uppercase tracking-wider">24h Max</span>
+          </div>
+          <div class="text-3xl font-bold text-amber-400">M{maxMagnitude.toFixed(1)}</div>
+          <div class="text-xs text-neutral-500">magnitude</div>
+        </div>
+      </div>
+
+      <!-- Did You Feel It Banner -->
+      {lastHour.length > 0 && lastHour[0].magnitude >= 2.5 && (
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 mb-8">
+          <h2 class="text-lg font-semibold text-amber-400 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            Did You Feel It?
+          </h2>
+          <p class="text-neutral-300">
+            A M{lastHour[0].magnitude.toFixed(1)} earthquake occurred {formatTimeAgo(lastHour[0].timestamp)} near {lastHour[0].place}.{' '}
+            <a href={`/earthquake/${lastHour[0].id}`} class="text-amber-400 hover:text-amber-300 underline">View details and report if you felt it →</a>
+          </p>
+        </div>
+      )}
+
+      <!-- Affected Cities -->
+      {affectedCities.size > 0 && (
+        <section class="mb-8">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Affected Areas (Last 24 Hours)
+          </h2>
+          <div class="flex flex-wrap gap-2">
+            {Array.from(affectedCities).slice(0, 15).map(city => (
+              <a href={`/${city.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`} class="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-sm transition-colors">{city}</a>
+            ))}
+            {affectedCities.size > 15 && <span class="px-3 py-1.5 text-neutral-500 text-sm">+{affectedCities.size - 15} more</span>}
+          </div>
+        </section>
+      )}
+
+      <!-- Earthquake List by Day -->
+      <section>
+        <h2 class="text-2xl font-bold mb-6">Recent Earthquake Activity</h2>
+
+        {Object.entries(earthquakesByDay).map(([dayLabel, dayEqs]) => (
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold text-neutral-400 mb-4 sticky top-0 bg-[#0a0a0a] py-2 z-10">
+              {dayLabel} <span class="text-sm font-normal ml-2">({dayEqs.length} earthquakes)</span>
+            </h3>
+            <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <ul class="divide-y divide-white/5">
+                {dayEqs.slice(0, 50).map(eq => {
+                  const region = getRegionById(eq.region);
+                  const color = getMagnitudeColor(eq.magnitude);
+                  return (
+                    <li>
+                      <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                        <div class="w-14 h-14 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>
+                          <span class="text-lg">{eq.magnitude.toFixed(1)}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium truncate">{eq.place}</div>
+                          <div class="text-sm text-neutral-500 flex flex-wrap gap-x-3">
+                            <span>{formatTimeAgo(eq.timestamp)}</span>
+                            <span>{eq.depth.toFixed(1)}km deep</span>
+                            {region && <span>{region.name.split(' / ')[0]}</span>}
+                          </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                          <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400">{getMagnitudeLabel(eq.magnitude)}</span>
+                          <span class="text-xs text-neutral-600">{new Date(eq.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        ))}
+
+        {recentEarthquakes.length === 0 && (
+          <div class="bg-neutral-900 rounded-xl p-8 text-center text-neutral-500 border border-white/10">
+            <svg class="w-12 h-12 mx-auto mb-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p>No earthquakes recorded in the Bay Area in the last 7 days.</p>
+            <p class="text-sm mt-2">This is unusual — check back later for updates.</p>
+          </div>
+        )}
+      </section>
+
+      <!-- SEO Content -->
+      <section class="mt-12 bg-neutral-900 rounded-xl p-6 border border-white/10">
+        <h2 class="text-2xl font-bold mb-4">About Bay Area Earthquake Activity</h2>
+        <p class="text-neutral-300 mb-4">The San Francisco Bay Area is one of the most seismically active regions in the United States. Located along the boundary between the Pacific and North American tectonic plates, the region experiences hundreds of earthquakes each week, though most are too small to feel.</p>
+        <p class="text-neutral-300 mb-4">This page shows all earthquakes detected in the Bay Area over the past 7 days, with real-time updates from the USGS seismic monitoring network. Major fault lines include the San Andreas Fault, Hayward Fault, Calaveras Fault, and Rodgers Creek Fault.</p>
+        <p class="text-neutral-300">If you felt an earthquake, you can report it through the USGS "Did You Feel It?" program.</p>
+      </section>
+
+      <!-- Quick Links -->
+      <section class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { href: '/learn', sub: 'Learn About', label: 'Earthquakes' },
+          { href: '/faq', sub: 'Frequently Asked', label: 'Questions' },
+          { href: '/my-area', sub: 'Earthquakes In', label: 'My Area' },
+          { href: '/history', sub: 'Historical', label: 'Data' },
+        ].map(({ href, sub, label }) => (
+          <a href={href} class="p-4 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-center">
+            <span class="block text-sm text-neutral-400">{sub}</span>
+            <span class="font-semibold">{label}</span>
+          </a>
+        ))}
+      </section>
+    </div>
+  </div>
+</BaseLayout>

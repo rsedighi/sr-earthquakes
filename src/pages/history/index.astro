@@ -1,0 +1,41 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { HistoryFeed } from '@/components/history-feed';
+import { loadAllEarthquakes } from '@/lib/server-data';
+
+const allQuakes = await loadAllEarthquakes('all_week');
+const top25 = allQuakes.slice(0, 25).map(eq => ({
+  id: eq.id,
+  magnitude: eq.magnitude,
+  place: eq.place,
+  timestamp: eq.timestamp,
+  latitude: eq.latitude,
+  longitude: eq.longitude,
+  depth: eq.depth,
+  felt: eq.felt,
+  significance: eq.significance,
+  url: eq.url,
+  region: eq.region,
+}));
+---
+
+<BaseLayout
+  title="Historical Earthquake Analysis | Bay Tremor - Bay Area Earthquake Tracker"
+  description="Explore historical earthquake data for the Bay Area. Analyze past seismic events, swarm patterns, and trends along the Calaveras, Hayward, and San Andreas fault lines."
+  canonical="https://baytremor.com/history"
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-24 md:pb-6">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+      <header class="pt-6 sm:pt-8 pb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Earthquake History</h1>
+        <p class="text-neutral-400 mt-2 text-sm sm:text-base max-w-2xl">
+          Bay Area seismic data — swarm patterns, magnitude trends, and regional comparisons along the
+          Calaveras, Hayward, and San Andreas fault lines.
+        </p>
+      </header>
+    </div>
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+      <HistoryFeed client:load initialData={top25} totalCount={allQuakes.length} />
+    </div>
+  </div>
+</BaseLayout>

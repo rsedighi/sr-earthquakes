@@ -1,0 +1,125 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const year = new Date().getFullYear();
+---
+
+<BaseLayout
+  title="Privacy Policy | Bay Tremor"
+  description="Bay Tremor Privacy Policy - How we handle data for our website and iOS app."
+  canonical={`${baseUrl}/privacy`}
+  noindex={true}
+>
+  <main class="min-h-screen bg-black text-white pb-20 md:pb-0">
+    <div class="max-w-3xl mx-auto px-6 py-16">
+      <div class="mb-12">
+        <a href="/" class="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          Back to Bay Tremor
+        </a>
+        <h1 class="text-4xl font-bold mb-4">Privacy Policy</h1>
+        <p class="text-neutral-400">Last updated: February 2026</p>
+        <p class="text-neutral-400 mt-2">This Privacy Policy applies to <span class="text-white font-medium">baytremor.com</span> and the <span class="text-white font-medium">Bay Tremor iOS app</span>.</p>
+      </div>
+
+      <div class="space-y-12">
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Summary</h2>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li><strong>We don't sell your personal information.</strong></li>
+            <li><strong>No account is required.</strong> Most features work without identifying you.</li>
+            <li><strong>You control permissions.</strong> You can disable Location and Notifications at any time in iOS or your browser settings.</li>
+            <li><strong>Community posts are public.</strong> If you post in discussions, your message may be visible to others.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Information We Collect</h2>
+          <h3 class="text-xl font-medium text-cyan-400 mt-6 mb-3">Location Data</h3>
+          <p class="text-neutral-300 mb-4">Bay Tremor may collect your device's location (with your permission) to show earthquakes near you, calculate distances, and send location-based alerts (iOS app only).</p>
+          <p class="text-neutral-300"><strong>Website:</strong> location is used in your browser and not stored by us. <strong>iOS app:</strong> location may be used on-device for nearby views.</p>
+
+          <h3 class="text-xl font-medium text-cyan-400 mt-6 mb-3">Device Identifiers</h3>
+          <p class="text-neutral-300">If you enable push notifications on our iOS app, we store an APNs device token and notification preferences to deliver alerts.</p>
+
+          <h3 class="text-xl font-medium text-cyan-400 mt-6 mb-3">Usage Data</h3>
+          <p class="text-neutral-300">We may collect anonymous usage statistics to improve the app experience. This data cannot identify you personally.</p>
+
+          <h3 class="text-xl font-medium text-cyan-400 mt-6 mb-3">Information You Provide</h3>
+          <p class="text-neutral-300 mb-4">When you participate in community discussions or submit feedback, you may provide:</p>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li>Name/display name you type (not an account)</li>
+            <li>Message content and any optional location text</li>
+            <li>Optional "I felt it" indicator</li>
+          </ul>
+
+          <h3 class="text-xl font-medium text-cyan-400 mt-6 mb-3">Saved Addresses</h3>
+          <p class="text-neutral-300">If you use "My Neighborhood" features, we may store addresses and derived lat/lng associated with an anonymous visitor identifier.</p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">How We Use Your Information</h2>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li>Displaying nearby earthquakes</li>
+            <li>Calculating distances to seismic events</li>
+            <li>Delivering push notifications for significant earthquakes</li>
+            <li>Improving app performance and features</li>
+            <li>Operating community discussions and moderating abuse/spam</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Data Sharing</h2>
+          <p class="text-neutral-300 mb-4">We do not sell your personal information. We share limited data with service providers:</p>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li><strong>Analytics</strong> (Google Analytics) to understand usage</li>
+            <li><strong>Advertising</strong> (Google AdSense) to support the service</li>
+            <li><strong>Infrastructure</strong> (hosting, databases)</li>
+            <li><strong>AI services</strong> for optional summaries (when enabled)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Cookies and Tracking</h2>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li><strong>Google Analytics</strong> — To understand how visitors use our site</li>
+            <li><strong>Google AdSense</strong> — To display relevant advertisements</li>
+            <li><strong>Local Storage</strong> — To save your preferences (selected city, etc.)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Your Rights</h2>
+          <ul class="list-disc list-inside text-neutral-300 space-y-2 ml-4">
+            <li>Disable location access in your browser or iOS Settings</li>
+            <li>Disable notifications at any time</li>
+            <li>Clear your browser's local storage to remove saved preferences</li>
+            <li>Delete the iOS app to remove all local data</li>
+            <li>Request access to, correction of, or deletion of data we may have</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Children's Privacy</h2>
+          <p class="text-neutral-300">Bay Tremor does not knowingly collect information from children under 13.</p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Contact Us</h2>
+          <p class="text-neutral-300">For privacy questions: <a href="mailto:privacy@baytremor.com" class="text-cyan-400 hover:text-cyan-300">privacy@baytremor.com</a></p>
+          <p class="text-neutral-300 mt-4">For support issues, visit <a href="/support" class="text-cyan-400 hover:text-cyan-300">Support</a>.</p>
+        </section>
+
+        <section>
+          <h2 class="text-2xl font-semibold text-white mb-4">Changes to This Policy</h2>
+          <p class="text-neutral-300">We may update this policy from time to time. Continued use of Bay Tremor after changes constitutes acceptance of the updated policy.</p>
+        </section>
+      </div>
+
+      <div class="mt-16 pt-8 border-t border-neutral-800">
+        <p class="text-neutral-500 text-sm">© {year} Bay Tremor. All rights reserved.</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

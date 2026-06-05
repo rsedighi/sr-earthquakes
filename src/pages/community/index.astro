@@ -1,0 +1,14 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { BayTremorCommunity } from '@/components/bay-tremor-community';
+---
+
+<BaseLayout
+  title="Bay Tremor Community - Bay Area Earthquake Discussions"
+  description="Share your earthquake experiences, discuss seismic activity, and connect with Bay Area neighbors. Join the Bay Tremor community!"
+  canonical="https://baytremor.com/community"
+>
+  <div class="pb-20 md:pb-0">
+    <BayTremorCommunity client:load />
+  </div>
+</BaseLayout>

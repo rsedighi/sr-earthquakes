@@ -1,0 +1,27 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { NeighborhoodTab } from '@/components/dashboard/neighborhood-tab';
+---
+
+<BaseLayout
+  title="My Neighborhood | Bay Tremor - Bay Area Earthquake Tracker"
+  description="Personalized earthquake tracking for your Bay Area neighborhood. Set your location and get customized seismic activity alerts and analysis."
+  canonical="https://baytremor.com/my-area"
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-24 md:pb-6">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+      <header class="pt-6 sm:pt-8 pb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">My Neighborhood</h1>
+          <p class="text-neutral-400 mt-0.5 text-sm">Find earthquakes people felt near your address</p>
+        </div>
+      </header>
+    </div>
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+      <NeighborhoodTab client:load />
+    </div>
+  </div>
+</BaseLayout>

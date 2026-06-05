@@ -1,0 +1,153 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { REGIONS } from '@/lib/regions';
+import { generateBreadcrumbSchema, generateOrganizationSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const organizationSchema = generateOrganizationSchema();
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'About', url: `${baseUrl}/about` },
+]);
+---
+
+<BaseLayout
+  title="About Bay Tremor - Bay Area Earthquake Tracking | Bay Tremor"
+  description="Learn about Bay Tremor, the real-time earthquake tracking platform for the San Francisco Bay Area. Powered by USGS data, we monitor seismic activity across all Bay Area regions."
+  keywords="about Bay Tremor, Bay Area earthquake tracking, USGS earthquake data, San Francisco seismic monitoring"
+  canonical={`${baseUrl}/about`}
+  schema={[organizationSchema, breadcrumbSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">About</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-12">
+        <h1 class="text-4xl font-bold mb-4">About Bay Tremor</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          Real-time earthquake tracking and seismic analysis for the San Francisco Bay Area, powered by USGS data.
+        </p>
+      </header>
+
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Our Mission</h2>
+        <p class="text-neutral-300 leading-relaxed mb-4">
+          Bay Tremor provides Bay Area residents with comprehensive, real-time earthquake information
+          to help communities stay informed about seismic activity. We believe that access to
+          timely, accurate earthquake data helps people understand their local seismic environment
+          and make better preparedness decisions.
+        </p>
+        <p class="text-neutral-300 leading-relaxed">
+          Living in one of the most seismically active regions in the United States, Bay Area
+          residents experience hundreds of earthquakes each year. Bay Tremor makes this data
+          accessible, understandable, and actionable.
+        </p>
+      </section>
+
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">What We Offer</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-blue-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <h3 class="text-lg font-semibold mb-2">Real-Time Monitoring</h3>
+            <p class="text-neutral-400 text-sm">Live earthquake data updated continuously from the USGS seismic network, typically within minutes of an earthquake occurring.</p>
+          </div>
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-green-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <h3 class="text-lg font-semibold mb-2">Regional Focus</h3>
+            <p class="text-neutral-400 text-sm">Specialized coverage of all 9 Bay Area counties plus San Benito across 12 distinct regions, from San Francisco to Sonoma.</p>
+          </div>
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-amber-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <h3 class="text-lg font-semibold mb-2">Swarm Detection</h3>
+            <p class="text-neutral-400 text-sm">Automatic detection and analysis of earthquake swarms, helping you understand patterns in local seismic activity.</p>
+          </div>
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-purple-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+            <h3 class="text-lg font-semibold mb-2">Historical Data</h3>
+            <p class="text-neutral-400 text-sm">Access to years of historical earthquake data for trend analysis and understanding long-term seismic patterns.</p>
+          </div>
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-cyan-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <h3 class="text-lg font-semibold mb-2">24/7 Updates</h3>
+            <p class="text-neutral-400 text-sm">Continuous data updates around the clock, ensuring you always have access to the latest seismic information.</p>
+          </div>
+          <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-red-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <h3 class="text-lg font-semibold mb-2">Preparedness Info</h3>
+            <p class="text-neutral-400 text-sm">Educational resources and links to official preparedness guidelines to help you stay ready for the next earthquake.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-12 bg-neutral-900 rounded-xl p-6 border border-white/10">
+        <h2 class="text-2xl font-bold mb-4">Our Data Source</h2>
+        <p class="text-neutral-300 leading-relaxed mb-4">
+          Bay Tremor uses earthquake data from the{' '}
+          <a href="https://earthquake.usgs.gov" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors">
+            United States Geological Survey (USGS)
+          </a>,
+          the official source for earthquake information in the United States.
+        </p>
+        <p class="text-neutral-300 leading-relaxed">
+          The USGS operates the Northern California Seismic Network (NCSN), a dense network
+          of seismometers that monitors earthquake activity throughout the Bay Area. This
+          network can detect earthquakes as small as magnitude 1.0 in most areas.
+        </p>
+      </section>
+
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">Coverage Areas</h2>
+        <p class="text-neutral-300 mb-4">
+          We monitor seismic activity across the entire San Francisco Bay Area, with specialized coverage for these regions:
+        </p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {REGIONS.map(region => (
+            <a
+              href={`/region/${region.id}`}
+              class="flex items-center gap-3 p-3 bg-neutral-900 rounded-lg border border-white/10 hover:bg-white/5 hover:border-white/30 transition-all group"
+            >
+              <span class="font-mono text-sm font-bold px-2.5 py-1.5 rounded-md bg-white/15 text-white border border-white/30 group-hover:bg-white/25 group-hover:border-white/50 transition-all">
+                {region.areaCode}
+              </span>
+              <span class="text-sm text-neutral-200 group-hover:text-white transition-colors">{region.name.split(' / ')[0]}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 mb-12">
+        <h2 class="text-lg font-semibold text-amber-400 mb-2">Important Notice</h2>
+        <p class="text-neutral-300 text-sm leading-relaxed">
+          Bay Tremor is an informational service and should not be used as an emergency
+          alert system. For official earthquake alerts and emergency information, please
+          refer to the USGS, local emergency services, and official early warning systems
+          like ShakeAlert. Earthquake data is subject to revision as analysts review recorded data.
+        </p>
+      </section>
+
+      <div class="text-center">
+        <p class="text-neutral-400 mb-4">Ready to explore earthquake activity in your area?</p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors">
+            View Live Dashboard
+          </a>
+          <a href="/faq" class="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors">
+            Read FAQ
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

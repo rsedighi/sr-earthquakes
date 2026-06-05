@@ -1,13 +1,16 @@
 ---
 import '../styles/globals.css';
+import { NavBar } from '@/components/dashboard/components/nav-bar';
 import { generateHomepageSchemas } from '@/lib/seo';
 
 interface Props {
   title?: string;
   description?: string;
+  keywords?: string;
   canonical?: string;
   ogImage?: string;
   noindex?: boolean;
+  schema?: object | object[];
 }
 
 const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
@@ -15,12 +18,14 @@ const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
 const {
   title = 'Bay Area Earthquake Tracker | Live Seismic Activity Map & Alerts Today',
   description = '🔴 LIVE Bay Area earthquake tracker with real-time USGS data. Track earthquakes in San Francisco, Oakland, San Jose & 80+ cities. Updated every minute.',
+  keywords,
   canonical = Astro.url.href,
   ogImage = `${baseUrl}/og-image.png`,
   noindex = false,
+  schema,
 } = Astro.props;
 
-const schemas = generateHomepageSchemas();
+const schemas = schema ?? generateHomepageSchemas();
 ---
 
 <!DOCTYPE html>
@@ -32,6 +37,7 @@ const schemas = generateHomepageSchemas();
 
     <title>{title}</title>
     <meta name="description" content={description} />
+    {keywords && <meta name="keywords" content={keywords} />}
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <link rel="canonical" href={canonical} />
 
@@ -83,6 +89,7 @@ const schemas = generateHomepageSchemas();
 
     <!-- JSON-LD -->
     <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
+    <slot name="head" />
 
     <!-- Google Analytics (Sprint 6: move to CF Analytics Engine) -->
     {import.meta.env.PUBLIC_GA_ID && (
@@ -106,6 +113,7 @@ const schemas = generateHomepageSchemas();
     />
   </head>
   <body class="font-sans antialiased min-h-screen">
+    <NavBar client:load />
     <slot />
   </body>
 </html>

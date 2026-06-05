@@ -1,0 +1,30 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { ThreadDetailView } from '@/components/bay-tremor-community';
+
+const VALID_CATEGORIES = ['earthquake', 'general', 'neighborhood', 'preparedness', 'science'] as const;
+type ForumCategory = typeof VALID_CATEGORIES[number];
+
+const { category, thread } = Astro.params;
+
+if (!VALID_CATEGORIES.includes(category as ForumCategory)) {
+  return Astro.redirect('/community', 307);
+}
+
+const threadTitle = thread
+  ? thread.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  : 'Thread';
+---
+
+<BaseLayout
+  title={`${threadTitle} | Bay Tremor Community`}
+  description="Discussion thread in the Bay Tremor community. Join the conversation about Bay Area earthquakes."
+>
+  <div class="pb-20 md:pb-0">
+    <ThreadDetailView
+      slug={thread!}
+      category={category as ForumCategory}
+      client:load
+    />
+  </div>
+</BaseLayout>

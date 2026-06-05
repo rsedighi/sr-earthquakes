@@ -1,0 +1,16 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { DashboardWithProviders } from '@/components/dashboard-with-providers';
+---
+
+<BaseLayout
+  title="Compare Regions | Bay Tremor - Bay Area Earthquake Tracker"
+  description="Compare earthquake activity across Bay Area regions. See side-by-side seismic data for San Ramon, Oakland, San Francisco, San Jose, and other areas."
+  canonical="https://baytremor.com/compare"
+>
+  <DashboardWithProviders
+    client:load
+    historicalSummary={null}
+    initialTab="compare"
+  />
+</BaseLayout>

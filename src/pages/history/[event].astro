@@ -1,0 +1,219 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const HISTORICAL_EVENTS = {
+  '1906-san-francisco': {
+    name: '1906 San Francisco Earthquake',
+    date: 'April 18, 1906',
+    time: '5:12 AM',
+    magnitude: 7.9,
+    location: 'San Francisco, California',
+    coordinates: { lat: 37.75, lon: -122.55 },
+    depth: 8,
+    deaths: '~3,000+',
+    damage: '$524 million (1906 dollars)',
+    fault: 'San Andreas Fault',
+    summary: 'The deadliest earthquake in California history struck San Francisco at 5:12 AM on April 18, 1906. The quake and resulting fires destroyed over 80% of San Francisco.',
+    content: `<h2>The Great Earthquake</h2><p>At 5:12 AM on April 18, 1906, a massive earthquake struck San Francisco with an estimated magnitude of 7.9. The rupture on the San Andreas Fault extended for nearly 300 miles, from San Juan Bautista to Cape Mendocino.</p><p>The initial shaking lasted approximately 45–60 seconds and was felt from Oregon to Los Angeles and as far inland as central Nevada. Ground displacement along the fault was as much as 20 feet in some locations.</p><h2>The Fires</h2><p>While the earthquake caused significant damage, the subsequent fires proved even more destructive. Broken gas mains and collapsed chimneys ignited fires throughout the city. With water mains also broken, firefighters were largely helpless to stop the blazes.</p><p>The fires burned for three days and nights, destroying approximately 25,000 buildings and leaving more than half of San Francisco's 400,000 residents homeless.</p><h2>Death Toll and Damage</h2><p>Official estimates placed the death toll at around 700, but modern research suggests the actual number was closer to 3,000. Total damage was estimated at $524 million in 1906 dollars, equivalent to approximately $16 billion today.</p><h2>Legacy and Lessons</h2><p>The 1906 earthquake led to significant advances in earthquake science and building codes. Reid's elastic rebound theory, which explains how earthquakes occur, was developed based on observations from this event.</p>`,
+    sources: [
+      { name: 'USGS', url: 'https://earthquake.usgs.gov/earthquakes/events/1906calif/' },
+      { name: 'California Historical Society', url: 'https://californiahistoricalsociety.org/' },
+    ],
+  },
+  '1989-loma-prieta': {
+    name: '1989 Loma Prieta Earthquake',
+    date: 'October 17, 1989',
+    time: '5:04 PM',
+    magnitude: 6.9,
+    location: 'Santa Cruz Mountains, California',
+    coordinates: { lat: 37.04, lon: -121.88 },
+    depth: 18,
+    deaths: '63',
+    damage: '$6 billion',
+    fault: 'San Andreas Fault',
+    summary: 'The Loma Prieta earthquake struck during the World Series, causing the collapse of the Cypress Street Viaduct in Oakland and a section of the Bay Bridge.',
+    content: `<h2>The World Series Earthquake</h2><p>At 5:04 PM on October 17, 1989, a magnitude 6.9 earthquake struck the Santa Cruz Mountains. The timing coincided with Game 3 of the World Series at Candlestick Park, leading to live national television coverage of the disaster's aftermath.</p><h2>The Cypress Street Viaduct Collapse</h2><p>The deadliest consequence was the collapse of a 1.25-mile section of the Cypress Street Viaduct (I-880) in Oakland. The double-deck freeway pancaked, crushing vehicles on the lower deck and killing 42 people.</p><h2>Bay Bridge Damage</h2><p>A 50-foot section of the upper deck of the Bay Bridge collapsed onto the lower deck, killing one motorist. This led to a complete reconstruction of the eastern span, completed in 2013.</p><h2>Marina District Devastation</h2><p>San Francisco's Marina District experienced severe damage due to liquefaction. Buildings on fill from the 1915 Panama-Pacific Exposition collapsed or tilted dramatically.</p><h2>Lessons Learned</h2><p>The Loma Prieta earthquake led to significant changes in building codes and infrastructure design. It demonstrated the vulnerability of structures built on soft soils and the importance of seismic retrofitting.</p>`,
+    sources: [
+      { name: 'USGS', url: 'https://earthquake.usgs.gov/earthquakes/events/1989lomaprieta/' },
+      { name: 'California Earthquake Authority', url: 'https://www.earthquakeauthority.com/' },
+    ],
+  },
+  '1868-hayward': {
+    name: '1868 Hayward Earthquake',
+    date: 'October 21, 1868',
+    time: '7:53 AM',
+    magnitude: 6.8,
+    location: 'Hayward, California',
+    coordinates: { lat: 37.67, lon: -122.08 },
+    depth: 10,
+    deaths: '30+',
+    damage: '$350,000 (1868 dollars)',
+    fault: 'Hayward Fault',
+    summary: 'Known as "The Great San Francisco Earthquake" until 1906, this earthquake ruptured the Hayward Fault and devastated the East Bay.',
+    content: `<h2>The "Great San Francisco Earthquake"</h2><p>Before 1906, the earthquake that occurred on October 21, 1868 was known as "The Great San Francisco Earthquake." The magnitude 6.8 event ruptured approximately 20 miles of the Hayward Fault, from Fremont to Berkeley.</p><p>The earthquake struck at 7:53 AM and was felt from Monterey to Red Bluff, over 300 miles apart.</p><h2>Damage and Deaths</h2><p>At least 30 people were killed, and nearly every building in Hayward was damaged or destroyed. In San Francisco, five people died and many adobe and brick buildings collapsed.</p><h2>Scientific Significance</h2><p>The 1868 earthquake was the first to be scientifically studied in California. Geologist Josiah Whitney conducted the first systematic investigation of an earthquake in the state, documenting fault displacement and ground effects.</p><h2>Why It Matters Today</h2><p>The Hayward Fault has an average recurrence interval of approximately 140 years for major earthquakes. Having last ruptured in 1868, the fault is considered overdue. Scientists estimate a 33% probability of a M6.7+ earthquake on the Hayward Fault within the next 30 years.</p>`,
+    sources: [
+      { name: 'USGS', url: 'https://earthquake.usgs.gov/earthquakes/events/1868calif/' },
+      { name: 'Hayward Fault Network', url: 'https://seismo.berkeley.edu/hayward/' },
+    ],
+  },
+  '2014-napa': {
+    name: '2014 South Napa Earthquake',
+    date: 'August 24, 2014',
+    time: '3:20 AM',
+    magnitude: 6.0,
+    location: 'American Canyon, California',
+    coordinates: { lat: 38.22, lon: -122.31 },
+    depth: 11,
+    deaths: '1',
+    damage: '$400M – $1B',
+    fault: 'West Napa Fault',
+    summary: 'The largest earthquake to strike the Bay Area since 1989, causing significant damage to historic downtown Napa.',
+    content: `<h2>The Largest Quake Since Loma Prieta</h2><p>At 3:20 AM on August 24, 2014, a magnitude 6.0 earthquake struck the Napa Valley. It was the largest earthquake to hit the Bay Area since the 1989 Loma Prieta event, waking residents throughout Northern California.</p><h2>Damage to Wine Country</h2><p>The earthquake caused significant damage to historic downtown Napa. Many older, unreinforced masonry buildings suffered partial or complete collapse. Wineries experienced substantial losses, with an estimated $80 million in damaged wine barrels alone.</p><h2>The West Napa Fault</h2><p>The earthquake occurred on the West Napa Fault, producing approximately 12 kilometers of surface rupture with up to 46 centimeters of displacement. This served as a reminder that the Bay Area has many active faults beyond the San Andreas and Hayward.</p><h2>Economic Impact</h2><p>Total economic losses were estimated between $400 million and $1 billion. The earthquake had a significant impact on Napa's tourism-dependent economy, particularly during the critical harvest season.</p>`,
+    sources: [
+      { name: 'USGS', url: 'https://earthquake.usgs.gov/earthquakes/eventpage/nc72282711' },
+      { name: 'CGS', url: 'https://www.conservation.ca.gov/' },
+    ],
+  },
+} as const;
+
+export function getStaticPaths() {
+  return Object.keys(HISTORICAL_EVENTS).map(event => ({ params: { event } }));
+}
+
+type EventId = keyof typeof HISTORICAL_EVENTS;
+const { event: eventId } = Astro.params;
+const eventData = eventId ? HISTORICAL_EVENTS[eventId as EventId] : null;
+
+if (!eventData) return Astro.redirect('/history', 307);
+
+const otherEvents = (Object.entries(HISTORICAL_EVENTS) as [string, typeof eventData][])
+  .filter(([id]) => id !== eventId)
+  .slice(0, 3);
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'History', url: `${baseUrl}/history` },
+  { name: eventData.name, url: `${baseUrl}/history/${eventId}` },
+]);
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: eventData.name,
+  description: eventData.summary,
+  datePublished: '2024-01-01',
+  author: { '@type': 'Organization', name: 'Bay Tremor', url: baseUrl },
+  publisher: { '@type': 'Organization', name: 'Bay Tremor', logo: { '@type': 'ImageObject', url: `${baseUrl}/android-chrome-512x512.png` } },
+  mainEntityOfPage: `${baseUrl}/history/${eventId}`,
+};
+---
+
+<BaseLayout
+  title={`${eventData.name} | Bay Area Earthquake History`}
+  description={`${eventData.summary} Magnitude ${eventData.magnitude}, ${eventData.date}. Learn about this historic earthquake and its impact on the Bay Area.`}
+  keywords={`${eventData.name.toLowerCase()}, ${eventData.fault.toLowerCase()}, california earthquake history, bay area earthquake`}
+  canonical={`${baseUrl}/history/${eventId}`}
+  schema={[breadcrumbSchema, articleSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li><a href="/history" class="hover:text-white transition-colors">History</a></li>
+          <li>/</li>
+          <li class="text-white truncate max-w-[200px]">{eventData.name}</li>
+        </ol>
+      </nav>
+
+      <a href="/history" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Earthquake History
+      </a>
+
+      <header class="mb-8">
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">M{eventData.magnitude}</span>
+          <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium">{eventData.fault}</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">{eventData.name}</h1>
+        <p class="text-xl text-neutral-400 leading-relaxed">{eventData.summary}</p>
+      </header>
+
+      <!-- Quick Facts -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-neutral-900 rounded-xl p-4 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Date</div>
+          <div class="font-semibold">{eventData.date}</div>
+          <div class="text-xs text-neutral-500">{eventData.time}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-4 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Magnitude</div>
+          <div class="font-semibold text-red-400">M{eventData.magnitude}</div>
+          <div class="text-xs text-neutral-500">{eventData.depth}km deep</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-4 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Location</div>
+          <div class="font-semibold text-sm">{eventData.location}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-4 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Deaths</div>
+          <div class="font-semibold">{eventData.deaths}</div>
+          <div class="text-xs text-neutral-500">{eventData.damage}</div>
+        </div>
+      </div>
+
+      <!-- Article Content -->
+      <article
+        class="prose prose-invert prose-lg max-w-none mb-12
+          prose-headings:text-white prose-headings:font-bold
+          prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
+          prose-p:text-neutral-300 prose-p:leading-relaxed"
+        set:html={eventData.content}
+      />
+
+      <!-- Sources -->
+      <section class="bg-neutral-900 rounded-xl p-6 border border-white/10 mb-8">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Sources &amp; Further Reading
+        </h2>
+        <ul class="space-y-2">
+          {eventData.sources.map(source => (
+            <li>
+              <a href={source.url} target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2">
+                {source.name}
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <!-- Other Historic Events -->
+      <section class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Other Historic Earthquakes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {otherEvents.map(([id, ev]) => (
+            <a href={`/history/${id}`} class="bg-neutral-900 rounded-xl p-5 border border-white/10 hover:bg-white/5 transition-colors">
+              <div class="text-sm text-red-400 font-medium mb-1">M{ev.magnitude}</div>
+              <h3 class="font-semibold mb-1">{ev.name}</h3>
+              <div class="text-sm text-neutral-500">{ev.date}</div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <div class="text-center">
+        <p class="text-neutral-400 mb-4">Learn how to protect yourself and your family from future earthquakes.</p>
+        <a href="/earthquake-preparedness" class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors">
+          Earthquake Preparedness Guide
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

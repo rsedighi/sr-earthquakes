@@ -1,0 +1,208 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { BAY_AREA_LANDMARKS, REGIONS } from '@/lib/regions';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const CITY_SLUGS = [
+  'san-francisco', 'oakland', 'san-jose', 'berkeley', 'fremont',
+  'hayward', 'santa-rosa', 'sunnyvale', 'concord', 'vallejo',
+  'richmond', 'san-mateo', 'daly-city', 'palo-alto', 'mountain-view',
+  'livermore', 'pleasanton', 'san-ramon', 'walnut-creek', 'napa',
+  'santa-clara', 'milpitas', 'dublin', 'redwood-city', 'san-leandro',
+  'alameda', 'union-city', 'newark', 'cupertino', 'campbell',
+];
+const YEARS = [2025, 2026];
+
+export function getStaticPaths() {
+  const paths = [];
+  for (const citySlug of CITY_SLUGS) {
+    for (const year of YEARS) {
+      paths.push({ params: { cityYear: `${citySlug}-earthquakes-${year}` } });
+    }
+  }
+  return paths;
+}
+
+function slugToCityName(slug: string): string {
+  return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 0.621371;
+}
+
+const { cityYear } = Astro.params;
+const match = cityYear?.match(/^(.+)-earthquakes-(\d{4})$/);
+if (!match) return Astro.redirect('/today', 307);
+
+const citySlug = match[1];
+const year = parseInt(match[2], 10);
+
+if (!CITY_SLUGS.includes(citySlug) || !YEARS.includes(year)) {
+  return Astro.redirect('/today', 307);
+}
+
+const cityName = slugToCityName(citySlug);
+const cityData = BAY_AREA_LANDMARKS.find(l => l.type === 'city' && l.name.toLowerCase() === cityName.toLowerCase());
+
+if (!cityData) return Astro.redirect('/today', 307);
+
+const region = REGIONS.find(r => {
+  const { minLat, maxLat, minLon, maxLon } = r.bounds;
+  return cityData.lat >= minLat && cityData.lat <= maxLat && cityData.lon >= minLon && cityData.lon <= maxLon;
+});
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const now = Date.now();
+
+// Filter: earthquakes within 30 miles and in the target year
+const nearbyEarthquakes = allEarthquakes.filter(eq => {
+  const dist = haversineDistance(cityData.lat, cityData.lon, eq.latitude, eq.longitude);
+  const eqYear = new Date(eq.timestamp).getFullYear();
+  return dist <= 30 && eqYear === year;
+});
+
+const maxMagnitude = nearbyEarthquakes.length > 0 ? Math.max(...nearbyEarthquakes.map(eq => eq.magnitude)) : 0;
+const avgMagnitude = nearbyEarthquakes.length > 0 ? nearbyEarthquakes.reduce((s, eq) => s + eq.magnitude, 0) / nearbyEarthquakes.length : 0;
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const pageUrl = `${baseUrl}/${cityYear}`;
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Earthquakes Today', url: `${baseUrl}/today` },
+  { name: `${cityName} ${year}`, url: pageUrl },
+]);
+
+const title = `${cityName} Earthquakes ${year} | Complete Seismic History`;
+const description = `Complete list of all earthquakes near ${cityName}, California in ${year}. View magnitude, depth, and location data for every earthquake recorded within 30 miles of ${cityName}.`;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  keywords={`${cityName.toLowerCase()} earthquakes ${year}, earthquakes near ${cityName.toLowerCase()} ${year}, ${cityName.toLowerCase()} earthquake history ${year}`}
+  canonical={pageUrl}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li><a href="/today" class="hover:text-white transition-colors">Earthquakes Today</a></li>
+          <li>/</li>
+          <li class="text-white">{cityName} {year}</li>
+        </ol>
+      </nav>
+
+      <a href={`/${citySlug}-earthquake-today`} class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        {cityName} Live Activity
+      </a>
+
+      <header class="mb-8">
+        <div class="flex items-center gap-3 mb-2 flex-wrap">
+          <span class="text-sm px-3 py-1 rounded-full bg-white/10 text-neutral-300">{cityData.county} County</span>
+          <span class="text-sm px-3 py-1 rounded-full bg-white/10 text-neutral-300">{year}</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">{cityName} Earthquakes {year}</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          {nearbyEarthquakes.length > 0 ? (
+            <>{nearbyEarthquakes.length} earthquakes recorded within 30 miles of {cityName} in {year}.</>
+          ) : (
+            <>No earthquakes recorded within 30 miles of {cityName} in {year} within the current data window.</>
+          )}
+        </p>
+      </header>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-2">Total Events</div>
+          <div class="text-3xl font-bold">{nearbyEarthquakes.length}</div>
+          <div class="text-xs text-neutral-500">in {year}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-2">Largest</div>
+          <div class="text-3xl font-bold text-amber-400">{maxMagnitude > 0 ? `M${maxMagnitude.toFixed(1)}` : '—'}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-2">Average</div>
+          <div class="text-3xl font-bold">{avgMagnitude > 0 ? `M${avgMagnitude.toFixed(1)}` : '—'}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-2">Radius</div>
+          <div class="text-3xl font-bold">30</div>
+          <div class="text-xs text-neutral-500">miles</div>
+        </div>
+      </div>
+
+      <!-- Earthquake List -->
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">All Earthquakes Near {cityName} in {year}</h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          {nearbyEarthquakes.length > 0 ? (
+            <ul class="divide-y divide-white/5">
+              {nearbyEarthquakes.map(eq => {
+                const dist = haversineDistance(cityData.lat, cityData.lon, eq.latitude, eq.longitude);
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-14 h-14 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>
+                        <span class="text-lg">{eq.magnitude.toFixed(1)}</span>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500 flex flex-wrap gap-x-3">
+                          <span>{new Date(eq.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          <span>{dist.toFixed(1)} miles away</span>
+                          <span>{eq.depth.toFixed(1)}km deep</span>
+                        </div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400 hidden sm:block">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div class="p-8 text-center text-neutral-500">
+              <p>No earthquakes found near {cityName} in {year} within the current data window.</p>
+              <p class="text-sm mt-2">Data availability depends on the USGS 7-day feed. For older data, use the <a href="https://earthquake.usgs.gov/earthquakes/search/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300">USGS Earthquake Search</a>.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <!-- Year Navigation -->
+      <section class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Other Years</h2>
+        <div class="flex gap-3 flex-wrap">
+          {YEARS.filter(y => y !== year).map(y => (
+            <a href={`/${citySlug}-earthquakes-${y}`} class="px-4 py-2 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors font-medium">{y}</a>
+          ))}
+          <a href={`/${citySlug}-earthquake-today`} class="px-4 py-2 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors font-medium">Live Activity →</a>
+        </div>
+      </section>
+
+      <!-- SEO Content -->
+      <section class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+        <h2 class="text-xl font-bold mb-3">About {cityName} Earthquake History</h2>
+        <p class="text-neutral-300 mb-3">
+          {cityName} is located in {cityData.county} County, in the seismically active San Francisco Bay Area.
+          {region && <> The area is influenced by the {region.faultLine}, one of the major fault systems in the region.</>}
+        </p>
+        <p class="text-neutral-300">For real-time earthquake data and live updates, visit our <a href={`/${citySlug}-earthquake-today`} class="text-blue-400 hover:text-blue-300">{cityName} earthquake tracker</a> or view <a href="/today" class="text-blue-400 hover:text-blue-300">all Bay Area earthquakes today</a>.</p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

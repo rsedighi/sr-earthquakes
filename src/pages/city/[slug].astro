@@ -1,0 +1,182 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { BAY_AREA_LANDMARKS } from '@/lib/regions';
+import { getCityData, generateBreadcrumbSchema, generateCityFAQs, generateCityFAQSchema } from '@/lib/seo';
+
+export function getStaticPaths() {
+  const cities = BAY_AREA_LANDMARKS.filter(l => l.type === 'city');
+  return cities.slice(0, 30).map(city => ({
+    params: { slug: city.name.toLowerCase().replace(/\s+/g, '-') },
+  }));
+}
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 0.621371;
+}
+
+const { slug } = Astro.params;
+const seoCityData = getCityData(slug!);
+if (!seoCityData) return Astro.redirect('/today', 307);
+
+const cityLandmark = seoCityData.city;
+const region = seoCityData.region;
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const nearbyEarthquakes = allEarthquakes
+  .filter(eq => haversineDistance(cityLandmark.lat, cityLandmark.lon, eq.latitude, eq.longitude) <= 30)
+  .slice(0, 50);
+
+const maxMagnitude = nearbyEarthquakes.length > 0 ? Math.max(...nearbyEarthquakes.map(e => e.magnitude)) : 0;
+const avgMagnitude = nearbyEarthquakes.length > 0 ? nearbyEarthquakes.reduce((s, e) => s + e.magnitude, 0) / nearbyEarthquakes.length : 0;
+const last24h = nearbyEarthquakes.filter(eq => eq.timestamp > Date.now() - 86400000);
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const pageUrl = `${baseUrl}/city/${slug}`;
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: cityLandmark.name, url: pageUrl },
+]);
+const faqSchema = generateCityFAQSchema(cityLandmark.name, cityLandmark.county, region?.faultLine);
+const faqs = generateCityFAQs(cityLandmark.name, cityLandmark.county, region?.faultLine);
+---
+
+<BaseLayout
+  title={seoCityData.seoTitle}
+  description={seoCityData.seoDescription}
+  keywords={seoCityData.keywords?.join(', ')}
+  canonical={pageUrl}
+  schema={[breadcrumbSchema, faqSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">{cityLandmark.name}</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-8">
+        <div class="flex items-center gap-3 mb-2 flex-wrap">
+          <span class="text-sm px-3 py-1 rounded-full bg-white/10 text-neutral-300">{cityLandmark.county} County</span>
+          {region && <span class="text-sm px-3 py-1 rounded-full bg-white/10 text-neutral-300">{region.name.split(' / ')[0]}</span>}
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">{cityLandmark.name} Earthquake Overview</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          Seismic activity overview for {cityLandmark.name}, {cityLandmark.county} County — including historical data, fault information, and recent earthquakes.
+        </p>
+      </header>
+
+      <!-- Live Link -->
+      <div class="bg-gradient-to-r from-red-500/10 to-amber-500/10 border border-red-500/20 rounded-xl p-5 mb-8 flex items-center justify-between gap-4">
+        <div>
+          <div class="font-semibold text-red-400 mb-1">Live Activity Available</div>
+          <div class="text-neutral-400 text-sm">See real-time earthquakes near {cityLandmark.name} updated every minute.</div>
+        </div>
+        <a href={`/${slug}-earthquake-today`} class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-2 flex-shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49"/></svg>
+          View Live
+        </a>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">7-Day Count</div>
+          <div class="text-2xl font-bold">{nearbyEarthquakes.length}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Last 24h</div>
+          <div class="text-2xl font-bold">{last24h.length}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Largest (7d)</div>
+          <div class="text-2xl font-bold text-amber-400">{maxMagnitude > 0 ? `M${maxMagnitude.toFixed(1)}` : '—'}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+          <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Average</div>
+          <div class="text-2xl font-bold">{avgMagnitude > 0 ? `M${avgMagnitude.toFixed(1)}` : '—'}</div>
+        </div>
+      </div>
+
+      <!-- Fault Info -->
+      {region && (
+        <section class="bg-neutral-900 rounded-xl p-6 border border-white/10 mb-8">
+          <h2 class="text-xl font-bold mb-3">Nearest Fault Line</h2>
+          <p class="text-neutral-300 mb-3">
+            {cityLandmark.name} is in the {region.name} seismic zone, near the <strong class="text-white">{region.faultLine}</strong>. This fault is one of the active fault systems in the San Francisco Bay Area.
+          </p>
+          <a href={`/region/${region.id}`} class="text-blue-400 hover:text-blue-300 text-sm">View all {region.name} earthquakes →</a>
+        </section>
+      )}
+
+      <!-- Recent Earthquakes -->
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Recent Earthquakes Near {cityLandmark.name}</h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          {nearbyEarthquakes.length > 0 ? (
+            <ul class="divide-y divide-white/5">
+              {nearbyEarthquakes.slice(0, 20).map(eq => {
+                const dist = haversineDistance(cityLandmark.lat, cityLandmark.lon, eq.latitude, eq.longitude);
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-12 h-12 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>{eq.magnitude.toFixed(1)}</div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500">{new Date(eq.timestamp).toLocaleString()} · {dist.toFixed(1)} mi · {eq.depth.toFixed(1)}km deep</div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400 hidden sm:block">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div class="p-8 text-center text-neutral-500">No recent earthquakes recorded within 30 miles.</div>
+          )}
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-6">{cityLandmark.name} Earthquake FAQ</h2>
+        <div class="space-y-3">
+          {faqs.slice(0, 4).map(({ question, answer }) => (
+            <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <summary class="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                <h3 class="font-semibold pr-4 text-left">{question}</h3>
+                <svg class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">{answer}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <!-- Year Archives -->
+      <section class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Yearly Archives</h2>
+        <div class="flex gap-3 flex-wrap">
+          {[2025, 2026].map(year => (
+            <a href={`/${slug}-earthquakes-${year}`} class="px-4 py-2 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">{year} Earthquakes</a>
+          ))}
+        </div>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

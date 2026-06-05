@@ -1,0 +1,225 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Hayward Fault', url: `${baseUrl}/hayward-fault` },
+]);
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const recentEarthquakes = allEarthquakes
+  .filter(eq => eq.region?.includes('east-bay') || (eq.longitude > -122.3 && eq.longitude < -121.8 && eq.latitude > 37.4 && eq.latitude < 37.95))
+  .slice(0, 20);
+
+const historicalEarthquakes = [
+  { year: 1868, magnitude: 6.8, name: 'Great Hayward Earthquake', description: 'The most destructive Bay Area earthquake until 1906. Surface rupture from Oakland to Fremont. Caused significant damage in San Francisco across the bay.', casualties: '30+' },
+  { year: 2018, magnitude: 4.4, name: 'Berkeley Earthquake', description: "Centered beneath UC Berkeley campus. Widely felt across the Bay Area. Served as a reminder of the fault's presence.", casualties: '0' },
+  { year: 2007, magnitude: 4.2, name: 'Oakland Hills Earthquake', description: 'Struck Oakland Hills near Piedmont. Felt strongly in Oakland and Berkeley. No significant damage.', casualties: '0' },
+  { year: 1984, magnitude: 4.5, name: 'Morgan Hill Earthquake', description: 'Part of ongoing East Bay seismic activity highlighting the interconnected nature of Bay Area fault systems.', casualties: '0' },
+];
+
+const citiesAtRisk = [
+  { name: 'Oakland', population: '433K', risk: 'Critical', distance: 'On fault', note: 'Downtown Oakland sits directly on the fault trace' },
+  { name: 'Berkeley', population: '124K', risk: 'Critical', distance: 'On fault', note: 'UC Berkeley campus crosses the fault' },
+  { name: 'Fremont', population: '230K', risk: 'Critical', distance: 'On fault', note: 'Fault runs through downtown Fremont' },
+  { name: 'Hayward', population: '162K', risk: 'Critical', distance: 'On fault', note: 'City that gave the fault its name' },
+  { name: 'San Leandro', population: '91K', risk: 'Very High', distance: '1 mi', note: 'Adjacent to fault trace' },
+  { name: 'Richmond', population: '116K', risk: 'Very High', distance: '2 mi', note: 'Northern terminus of fault zone' },
+  { name: 'Union City', population: '74K', risk: 'Very High', distance: '1 mi', note: 'Between Hayward and Fremont segments' },
+];
+
+const riskColors: Record<string, string> = {
+  'Critical': 'text-red-400 bg-red-500/10',
+  'Very High': 'text-orange-400 bg-orange-500/10',
+  'High': 'text-amber-400 bg-amber-500/10',
+};
+
+const faqs = [
+  { q: 'Why is the Hayward Fault called the most dangerous fault in America?', a: "The Hayward Fault is considered exceptionally dangerous because it runs through the most densely populated part of the Bay Area — directly through Oakland, Berkeley, Hayward, and Fremont. Over 2.4 million people live within 10 miles of the fault, and critical infrastructure including highways, bridges, hospitals, and the BART system crosses it." },
+  { q: 'When did the Hayward Fault last rupture?', a: "The last major rupture on the Hayward Fault was the 1868 Great Hayward Earthquake (M6.8) — over 155 years ago. Scientists estimate the fault has an average recurrence interval of about 140-170 years, meaning the fault is considered overdue for a major earthquake." },
+  { q: 'What would happen if the Hayward Fault ruptured today?', a: "A M6.7+ earthquake on the Hayward Fault (the HayWired scenario modeled by USGS) would likely result in 800+ deaths, 18,000+ injuries, and $82 billion in economic losses. It would damage 77,000+ buildings, displace 400,000 people, and cause widespread infrastructure failure across the Bay Area." },
+  { q: 'Does the Hayward Fault creep?', a: "Yes, the Hayward Fault is notable for its aseismic creep — slow movement that occurs without earthquakes. The creep rate is about 4-9mm per year. You can see evidence of this creep in roads and sidewalks that cross the fault in Hayward, Berkeley, and other cities." },
+];
+---
+
+<BaseLayout
+  title="Hayward Fault - The Most Dangerous Fault in America | Map & Guide"
+  description="Complete guide to the Hayward Fault, called the most dangerous fault in America. Earthquake history, affected cities Oakland, Berkeley, Fremont & more. Live seismic updates."
+  keywords="hayward fault, hayward fault map, hayward fault earthquake, most dangerous fault america, oakland earthquake, berkeley earthquake"
+  canonical={`${baseUrl}/hayward-fault`}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">Hayward Fault</li>
+        </ol>
+      </nav>
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full mb-4">
+          <svg class="w-4 h-4 text-red-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+          <span class="text-sm text-red-400 font-medium">LIVE MONITORING</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">Hayward Fault</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">Often called the most dangerous fault in America — running directly through Oakland, Berkeley, Hayward, and Fremont, home to 2.4 million people.</p>
+      </header>
+
+      <!-- Danger Alert -->
+      <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-10">
+        <h2 class="text-lg font-bold text-red-400 mb-2 flex items-center gap-2">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          Overdue Warning
+        </h2>
+        <p class="text-neutral-300">The Hayward Fault last ruptured in <strong class="text-white">1868</strong> — over 155 years ago. With an average recurrence interval of ~140-170 years, scientists consider this fault <strong class="text-red-400">overdue for a major earthquake</strong>.</p>
+      </div>
+
+      <!-- Key Facts -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {[
+          { label: 'Length', value: '74 mi', sub: 'East Bay segment' },
+          { label: 'Slip Rate', value: '4-9mm/yr', sub: 'Aseismic creep' },
+          { label: 'Last Major', value: '1868', sub: 'M6.8 Great Hayward' },
+          { label: 'Population at Risk', value: '2.4M', sub: 'Within 10 miles', accent: true },
+        ].map(({ label, value, sub, accent }) => (
+          <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+            <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">{label}</div>
+            <div class={`text-2xl font-bold ${accent ? 'text-red-400' : ''}`}>{value}</div>
+            <div class="text-xs text-neutral-500">{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- About -->
+      <section class="bg-neutral-900 rounded-2xl p-8 border border-white/10 mb-10">
+        <h2 class="text-2xl font-bold mb-4">About the Hayward Fault</h2>
+        <div class="space-y-4 text-neutral-300">
+          <p>The Hayward Fault runs for approximately 74 miles through the East Bay, from San Pablo in the north to Fremont in the south. It is a right-lateral strike-slip fault, meaning the ground on either side moves horizontally past each other.</p>
+          <p>Unlike the San Andreas Fault, the Hayward Fault runs through extremely dense urban areas. BART tracks, hospitals, schools, and thousands of homes are built directly on or adjacent to the fault. This proximity to critical infrastructure makes it uniquely dangerous.</p>
+          <p>The fault also exhibits aseismic creep — slow, steady movement that can be observed in offset sidewalks and curbs in Berkeley, Hayward, and other cities. This creep does not release enough energy to prevent a major earthquake.</p>
+        </div>
+      </section>
+
+      <!-- Historical Earthquakes -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Historical Earthquakes</h2>
+        <div class="space-y-4">
+          {historicalEarthquakes.map(eq => (
+            <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <span class="text-2xl font-bold text-amber-400">M{eq.magnitude}</span>
+                    <span class="text-lg font-semibold">{eq.name}</span>
+                    <span class="text-neutral-500">({eq.year})</span>
+                  </div>
+                  <p class="text-neutral-300 text-sm">{eq.description}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="text-xs text-neutral-500">Casualties</div>
+                  <div class="font-bold text-red-400">{eq.casualties}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Cities at Risk -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Cities at Risk</h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10 text-neutral-500">
+                <th class="text-left p-4">City</th>
+                <th class="text-left p-4 hidden md:table-cell">Population</th>
+                <th class="text-left p-4">Risk</th>
+                <th class="text-left p-4">Distance</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              {citiesAtRisk.map(city => (
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="p-4 font-medium">
+                    <a href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`} class="hover:text-blue-400 transition-colors">{city.name}</a>
+                    <div class="text-xs text-neutral-500 mt-0.5">{city.note}</div>
+                  </td>
+                  <td class="p-4 text-neutral-400 hidden md:table-cell">{city.population}</td>
+                  <td class="p-4"><span class={`px-2 py-0.5 rounded text-xs font-medium ${riskColors[city.risk] ?? 'text-neutral-400'}`}>{city.risk}</span></td>
+                  <td class="p-4 text-neutral-400">{city.distance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      {recentEarthquakes.length > 0 && (
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-4">Recent Seismic Activity</h2>
+          <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+            <ul class="divide-y divide-white/5">
+              {recentEarthquakes.map(eq => {
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-12 h-12 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>{eq.magnitude.toFixed(1)}</div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500">{new Date(eq.timestamp).toLocaleString()}</div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <!-- FAQ -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+        <div class="space-y-3">
+          {faqs.map(({ q, a }) => (
+            <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <summary class="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                <h3 class="font-semibold pr-4 text-left">{q}</h3>
+                <svg class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">{a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <!-- Related -->
+      <section class="grid md:grid-cols-2 gap-4">
+        <a href="/san-andreas-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">San Andreas Fault →</div>
+          <div class="text-sm text-neutral-400">California's most famous fault, cause of the 1906 and 1989 earthquakes</div>
+        </a>
+        <a href="/calaveras-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">Calaveras Fault →</div>
+          <div class="text-sm text-neutral-400">Known for San Ramon earthquake swarms in the Tri-Valley</div>
+        </a>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,123 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { generateFAQSchema, generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const faqSchema = generateFAQSchema();
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'FAQ', url: `${baseUrl}/faq` },
+]);
+
+const faqs = [
+  {
+    question: 'How often do earthquakes occur in the San Francisco Bay Area?',
+    answer: 'The Bay Area experiences hundreds of small earthquakes every year. Most are too small to feel (below magnitude 2.0), but the region is one of the most seismically active in the United States. On average, the Bay Area experiences about 30–40 earthquakes per week, though most go unnoticed.',
+  },
+  {
+    question: 'What is an earthquake swarm?',
+    answer: 'An earthquake swarm is a sequence of many small earthquakes occurring in the same area over a relatively short period of time without a clear mainshock. Swarms can last from days to months and are common in the Bay Area, particularly in the San Ramon and South Bay regions. They are usually not a precursor to larger earthquakes.',
+  },
+  {
+    question: 'Is the Bay Area due for a major earthquake?',
+    answer: 'Scientists estimate there is a 72% probability that the Bay Area will experience a magnitude 6.7 or greater earthquake within the next 30 years. The Hayward Fault is considered particularly hazardous due to its proximity to dense urban areas and its average recurrence interval of about 150 years.',
+  },
+  {
+    question: 'What is the difference between magnitude and intensity?',
+    answer: 'Magnitude measures the energy released by an earthquake at its source. It is a single number representing the overall size of the earthquake. Intensity measures the effects and shaking felt at a specific location, which varies based on distance from the epicenter, local geology, and building construction.',
+  },
+  {
+    question: 'Where does Bay Tremor get its earthquake data?',
+    answer: 'Bay Tremor uses real-time data from the United States Geological Survey (USGS) earthquake monitoring network, which operates the Northern California Seismic Network (NCSN). Our data is updated continuously and typically reflects earthquakes within minutes of occurrence.',
+  },
+  {
+    question: 'How quickly are earthquakes detected and reported?',
+    answer: 'Modern seismic networks can detect earthquakes within seconds. Preliminary information is typically available within 2–5 minutes, with refined data following within 15–30 minutes as more seismic stations report.',
+  },
+  {
+    question: 'What causes earthquakes in the Bay Area?',
+    answer: 'Bay Area earthquakes are caused by the movement of the Pacific Plate past the North American Plate along the San Andreas Fault system. The major faults include the San Andreas, Hayward, Calaveras, Rodgers Creek, and Concord-Green Valley faults.',
+  },
+  {
+    question: 'What does earthquake depth mean?',
+    answer: "Earthquake depth is the distance from the Earth's surface to the hypocenter. In the Bay Area, most earthquakes occur at depths of 5–15 km. Shallow earthquakes typically cause more intense surface shaking near the epicenter.",
+  },
+  {
+    question: 'What should I do during an earthquake?',
+    answer: 'During an earthquake: DROP to your hands and knees. COVER your head and neck under a sturdy desk or table. HOLD ON until shaking stops. Do not run outside during shaking. If outdoors, move away from buildings, power lines, and trees.',
+  },
+  {
+    question: 'How can I prepare for an earthquake?',
+    answer: 'Earthquake preparedness includes: securing heavy furniture, creating a 72-hour emergency supply kit, knowing how to shut off gas and electricity, establishing a family communication plan, and identifying safe spots in each room. Consider signing up for ShakeAlert early warning notifications.',
+  },
+  {
+    question: 'What is the San Ramon earthquake swarm?',
+    answer: 'The San Ramon area along the Calaveras Fault experiences periodic swarms of small earthquakes (typically M1.0–3.5) over days to weeks. The area has had notable swarms in 2015, 2019, and continues to have regular seismic activity. These swarms typically do not indicate an imminent larger earthquake.',
+  },
+];
+---
+
+<BaseLayout
+  title="Frequently Asked Questions About Bay Area Earthquakes | Bay Tremor"
+  description="Get answers to common questions about earthquakes in the San Francisco Bay Area. Learn about earthquake swarms, fault lines, magnitude scales, and how to stay prepared."
+  keywords="earthquake FAQ, Bay Area earthquake questions, San Francisco earthquake facts, earthquake swarm meaning, Hayward fault danger"
+  canonical={`${baseUrl}/faq`}
+  schema={[faqSchema, breadcrumbSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">FAQ</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-12">
+        <div class="flex items-center gap-3 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          <h1 class="text-4xl font-bold">Frequently Asked Questions</h1>
+        </div>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          Get answers to common questions about earthquakes in the San Francisco Bay Area,
+          how to stay prepared, and how Bay Tremor tracks seismic activity.
+        </p>
+      </header>
+
+      <div class="space-y-4">
+        {faqs.map((faq) => (
+          <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+            <summary class="flex items-center justify-between gap-4 p-6 cursor-pointer hover:bg-white/5 transition-colors list-none">
+              <h2 class="text-lg font-semibold pr-4">{faq.question}</h2>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="px-6 pb-6 text-neutral-300 leading-relaxed">{faq.answer}</div>
+          </details>
+        ))}
+      </div>
+
+      <section class="mt-12 bg-neutral-900 rounded-xl p-6 border border-white/10">
+        <h2 class="text-2xl font-bold mb-4">Additional Resources</h2>
+        <ul class="space-y-3 text-neutral-300">
+          <li><a href="https://earthquake.usgs.gov" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors">USGS Earthquake Hazards Program</a> — Official earthquake data and research</li>
+          <li><a href="https://www.earthquakeauthority.com" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors">California Earthquake Authority</a> — Earthquake insurance information</li>
+          <li><a href="https://www.ready.gov/earthquakes" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors">Ready.gov Earthquake Preparedness</a> — Federal emergency preparedness resources</li>
+          <li><a href="https://www.shakeout.org" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition-colors">The Great ShakeOut</a> — Annual earthquake drill information</li>
+        </ul>
+      </section>
+
+      <div class="mt-12 text-center">
+        <p class="text-neutral-400 mb-4">Have more questions? Start exploring earthquake data on our dashboard.</p>
+        <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-neutral-200 transition-colors">
+          View Live Earthquake Data
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

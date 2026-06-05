@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { FeltEarthquakePage } from '@/components/felt-earthquake-page';
+---
+
+<BaseLayout
+  title="Did You Feel an Earthquake? | Bay Area Seismic Report | Bay Tremor"
+  description="Just felt an earthquake in the Bay Area? See what just happened and report what you felt. Real-time earthquakes near you, intensity scale, and USGS links."
+  keywords="did i feel an earthquake, did you feel it bay area, earthquake just now, felt earthquake report, earthquake intensity scale"
+  canonical="https://baytremor.com/felt-earthquake"
+>
+  <FeltEarthquakePage client:load />
+</BaseLayout>

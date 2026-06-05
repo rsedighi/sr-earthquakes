@@ -1,0 +1,229 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'San Andreas Fault', url: `${baseUrl}/san-andreas-fault` },
+]);
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const sanAndreasSlugs = ['sf', 'peninsula', 'south-bay'];
+const recentEarthquakes = allEarthquakes
+  .filter(eq => sanAndreasSlugs.some(s => eq.region.includes(s)) || (eq.longitude < -122.3 && eq.latitude < 37.8 && eq.latitude > 36.9))
+  .slice(0, 20);
+
+const historicalEarthquakes = [
+  { year: 1906, magnitude: 7.9, name: 'Great San Francisco Earthquake', description: 'Devastated San Francisco. Fire caused 80% of destruction. Estimated 3,000+ deaths. Surface rupture traced for 296 miles.', casualties: '~3,000+' },
+  { year: 1989, magnitude: 6.9, name: 'Loma Prieta Earthquake', description: 'Struck during World Series game. Collapsed Cypress Structure and Bay Bridge section. 63 deaths, $6B in damage.', casualties: '63' },
+  { year: 1838, magnitude: 6.8, name: 'Great San Francisco Bay Earthquake', description: 'Ruptured the northern Peninsula segment. Damaged Mission Dolores and other structures.', casualties: 'Unknown' },
+  { year: 1857, magnitude: 7.9, name: 'Fort Tejon Earthquake', description: 'Ruptured the southern San Andreas. One of the largest earthquakes in California history.', casualties: '2' },
+];
+
+const citiesAtRisk = [
+  { name: 'San Francisco', population: '874K', risk: 'Very High', faultDistance: '0 mi' },
+  { name: 'Daly City', population: '104K', risk: 'Very High', faultDistance: '1 mi' },
+  { name: 'Pacifica', population: '39K', risk: 'Very High', faultDistance: 'On fault' },
+  { name: 'San Mateo', population: '105K', risk: 'High', faultDistance: '8 mi' },
+  { name: 'Redwood City', population: '84K', risk: 'High', faultDistance: '10 mi' },
+  { name: 'Palo Alto', population: '68K', risk: 'Moderate', faultDistance: '12 mi' },
+  { name: 'San Jose', population: '1M', risk: 'Moderate', faultDistance: '15 mi' },
+];
+
+const riskColors: Record<string, string> = {
+  'Very High': 'text-red-400 bg-red-500/10',
+  'High': 'text-amber-400 bg-amber-500/10',
+  'Moderate': 'text-yellow-400 bg-yellow-500/10',
+};
+
+const faqs = [
+  { q: 'When will the San Andreas Fault cause the next big earthquake?', a: 'Scientists cannot predict precisely when the next major earthquake will occur. However, the southern San Andreas Fault is considered overdue for a major earthquake. The USGS estimates a 60% probability of a M6.7+ earthquake somewhere on the San Andreas System within the next 30 years.' },
+  { q: 'How long is the San Andreas Fault?', a: 'The San Andreas Fault stretches approximately 800 miles (1,300 km) through California, from the Salton Sea in the south to Cape Mendocino in the north. The Bay Area segment runs roughly 100 miles through the Peninsula.' },
+  { q: 'What cities are on the San Andreas Fault?', a: 'In the Bay Area, the San Andreas Fault runs directly through or near San Francisco, Daly City, Pacifica, and along the Peninsula through San Mateo County. Unlike the Hayward Fault, major East Bay cities like Oakland and Berkeley are not directly on the San Andreas.' },
+  { q: 'Did the 1906 earthquake happen on the San Andreas Fault?', a: 'Yes. The 1906 San Francisco earthquake (estimated M7.9) was caused by a rupture of the northern San Andreas Fault. The rupture extended nearly 300 miles from San Juan Bautista to Cape Mendocino. It remains one of the most significant earthquakes in American history.' },
+];
+---
+
+<BaseLayout
+  title="San Andreas Fault - Bay Area Earthquake Guide, Map & History"
+  description="Complete guide to the San Andreas Fault in the Bay Area. Earthquake history, cities at risk, and live seismic activity updates from the USGS network."
+  keywords="san andreas fault, san andreas fault map, san andreas fault bay area, san andreas fault earthquake, 1906 san francisco earthquake"
+  canonical={`${baseUrl}/san-andreas-fault`}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">San Andreas Fault</li>
+        </ol>
+      </nav>
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-10">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full">
+            <svg class="w-4 h-4 text-red-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+            <span class="text-sm text-red-400 font-medium">LIVE MONITORING</span>
+          </div>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">San Andreas Fault</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          California's most famous fault line — a 800-mile boundary between the Pacific and North American tectonic plates, running directly through the San Francisco Bay Area.
+        </p>
+      </header>
+
+      <!-- Key Facts -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {[
+          { label: 'Length', value: '800 mi', sub: 'Through California' },
+          { label: 'Type', value: 'Strike-Slip', sub: 'Lateral movement' },
+          { label: 'Last Major', value: '1989', sub: 'Loma Prieta M6.9' },
+          { label: 'Risk Level', value: 'Very High', sub: '60% in 30 years', accent: true },
+        ].map(({ label, value, sub, accent }) => (
+          <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+            <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">{label}</div>
+            <div class={`text-2xl font-bold ${accent ? 'text-red-400' : ''}`}>{value}</div>
+            <div class="text-xs text-neutral-500">{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- About -->
+      <section class="bg-neutral-900 rounded-2xl p-8 border border-white/10 mb-10">
+        <h2 class="text-2xl font-bold mb-4">About the San Andreas Fault</h2>
+        <div class="space-y-4 text-neutral-300">
+          <p>The San Andreas Fault is a continental transform fault that extends roughly 800 miles through California. It forms the tectonic boundary between the Pacific Plate and the North American Plate, moving laterally at an average rate of about 1.3 to 3.5 inches per year.</p>
+          <p>In the Bay Area, the fault runs along the Peninsula — through San Francisco, Daly City, and south through San Mateo County. The 1906 earthquake (M7.9) and the 1989 Loma Prieta earthquake (M6.9) were both caused by ruptures on this fault.</p>
+          <p>Scientists believe the northern Peninsula segment of the fault is "locked" and building stress, potentially capable of producing a major earthquake similar to 1906.</p>
+        </div>
+      </section>
+
+      <!-- Historical Earthquakes -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+          Historical Earthquakes
+        </h2>
+        <div class="space-y-4">
+          {historicalEarthquakes.map(eq => (
+            <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <span class="text-2xl font-bold text-amber-400">M{eq.magnitude}</span>
+                    <span class="text-lg font-semibold">{eq.name}</span>
+                    <span class="text-neutral-500">({eq.year})</span>
+                  </div>
+                  <p class="text-neutral-300 text-sm">{eq.description}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="text-xs text-neutral-500">Casualties</div>
+                  <div class="font-bold text-red-400">{eq.casualties}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Cities at Risk -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <svg class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Cities at Risk
+        </h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10 text-neutral-500">
+                <th class="text-left p-4">City</th>
+                <th class="text-left p-4">Population</th>
+                <th class="text-left p-4">Risk Level</th>
+                <th class="text-left p-4">Distance to Fault</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              {citiesAtRisk.map(city => (
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="p-4 font-medium">
+                    <a href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`} class="hover:text-blue-400 transition-colors">{city.name}</a>
+                  </td>
+                  <td class="p-4 text-neutral-400">{city.population}</td>
+                  <td class="p-4"><span class={`px-2 py-0.5 rounded text-xs font-medium ${riskColors[city.risk] ?? 'text-neutral-400'}`}>{city.risk}</span></td>
+                  <td class="p-4 text-neutral-400">{city.faultDistance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      {recentEarthquakes.length > 0 && (
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+            <svg class="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Recent Seismic Activity
+          </h2>
+          <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+            <ul class="divide-y divide-white/5">
+              {recentEarthquakes.map(eq => {
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-12 h-12 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>{eq.magnitude.toFixed(1)}</div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500">{new Date(eq.timestamp).toLocaleString()} · {eq.depth.toFixed(1)}km deep</div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <!-- FAQ -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+        <div class="space-y-3">
+          {faqs.map(({ q, a }) => (
+            <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <summary class="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                <h3 class="font-semibold pr-4 text-left">{q}</h3>
+                <svg class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">{a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <!-- Related Faults -->
+      <section class="grid md:grid-cols-2 gap-4">
+        <a href="/hayward-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">Hayward Fault →</div>
+          <div class="text-sm text-neutral-400">The most dangerous fault in America, running through Oakland &amp; Berkeley</div>
+        </a>
+        <a href="/calaveras-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">Calaveras Fault →</div>
+          <div class="text-sm text-neutral-400">Known for San Ramon earthquake swarms in the Tri-Valley</div>
+        </a>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,16 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { DashboardWithProviders } from '@/components/dashboard-with-providers';
+---
+
+<BaseLayout
+  title="Learn About Earthquakes | Bay Tremor - Bay Area Earthquake Tracker"
+  description="Learn about Bay Area earthquakes, fault lines, and seismic activity. Understand the Hayward, San Andreas, and Calaveras faults. Earthquake preparedness education."
+  canonical="https://baytremor.com/learn"
+>
+  <DashboardWithProviders
+    client:load
+    historicalSummary={null}
+    initialTab="learn"
+  />
+</BaseLayout>

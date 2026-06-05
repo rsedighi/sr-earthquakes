@@ -1,0 +1,181 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel, detectSwarms } from '@/lib/analysis';
+import { REGIONS, BAY_AREA_LANDMARKS } from '@/lib/regions';
+import { getRegionSEOData, generateRegionSchema, generateBreadcrumbSchema } from '@/lib/seo';
+
+export function getStaticPaths() {
+  return REGIONS.map(r => ({ params: { id: r.id } }));
+}
+
+const { id } = Astro.params;
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const region = REGIONS.find(r => r.id === id);
+if (!region) return Astro.redirect('/404', 404);
+
+const seoData = getRegionSEOData(id!);
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const regionEarthquakes = allEarthquakes.filter(eq => eq.region === id);
+const recentEarthquakes = regionEarthquakes.slice(0, 20);
+const swarms = detectSwarms(regionEarthquakes);
+
+const magnitudes = regionEarthquakes.map(eq => eq.magnitude);
+const totalCount = regionEarthquakes.length;
+const avgMagnitude = magnitudes.length > 0 ? magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length : 0;
+const maxMagnitude = magnitudes.length > 0 ? Math.max(...magnitudes) : 0;
+
+const citiesInRegion = BAY_AREA_LANDMARKS
+  .filter(l => l.type === 'city')
+  .filter(city => {
+    const { minLat, maxLat, minLon, maxLon } = region.bounds;
+    return city.lat >= minLat && city.lat <= maxLat && city.lon >= minLon && city.lon <= maxLon;
+  });
+
+const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+const recentActivity = regionEarthquakes.filter(eq => eq.timestamp > thirtyDaysAgo);
+
+const regionSchema = generateRegionSchema(id!);
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Regions', url: `${baseUrl}/region` },
+  { name: region.name, url: `${baseUrl}/region/${id}` },
+]);
+---
+
+<BaseLayout
+  title={seoData?.seoTitle ?? `${region.name} Earthquakes | Bay Tremor`}
+  description={seoData?.seoDescription ?? `Real-time earthquake monitoring for ${region.name}.`}
+  keywords={seoData?.keywords?.join(', ')}
+  canonical={`${baseUrl}/region/${id}`}
+  schema={[regionSchema, breadcrumbSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">{region.name}</li>
+        </ol>
+      </nav>
+
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="text-2xl font-mono font-bold px-4 py-2 rounded-lg" style={`background-color: ${region.color}20; color: ${region.color}; border: 1px solid ${region.color}40`}>
+            {region.areaCode}
+          </span>
+          <span class="text-sm text-neutral-500">{region.county} County</span>
+        </div>
+        <h1 class="text-4xl font-bold mb-4">{region.name} Earthquakes</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          Real-time earthquake monitoring for {region.name}. Track seismic activity along the {region.faultLine} in {region.county} County.
+        </p>
+      </header>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span class="text-xs uppercase tracking-wider">Total Events</span>
+          </div>
+          <div class="text-3xl font-bold">{totalCount.toLocaleString()}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span class="text-xs uppercase tracking-wider">Avg Magnitude</span>
+          </div>
+          <div class="text-3xl font-bold">{avgMagnitude.toFixed(2)}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span class="text-xs uppercase tracking-wider">Max Magnitude</span>
+          </div>
+          <div class="text-3xl font-bold text-amber-400">{maxMagnitude.toFixed(1)}</div>
+        </div>
+        <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+          <div class="flex items-center gap-2 text-neutral-500 mb-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>
+            <span class="text-xs uppercase tracking-wider">Swarm Events</span>
+          </div>
+          <div class="text-3xl font-bold">{swarms.length}</div>
+        </div>
+      </div>
+
+      {recentActivity.length > 0 && (
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 mb-8">
+          <h2 class="text-lg font-semibold text-amber-400 mb-2">Recent Activity</h2>
+          <p class="text-neutral-300">
+            {recentActivity.length} earthquake{recentActivity.length !== 1 ? 's' : ''} recorded in the last 30 days.
+            The most recent was M{recentActivity[0]?.magnitude.toFixed(1)} on {new Date(recentActivity[0]?.timestamp).toLocaleDateString()}.
+          </p>
+        </div>
+      )}
+
+      <!-- About Section -->
+      <section class="bg-neutral-900 rounded-xl p-6 border border-white/10 mb-8">
+        <h2 class="text-2xl font-bold mb-4">About {region.name} Seismic Activity</h2>
+        <p class="text-neutral-300 mb-4">
+          {region.description}. This region is monitored by the USGS seismic network and experiences regular seismic activity due to the {region.faultLine}.
+        </p>
+        <p class="text-neutral-300 mb-4">
+          The {region.faultLine} is one of the major fault systems in the San Francisco Bay Area. Earthquakes here can range from minor tremors to significant events felt across multiple counties.
+        </p>
+        <h3 class="text-xl font-semibold mt-6 mb-3">Cities in This Region</h3>
+        <div class="flex flex-wrap gap-2">
+          {citiesInRegion.map(city => (
+            <a href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`} class="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full text-sm transition-colors">{city.name}</a>
+          ))}
+        </div>
+      </section>
+
+      <!-- Recent Earthquakes -->
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Recent Earthquakes in {region.name}</h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          {recentEarthquakes.length > 0 ? (
+            <ul class="divide-y divide-white/5">
+              {recentEarthquakes.map(eq => {
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-12 h-12 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>
+                        {eq.magnitude.toFixed(1)}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500">{new Date(eq.timestamp).toLocaleString()} • {eq.depth.toFixed(1)}km deep</div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div class="p-8 text-center text-neutral-500">No recent earthquakes recorded in this region.</div>
+          )}
+        </div>
+      </section>
+
+      <!-- Fault Line Info -->
+      <section class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+        <h2 class="text-2xl font-bold mb-4">The {region.faultLine}</h2>
+        <p class="text-neutral-300">
+          The {region.faultLine} is part of the San Andreas Fault System, which is the primary boundary between the Pacific Plate and the North American Plate. Understanding earthquake activity along this fault is crucial for earthquake preparedness in {region.county} County and surrounding areas.
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

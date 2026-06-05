@@ -1,0 +1,228 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { loadAllEarthquakes } from '@/lib/server-data';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Calaveras Fault', url: `${baseUrl}/calaveras-fault` },
+]);
+
+const allEarthquakes = await loadAllEarthquakes('all_week');
+const recentEarthquakes = allEarthquakes
+  .filter(eq => eq.region?.includes('tri-valley') || eq.region?.includes('south-bay') ||
+    (eq.longitude > -122.1 && eq.longitude < -121.6 && eq.latitude > 37.4 && eq.latitude < 37.8))
+  .slice(0, 20);
+
+const historicalEarthquakes = [
+  { year: 1984, magnitude: 6.2, name: 'Morgan Hill Earthquake', description: "Ruptured the southern Calaveras Fault. Caused $8M in damage to Morgan Hill and Coyote Valley. Strong shaking felt throughout the South Bay.", casualties: '27 injured' },
+  { year: 2007, magnitude: 5.6, name: 'Alum Rock Earthquake', description: 'Struck near San Jose along the Calaveras Fault system. Widely felt across the Bay Area. No deaths, minor damage.', casualties: '0' },
+  { year: 2015, magnitude: 4.0, name: 'San Ramon Swarm Peak', description: 'Part of a prolonged earthquake swarm in San Ramon that lasted several weeks. Over 100 earthquakes in the M1-4 range rattled the Tri-Valley.', casualties: '0' },
+  { year: 2020, magnitude: 3.6, name: 'Danville Earthquake', description: 'Series of small earthquakes along the Calaveras Fault near Danville and San Ramon, typical of ongoing fault creep and minor swarm activity.', casualties: '0' },
+];
+
+const citiesAtRisk = [
+  { name: 'San Ramon', population: '84K', risk: 'High', distance: 'On fault', note: 'Most frequent earthquake swarms in Bay Area' },
+  { name: 'Dublin', population: '69K', risk: 'High', distance: '2 mi', note: 'Adjacent to the northern Calaveras' },
+  { name: 'Pleasanton', population: '84K', risk: 'High', distance: '3 mi', note: 'In the Tri-Valley seismic zone' },
+  { name: 'Livermore', population: '93K', risk: 'Moderate', distance: '5 mi', note: 'Near Calaveras-Greenville junction' },
+  { name: 'Danville', population: '45K', risk: 'High', distance: '1 mi', note: 'Regular small earthquake activity' },
+  { name: 'Milpitas', population: '79K', risk: 'High', distance: 'On fault', note: 'Southern terminus of main Calaveras' },
+  { name: 'San Jose', population: '1M', risk: 'Moderate', distance: '5 mi', note: 'Calaveras passes through eastern San Jose' },
+];
+
+const riskColors: Record<string, string> = {
+  'High': 'text-amber-400 bg-amber-500/10',
+  'Moderate': 'text-yellow-400 bg-yellow-500/10',
+};
+
+const faqs = [
+  { q: 'What causes the San Ramon earthquake swarms?', a: "San Ramon experiences frequent earthquake swarms because it sits directly on the Calaveras Fault, which is a creeping fault. The combination of slow, continuous fault movement and stress accumulation causes clusters of small earthquakes (M1-4) over days to weeks. These swarms are generally not precursors to larger earthquakes." },
+  { q: 'Is the Calaveras Fault dangerous?', a: "Yes, though it receives less attention than the Hayward and San Andreas faults. The Calaveras Fault is capable of producing M6.5-7.0 earthquakes. The 1984 Morgan Hill earthquake (M6.2) demonstrated its destructive potential. The northern Calaveras, near San Ramon, is particularly active with frequent swarm activity." },
+  { q: 'How long is the Calaveras Fault?', a: "The Calaveras Fault runs approximately 75 miles through the East Bay and South Bay, from San Ramon in the north to south of Hollister. It branches from the Hayward Fault near Milpitas and extends through the Diablo Range." },
+  { q: 'Is it safe to buy a home near the Calaveras Fault?', a: "California's Alquist-Priolo Earthquake Fault Zone Act prohibits construction of most structures intended for human occupancy directly on active fault traces. However, homes near (but not on) the fault can still experience strong shaking. Check USGS and CGS fault maps before purchasing property in San Ramon, Dublin, or Danville." },
+];
+---
+
+<BaseLayout
+  title="Calaveras Fault - San Ramon Earthquake Swarms | Map & Guide"
+  description="Complete guide to the Calaveras Fault in the Bay Area. Known for earthquake swarms in San Ramon, Dublin, and Pleasanton. Live seismic activity and fault map."
+  keywords="calaveras fault, calaveras fault map, san ramon earthquake, san ramon earthquake swarm, tri-valley earthquake, dublin earthquake"
+  canonical={`${baseUrl}/calaveras-fault`}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400">
+          <li><a href="/" class="hover:text-white transition-colors">Home</a></li>
+          <li>/</li>
+          <li class="text-white">Calaveras Fault</li>
+        </ol>
+      </nav>
+      <a href="/" class="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-8 group">
+        <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Back to Dashboard
+      </a>
+
+      <header class="mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full mb-4">
+          <svg class="w-4 h-4 text-red-400 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+          <span class="text-sm text-red-400 font-medium">LIVE MONITORING</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">Calaveras Fault</h1>
+        <p class="text-xl text-neutral-400 max-w-3xl">
+          The Calaveras Fault runs through the heart of the Tri-Valley — San Ramon, Dublin, and Pleasanton — and is known for frequent earthquake swarms that rattle East Bay residents.
+        </p>
+      </header>
+
+      <!-- Key Facts -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {[
+          { label: 'Length', value: '75 mi', sub: 'Through East Bay' },
+          { label: 'Type', value: 'Strike-Slip', sub: 'Right-lateral' },
+          { label: 'Last Major', value: '1984', sub: 'Morgan Hill M6.2' },
+          { label: 'Known For', value: 'Swarms', sub: 'San Ramon clusters', accent: true },
+        ].map(({ label, value, sub, accent }) => (
+          <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">
+            <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">{label}</div>
+            <div class={`text-2xl font-bold ${accent ? 'text-amber-400' : ''}`}>{value}</div>
+            <div class="text-xs text-neutral-500">{sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- About -->
+      <section class="bg-neutral-900 rounded-2xl p-8 border border-white/10 mb-10">
+        <h2 class="text-2xl font-bold mb-4">About the Calaveras Fault</h2>
+        <div class="space-y-4 text-neutral-300">
+          <p>The Calaveras Fault is a right-lateral strike-slip fault that branches from the Hayward Fault near Milpitas and runs northward through the Tri-Valley to San Ramon. It is part of the larger San Andreas Fault system.</p>
+          <p>The fault is known for its frequent earthquake swarms — clusters of small earthquakes (typically M1-3.5) that can last for days or weeks. San Ramon, located directly on the fault, experiences several notable swarms per year, making it one of the most seismically active towns in the Bay Area.</p>
+          <p>Like the Hayward Fault, the Calaveras exhibits aseismic creep in some segments, visible as offset in roads and sidewalks. However, other segments are locked and capable of producing larger earthquakes.</p>
+        </div>
+      </section>
+
+      <!-- Historical Earthquakes -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Historical Earthquakes</h2>
+        <div class="space-y-4">
+          {historicalEarthquakes.map(eq => (
+            <div class="bg-neutral-900 rounded-xl p-6 border border-white/10">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2 flex-wrap">
+                    <span class="text-2xl font-bold text-amber-400">M{eq.magnitude}</span>
+                    <span class="text-lg font-semibold">{eq.name}</span>
+                    <span class="text-neutral-500">({eq.year})</span>
+                  </div>
+                  <p class="text-neutral-300 text-sm">{eq.description}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="text-xs text-neutral-500">Casualties</div>
+                  <div class="font-bold text-amber-400">{eq.casualties}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Cities at Risk -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Cities at Risk</h2>
+        <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10 text-neutral-500">
+                <th class="text-left p-4">City</th>
+                <th class="text-left p-4 hidden md:table-cell">Population</th>
+                <th class="text-left p-4">Risk</th>
+                <th class="text-left p-4 hidden md:table-cell">Distance</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              {citiesAtRisk.map(city => (
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="p-4 font-medium">
+                    <a href={`/${city.name.toLowerCase().replace(/\s+/g, '-')}-earthquake-today`} class="hover:text-blue-400 transition-colors">{city.name}</a>
+                    <div class="text-xs text-neutral-500 mt-0.5">{city.note}</div>
+                  </td>
+                  <td class="p-4 text-neutral-400 hidden md:table-cell">{city.population}</td>
+                  <td class="p-4"><span class={`px-2 py-0.5 rounded text-xs font-medium ${riskColors[city.risk] ?? 'text-neutral-400'}`}>{city.risk}</span></td>
+                  <td class="p-4 text-neutral-400 hidden md:table-cell">{city.distance}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Recent Activity -->
+      {recentEarthquakes.length > 0 && (
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-4">Recent Seismic Activity</h2>
+          <div class="bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+            <ul class="divide-y divide-white/5">
+              {recentEarthquakes.map(eq => {
+                const color = getMagnitudeColor(eq.magnitude);
+                return (
+                  <li>
+                    <a href={`/earthquake/${eq.id}`} class="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors">
+                      <div class="w-12 h-12 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={`background-color: ${color}20; color: ${color}`}>{eq.magnitude.toFixed(1)}</div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">{eq.place}</div>
+                        <div class="text-sm text-neutral-500">{new Date(eq.timestamp).toLocaleString()}</div>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded bg-white/5 text-neutral-400">{getMagnitudeLabel(eq.magnitude)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      <!-- FAQ -->
+      <section class="mb-10">
+        <h2 class="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+        <div class="space-y-3">
+          {faqs.map(({ q, a }) => (
+            <details class="group bg-neutral-900 rounded-xl border border-white/10 overflow-hidden">
+              <summary class="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors list-none">
+                <h3 class="font-semibold pr-4 text-left">{q}</h3>
+                <svg class="w-5 h-5 text-neutral-500 group-open:rotate-180 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="px-5 pb-5 text-neutral-300 leading-relaxed border-t border-white/5 pt-4">{a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <!-- Swarm Tracker CTA -->
+      <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-8">
+        <h2 class="text-lg font-bold text-amber-400 mb-2">Monitoring a San Ramon Swarm?</h2>
+        <p class="text-neutral-300 mb-4">View real-time activity for the San Ramon / Tri-Valley region, including all current swarm earthquakes.</p>
+        <div class="flex gap-4 flex-wrap">
+          <a href="/san-ramon-earthquake-today" class="px-4 py-2 bg-amber-500 text-black rounded-lg font-medium hover:bg-amber-400 transition-colors">San Ramon Live Activity</a>
+          <a href="/today" class="px-4 py-2 bg-neutral-800 text-white rounded-lg font-medium hover:bg-neutral-700 transition-colors border border-white/10">All Bay Area Earthquakes</a>
+        </div>
+      </div>
+
+      <!-- Related -->
+      <section class="grid md:grid-cols-2 gap-4">
+        <a href="/hayward-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">Hayward Fault →</div>
+          <div class="text-sm text-neutral-400">The most dangerous fault in America, running through Oakland &amp; Berkeley</div>
+        </a>
+        <a href="/san-andreas-fault" class="p-5 bg-neutral-900 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
+          <div class="font-bold mb-1">San Andreas Fault →</div>
+          <div class="text-sm text-neutral-400">California's most famous fault, cause of the 1906 and 1989 earthquakes</div>
+        </a>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

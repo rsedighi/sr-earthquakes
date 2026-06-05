@@ -1,0 +1,42 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { BayTremorCommunity } from '@/components/bay-tremor-community';
+
+const VALID_CATEGORIES = ['earthquake', 'general', 'neighborhood', 'preparedness', 'science'] as const;
+type ForumCategory = typeof VALID_CATEGORIES[number];
+
+const CATEGORY_NAMES: Record<ForumCategory, string> = {
+  earthquake: 'Earthquake Discussions',
+  general: 'General Discussion',
+  neighborhood: 'Neighborhood',
+  preparedness: 'Preparedness & Safety',
+  science: 'Science & Research',
+};
+
+const CATEGORY_DESCRIPTIONS: Record<ForumCategory, string> = {
+  earthquake: 'Discuss recent earthquakes, share your experiences, and learn from others in the Bay Area community.',
+  general: 'Anything earthquake or Bay Area related. Connect with your community.',
+  neighborhood: 'Local discussions by area. Find and connect with neighbors near you.',
+  preparedness: 'Tips, emergency kits, and planning for earthquakes. Be prepared.',
+  science: 'Seismology, geology, and earthquake research discussions.',
+};
+
+export function getStaticPaths() {
+  return VALID_CATEGORIES.map(category => ({ params: { category } }));
+}
+
+const { category } = Astro.params;
+if (!VALID_CATEGORIES.includes(category as ForumCategory)) {
+  return Astro.redirect('/community', 307);
+}
+
+const cat = category as ForumCategory;
+const title = `${CATEGORY_NAMES[cat]} | Bay Tremor Community`;
+const description = CATEGORY_DESCRIPTIONS[cat];
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="pb-20 md:pb-0">
+    <BayTremorCommunity client:load />
+  </div>
+</BaseLayout>

@@ -1,0 +1,12 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { IOSComingSoon } from '@/components/ios-coming-soon';
+---
+
+<BaseLayout
+  title="iOS App Coming Soon | Bay Tremor"
+  description="Be the first to know when the Bay Tremor iOS app launches. Real-time earthquake alerts, personalized notifications, and home screen widgets for Bay Area earthquakes."
+  canonical="https://baytremor.com/ios"
+>
+  <IOSComingSoon client:load />
+</BaseLayout>

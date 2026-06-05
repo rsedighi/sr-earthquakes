@@ -1,0 +1,137 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { TV_STATIONS, NEWSPAPERS } from '@/lib/news-sources';
+import { generateBreadcrumbSchema } from '@/lib/seo';
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'News', url: `${baseUrl}/news` },
+]);
+
+const RECENT_HEADLINES = [
+  { title: 'Swarm of earthquakes strike San Ramon, jolting residents', summary: 'At least 25 moderate and smaller earthquakes hit San Ramon on Monday morning.', source: 'KTVU', date: 'Feb 2, 2026', href: 'https://www.ktvu.com/tag/weather/earthquakes' },
+  { title: 'Swarm of over 30 quakes strike near San Ramon, strongest 4.2: USGS', summary: 'A 4.2 earthquake struck near San Ramon Monday morning amid a string of over 30 temblors.', source: 'ABC7', date: 'Feb 2, 2026', href: 'https://abc7news.com/tag/earthquake/' },
+  { title: '3.4-magnitude earthquake strikes near Dublin', summary: 'The U.S. Geological Survey reported a small earthquake striking just south of Dublin.', source: 'KTVU', date: 'Jan 30, 2026', href: 'https://www.ktvu.com/tag/weather/earthquakes' },
+  { title: '3.1M earthquake strikes near Alum Rock in Santa Clara County', summary: 'A 3.1-magnitude earthquake was reported in northeastern Santa Clara County.', source: 'KTVU', date: 'Jan 15, 2026', href: 'https://www.ktvu.com/tag/weather/earthquakes' },
+  { title: 'Cluster of earthquakes strike San Ramon on Saturday night', summary: 'Shaking was felt at the KTVU station in Oakland, and callers reported movement in San Francisco.', source: 'KTVU', date: 'Dec 20, 2025', href: 'https://www.ktvu.com/tag/weather/earthquakes' },
+];
+---
+
+<BaseLayout
+  title="Bay Area Earthquake News | Local TV Coverage | Bay Tremor"
+  description="Earthquake news from Bay Area TV stations: KTVU, KRON 4, ABC 7, CBS, NBC Bay Area. Real journalism, local coverage, community impact."
+  keywords="bay area earthquake news, ktvu earthquake, kron 4 earthquake, abc7 earthquake, nbc bay area earthquake"
+  canonical={`${baseUrl}/news`}
+  schema={breadcrumbSchema}
+>
+  <div class="min-h-screen bg-white text-neutral-900">
+    <header class="border-b border-neutral-200">
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <nav class="text-sm text-neutral-500 mb-4">
+          <a href="/" class="hover:text-neutral-900">Home</a>
+          <span class="mx-2">/</span>
+          <span class="text-neutral-900">News</span>
+        </nav>
+        <h1 class="font-serif text-4xl md:text-5xl font-bold tracking-tight mb-4">Earthquake News</h1>
+        <p class="text-lg text-neutral-600 max-w-2xl">Coverage from Bay Area TV stations and newspapers. Click any source to read their latest earthquake reporting.</p>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-12">
+      <section class="mb-16">
+        <h2 class="font-serif text-2xl font-bold mb-2">Local TV Stations</h2>
+        <p class="text-neutral-500 text-sm mb-8">Bay Area TV news with video coverage, expert interviews, and community impact stories.</p>
+        <div class="space-y-1">
+          {TV_STATIONS.map((station) => (
+            <a
+              href={station.earthquakePage}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-center justify-between py-4 border-b border-neutral-100 hover:bg-neutral-50 -mx-4 px-4 transition-colors"
+            >
+              <div class="flex items-center gap-4">
+                <span class="w-10 h-10 rounded flex items-center justify-center text-white font-bold text-sm" style={`background-color: ${station.color}`}>
+                  {station.channel}
+                </span>
+                <div>
+                  <div class="font-medium text-neutral-900 group-hover:text-blue-600 transition-colors">{station.name}</div>
+                  <div class="text-sm text-neutral-500">Earthquake coverage →</div>
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-neutral-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16 bg-neutral-50 -mx-4 px-4 py-8 md:rounded-lg md:mx-0 md:px-8">
+        <h2 class="font-serif text-xl font-bold mb-4">What You'll Find</h2>
+        <div class="grid md:grid-cols-2 gap-6 text-sm">
+          <div><h3 class="font-medium mb-2">Breaking Coverage</h3><p class="text-neutral-600">Real-time reporting when earthquakes hit. Video footage, reporter updates, and community reactions as events unfold.</p></div>
+          <div><h3 class="font-medium mb-2">Local Impact</h3><p class="text-neutral-600">Stories about damage reports, BART delays, power outages, and how your neighborhood was affected.</p></div>
+          <div><h3 class="font-medium mb-2">Expert Analysis</h3><p class="text-neutral-600">Interviews with USGS seismologists, emergency officials, and earthquake scientists.</p></div>
+          <div><h3 class="font-medium mb-2">Preparedness Tips</h3><p class="text-neutral-600">Guides on emergency kits, family plans, and what to do during and after an earthquake.</p></div>
+        </div>
+      </section>
+
+      <section class="mb-16">
+        <h2 class="font-serif text-2xl font-bold mb-2">Newspapers &amp; Public Media</h2>
+        <p class="text-neutral-500 text-sm mb-8">In-depth reporting, investigative journalism, and long-form earthquake coverage.</p>
+        <div class="space-y-1">
+          {NEWSPAPERS.map((paper) => (
+            <a
+              href={paper.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-center justify-between py-4 border-b border-neutral-100 hover:bg-neutral-50 -mx-4 px-4 transition-colors"
+            >
+              <div>
+                <div class="font-medium text-neutral-900 group-hover:text-blue-600 transition-colors">{paper.name}</div>
+                <div class="text-sm text-neutral-500">{paper.shortName === 'KQED' ? 'Public radio & news' : 'Regional newspaper'}</div>
+              </div>
+              <svg class="w-4 h-4 text-neutral-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-16">
+        <h2 class="font-serif text-2xl font-bold mb-2">Recent Headlines</h2>
+        <p class="text-neutral-500 text-sm mb-6">Sample of recent earthquake coverage from Bay Area stations.</p>
+        <div class="space-y-6">
+          {RECENT_HEADLINES.map((h) => (
+            <article class="border-l-2 border-neutral-200 pl-4">
+              <a href={h.href} target="_blank" rel="noopener noreferrer" class="group">
+                <h3 class="font-medium group-hover:text-blue-600 transition-colors">{h.title}</h3>
+                <p class="text-sm text-neutral-500 mt-1">{h.summary}</p>
+                <div class="text-xs text-neutral-400 mt-2">{h.source} · {h.date}</div>
+              </a>
+            </article>
+          ))}
+        </div>
+        <div class="mt-8 text-center">
+          <a href="https://www.ktvu.com/tag/weather/earthquakes" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium">
+            View all earthquake news on KTVU
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <section class="border-t border-neutral-200 pt-8">
+        <h2 class="font-serif text-xl font-bold mb-4">Bay Tremor Resources</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+          <a href="/" class="block p-4 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors"><div class="font-medium">Live Map</div><div class="text-sm text-neutral-400 mt-1">Real-time earthquake tracker</div></a>
+          <a href="/today" class="block p-4 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors"><div class="font-medium">Earthquakes Today</div><div class="text-sm text-neutral-500 mt-1">Today's seismic activity</div></a>
+          <a href="/earthquake-preparedness" class="block p-4 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors"><div class="font-medium">Preparedness Guide</div><div class="text-sm text-neutral-500 mt-1">Be ready for the next one</div></a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-neutral-200 mt-16">
+      <div class="max-w-4xl mx-auto px-4 py-8">
+        <p class="text-sm text-neutral-500">Bay Tremor aggregates earthquake news from local sources. All articles link directly to their original publishers. For real-time earthquake data, visit our <a href="/" class="text-blue-600 hover:underline">live map</a>.</p>
+      </div>
+    </footer>
+  </div>
+</BaseLayout>
