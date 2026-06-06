@@ -1,55 +1,11 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { DashboardWithProviders } from '@/components/dashboard-with-providers';
-
-const BAY_AREA_BOUNDS = {
-  minLat: 36.9, maxLat: 38.35,
-  minLon: -123.0, maxLon: -121.4,
-};
-
-let initialEarthquakes: import('@/lib/types').Earthquake[] = [];
-
-try {
-  const res = await fetch(
-    'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
-    { signal: AbortSignal.timeout(5000) },
-  );
-  if (res.ok) {
-    const data = await res.json() as { features: import('@/lib/types').USGSFeature[] };
-    const { getRegionForCoordinates } = await import('@/lib/regions');
-
-    for (const f of data.features) {
-      if (!f.properties?.time || f.properties?.mag == null) continue;
-      const [lon, lat, depth] = f.geometry.coordinates;
-      if (
-        lat < BAY_AREA_BOUNDS.minLat || lat > BAY_AREA_BOUNDS.maxLat ||
-        lon < BAY_AREA_BOUNDS.minLon || lon > BAY_AREA_BOUNDS.maxLon
-      ) continue;
-      initialEarthquakes.push({
-        id: f.id,
-        magnitude: f.properties.mag,
-        place: f.properties.place,
-        time: new Date(f.properties.time),
-        timestamp: f.properties.time,
-        latitude: lat,
-        longitude: lon,
-        depth,
-        felt: f.properties.felt,
-        significance: f.properties.sig,
-        url: f.properties.url,
-        region: getRegionForCoordinates(lat, lon),
-      });
-    }
-    initialEarthquakes.sort((a, b) => b.timestamp - a.timestamp);
-  }
-} catch {
-  // Fail open — Dashboard will fetch client-side via API
-}
 ---
 
 <BaseLayout>
   <DashboardWithProviders
-    client:load
+    client:only="react"
     historicalSummary={null}
     initialTab="live"
   />

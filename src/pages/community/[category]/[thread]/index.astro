@@ -24,7 +24,7 @@ const threadTitle = thread
     <ThreadDetailView
       slug={thread!}
       category={category as ForumCategory}
-      client:load
+      client:only="react"
     />
   </div>
 </BaseLayout>

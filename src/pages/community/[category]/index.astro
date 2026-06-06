@@ -37,6 +37,6 @@ const description = CATEGORY_DESCRIPTIONS[cat];
 
 <BaseLayout title={title} description={description}>
   <div class="pb-20 md:pb-0">
-    <BayTremorCommunity client:load />
+    <BayTremorCommunity client:only="react" />
   </div>
 </BaseLayout>
