@@ -2,8 +2,13 @@ import type { APIRoute } from 'astro';
 import { getAISummary, setAISummary } from '@/lib/kv';
 import { generateActivitySummary, type ActivitySummaryInput } from '@/lib/openai';
 
+// Per-IP OpenAI cost guard. Cache hits don't count against the limit;
+// only requests that would actually invoke OpenAI do.
+const OPENAI_CALLS_PER_WINDOW = 5;
+const OPENAI_WINDOW_SECONDS = 300; // 5 minutes
+
 // POST /api/ai-summary
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
   const { env } = locals.runtime;
 
   let body: ActivitySummaryInput;
@@ -22,6 +27,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (cached) {
     return Response.json({ summary: cached, cached: true });
   }
+
+  // Per-IP throttle: only enforced on cache misses (i.e. actual OpenAI calls)
+  const ip = clientAddress || request.headers.get('cf-connecting-ip') || 'unknown';
+  const throttleKey = `throttle:ai-summary:${ip}`;
+  const current = await env.EARTHQUAKE_KV.get(throttleKey);
+  const count = current ? parseInt(current, 10) : 0;
+  if (count >= OPENAI_CALLS_PER_WINDOW) {
+    return Response.json(
+      { error: 'Rate limit exceeded. Try again in a few minutes.' },
+      { status: 429, headers: { 'Retry-After': String(OPENAI_WINDOW_SECONDS) } },
+    );
+  }
+  await env.EARTHQUAKE_KV.put(throttleKey, String(count + 1), {
+    expirationTtl: OPENAI_WINDOW_SECONDS,
+  });
 
   // Pass the API key from env to the openai helper
   const summary = await generateActivitySummary(body, env.OPENAI_API_KEY);
