@@ -105,3 +105,25 @@ export function getAllowedExtension(mimeType: string): string | null {
 }
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+// Shared-secret guard for write endpoints (upload, delete).
+// Set MEDIA_UPLOAD_TOKEN via `wrangler secret put MEDIA_UPLOAD_TOKEN`.
+// Client passes it in `Authorization: Bearer <token>`.
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+export function isAuthorized(request: Request, expectedToken: string | undefined): boolean {
+  if (!expectedToken) return false; // fail closed if secret not set
+  const header = request.headers.get('Authorization') ?? '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) return false;
+  return timingSafeEqual(match[1].trim(), expectedToken);
+}

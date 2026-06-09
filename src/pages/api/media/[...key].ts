@@ -5,7 +5,7 @@
  * The catch-all [...key] param reassembles the full R2 object key.
  */
 import type { APIRoute } from 'astro';
-import { getMedia, deleteMedia } from '@/lib/r2';
+import { getMedia, deleteMedia, isAuthorized } from '@/lib/r2';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { env } = locals.runtime;
@@ -31,11 +31,15 @@ export const GET: APIRoute = async ({ params, locals }) => {
   });
 };
 
-export const DELETE: APIRoute = async ({ params, locals }) => {
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
   const { env } = locals.runtime;
 
   if (!env.MEDIA_R2) {
     return Response.json({ error: 'Media storage not configured' }, { status: 503 });
+  }
+
+  if (!isAuthorized(request, env.MEDIA_UPLOAD_TOKEN)) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const key = params.key;

@@ -13,6 +13,7 @@ import {
   uploadMedia,
   buildMediaKey,
   getAllowedExtension,
+  isAuthorized,
   MAX_UPLOAD_BYTES,
 } from '@/lib/r2';
 
@@ -21,6 +22,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!env.MEDIA_R2) {
     return Response.json({ error: 'Media storage not configured' }, { status: 503 });
+  }
+
+  if (!isAuthorized(request, env.MEDIA_UPLOAD_TOKEN)) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   let formData: FormData;
