@@ -66,6 +66,16 @@ export async function handleScheduled(env: CronEnv): Promise<void> {
 
   console.log(`[cron] ${newQuakes.length} new quake(s) detected`);
 
+  for (const f of newQuakes) {
+    trackNewQuake(env.ANALYTICS, {
+      id: f.id,
+      magnitude: f.properties.mag ?? 0,
+      latitude: f.geometry.coordinates[1],
+      longitude: f.geometry.coordinates[0],
+      place: f.properties.place,
+    });
+  }
+
   // 4. Broadcast to EarthquakeRoom DO (fans out to connected WebSocket clients)
   try {
     const stub = env.EARTHQUAKE_ROOM.get(

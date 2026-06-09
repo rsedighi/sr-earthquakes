@@ -25,6 +25,7 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
 
   const cached = await getAISummary(env.EARTHQUAKE_KV, cacheKey);
   if (cached) {
+    trackAiSummary(env.ANALYTICS, { regionId: body.regionId, cacheHit: true, throttled: false, ok: true });
     return Response.json({ summary: cached, cached: true });
   }
 
@@ -34,6 +35,7 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
   const current = await env.EARTHQUAKE_KV.get(throttleKey);
   const count = current ? parseInt(current, 10) : 0;
   if (count >= OPENAI_CALLS_PER_WINDOW) {
+    trackAiSummary(env.ANALYTICS, { regionId: body.regionId, cacheHit: false, throttled: true, ok: false });
     return Response.json(
       { error: 'Rate limit exceeded. Try again in a few minutes.' },
       { status: 429, headers: { 'Retry-After': String(OPENAI_WINDOW_SECONDS) } },
@@ -46,6 +48,7 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
   // Pass the API key from env to the openai helper
   const summary = await generateActivitySummary(body, env.OPENAI_API_KEY);
   if (!summary) {
+    trackAiSummary(env.ANALYTICS, { regionId: body.regionId, cacheHit: false, throttled: false, ok: false });
     return Response.json(
       { error: 'AI summary unavailable. Check OPENAI_API_KEY configuration.' },
       { status: 503 },
@@ -53,5 +56,6 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
   }
 
   await setAISummary(env.EARTHQUAKE_KV, cacheKey, summary);
+  trackAiSummary(env.ANALYTICS, { regionId: body.regionId, cacheHit: false, throttled: false, ok: true });
   return Response.json({ summary, cached: false });
 };

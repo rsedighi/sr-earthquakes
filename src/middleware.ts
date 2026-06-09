@@ -60,13 +60,18 @@ const CACHE_TTL = 600; // 10 minutes
 const CACHE_BYPASS_PREFIXES = ['/api/', '/community/', '/my-area/'];
 
 const cacheMiddleware = defineMiddleware(async (context, next) => {
-  if (context.request.method !== 'GET') return next();
-
   const url = new URL(context.request.url);
+  const start = Date.now();
+  const ae = context.locals.runtime?.env?.ANALYTICS;
+  const country = context.locals.cf?.country;
+
+  if (context.request.method !== 'GET') return next();
 
   // Bypass for private/dynamic routes
   if (CACHE_BYPASS_PREFIXES.some((p) => url.pathname.startsWith(p))) {
-    return next();
+    const r = await next();
+    trackPageView(ae, { route: url.pathname, country, status: r.status, cacheHit: false, durationMs: Date.now() - start });
+    return r;
   }
 
   // Static asset prefixes are served directly by [assets] binding; skip here
@@ -82,6 +87,7 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
   const cacheKey = new Request(url.toString(), { method: 'GET', headers: context.request.headers });
   const cached = await cache.match(cacheKey);
   if (cached) {
+    trackPageView(ae, { route: url.pathname, country, status: cached.status, cacheHit: true, durationMs: Date.now() - start });
     return new Response(cached.body, {
       status: cached.status,
       headers: new Headers([
@@ -102,6 +108,7 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
     response.headers.set('X-Cache', 'MISS');
   }
 
+  trackPageView(ae, { route: url.pathname, country, status: response.status, cacheHit: false, durationMs: Date.now() - start });
   return response;
 });
 
