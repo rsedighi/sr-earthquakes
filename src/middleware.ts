@@ -1,4 +1,5 @@
 import { defineMiddleware, sequence } from 'astro:middleware';
+import { trackPageView } from '@/lib/analytics';
 
 // ── Security headers (ported from next.config.js) ────────────────────────────
 const SECURITY_HEADERS: Record<string, string> = {
@@ -57,6 +58,8 @@ const securityHeadersMiddleware = defineMiddleware(async (_context, next) => {
 
 // ── Cache API: cache GET responses for public pages (10 min TTL) ─────────────
 const CACHE_TTL = 600; // 10 minutes
+// Bump CACHE_VERSION to invalidate all cached responses after a deploy.
+const CACHE_VERSION = 'v2';
 const CACHE_BYPASS_PREFIXES = ['/api/', '/community/', '/my-area/'];
 
 const cacheMiddleware = defineMiddleware(async (context, next) => {
@@ -84,9 +87,14 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
   const cache = typeof caches !== 'undefined' ? caches.default : null;
   if (!cache) return next();
 
-  const cacheKey = new Request(url.toString(), { method: 'GET', headers: context.request.headers });
+  // Cache key: URL-only + version. Including all request headers causes
+  // fragmentation and unpredictable hits (Cache API ignores most headers anyway).
+  const versionedUrl = new URL(url.toString());
+  versionedUrl.searchParams.set('__cv', CACHE_VERSION);
+  const cacheKey = new Request(versionedUrl.toString(), { method: 'GET' });
   const cached = await cache.match(cacheKey);
-  if (cached) {
+  // Defensive: never serve cached redirects or non-2xx responses.
+  if (cached && cached.ok && cached.status >= 200 && cached.status < 300) {
     trackPageView(ae, { route: url.pathname, country, status: cached.status, cacheHit: true, durationMs: Date.now() - start });
     return new Response(cached.body, {
       status: cached.status,
@@ -101,7 +109,7 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
 
   // Only cache successful HTML responses
   const contentType = response.headers.get('content-type') ?? '';
-  if (response.ok && contentType.includes('text/html')) {
+  if (response.ok && response.status === 200 && contentType.includes('text/html')) {
     const cacheableResponse = response.clone();
     cacheableResponse.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`);
     context.locals.runtime?.ctx?.waitUntil?.(cache.put(cacheKey, cacheableResponse));
