@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { formatDepth } from '@/lib/units';
-import { useUnits } from '@/lib/unit-context';
+import { useUnits, UnitProvider } from '@/lib/unit-context';
 import type { ForumThreadWithId, ForumPostWithId, ForumCategory } from '@/lib/forum-types';
 import { FeedbackModal } from './feedback-modal';
 
@@ -66,6 +66,14 @@ interface CommunityStats {
 }
 
 export function BayTremorCommunity() {
+  return (
+    <UnitProvider>
+      <BayTremorCommunityInner />
+    </UnitProvider>
+  );
+}
+
+function BayTremorCommunityInner() {
   const { unitSystem } = useUnits();
   const [posts, setPosts] = useState<ForumThreadWithId[]>([]);
   const [stats, setStats] = useState<CommunityStats | null>(null);
@@ -1162,7 +1170,15 @@ function CreatePostModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 }
 
 // Thread Detail View Component
-export function ThreadDetailView({ slug, category }: { slug: string; category: ForumCategory }) {
+export function ThreadDetailView(props: { slug: string; category: ForumCategory }) {
+  return (
+    <UnitProvider>
+      <ThreadDetailViewInner {...props} />
+    </UnitProvider>
+  );
+}
+
+function ThreadDetailViewInner({ slug, category }: { slug: string; category: ForumCategory }) {
   const { unitSystem } = useUnits();
   const [thread, setThread] = useState<ForumThreadWithId | null>(null);
   const [posts, setPosts] = useState<ForumPostWithId[]>([]);
