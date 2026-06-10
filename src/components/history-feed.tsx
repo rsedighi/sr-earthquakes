@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Activity, Clock, MapPin, Loader2, Flame } from 'lucide-react';
 import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
+import { UnitProvider } from '@/lib/unit-context';
 
 const HistoricalSwarms = dynamic(
   () => import('@/components/historical-swarms').then(mod => mod.HistoricalSwarms),
@@ -31,7 +32,15 @@ interface HistoryFeedProps {
   totalCount: number;
 }
 
-export function HistoryFeed({ initialData, totalCount }: HistoryFeedProps) {
+export function HistoryFeed(props: HistoryFeedProps) {
+  return (
+    <UnitProvider>
+      <HistoryFeedInner {...props} />
+    </UnitProvider>
+  );
+}
+
+function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
   const [allEarthquakes, setAllEarthquakes] = useState<Earthquake[] | null>(null);
   const [isLoadingFull, setIsLoadingFull] = useState(false);
   const [loadError, setLoadError] = useState(false);

@@ -45,6 +45,13 @@ new_sqlite_classes = ["EarthquakeRoom", "CommentRoom"]
 binding = "MEDIA_R2"
 bucket_name = "earthquake-media"
 
+# ── Historical earthquake dataset (15+ years of USGS data) ───────────────────
+# Run `wrangler r2 bucket create earthquake-historical` once before deploying.
+# Upload data with: npm run upload:historical
+[[r2_buckets]]
+binding = "HISTORICAL_R2"
+bucket_name = "earthquake-historical"
+
 # ── Sprint 4: Queues (async APNs dispatch) ────────────────────────────────────
 # Run `wrangler queues create earthquake-notifications` once before deploying.
 [[queues.producers]]

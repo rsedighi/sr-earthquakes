@@ -59,6 +59,5 @@ export async function getRecentUSGSQuakes(limit = 15): Promise<Earthquake[]> {
   return quakes.slice(0, limit);
 }
 
-export async function generateHistoricalSummary(): Promise<null> {
-  return null;
-}
+// Historical summary lives in `./historical.ts` (needs HISTORICAL_R2 + KV bindings).
+// Import from there directly in Astro pages: `getHistoricalSummary(env.HISTORICAL_R2, env.EARTHQUAKE_KV)`.

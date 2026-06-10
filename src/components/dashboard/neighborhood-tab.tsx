@@ -6,6 +6,7 @@ import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import type { Earthquake } from '@/lib/types';
 import { DashboardFooter } from './footer';
 import { FeedbackModal } from '@/components/feedback-modal';
+import { UnitProvider } from '@/lib/unit-context';
 
 const MyNeighborhood = dynamic(
   () => import('@/components/my-neighborhood').then(mod => mod.MyNeighborhood),
@@ -35,6 +36,14 @@ function NeighborhoodSkeleton() {
 }
 
 export function NeighborhoodTab() {
+  return (
+    <UnitProvider>
+      <NeighborhoodTabInner />
+    </UnitProvider>
+  );
+}
+
+function NeighborhoodTabInner() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);

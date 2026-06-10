@@ -1,9 +1,23 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { HistoryFeed } from '@/components/history-feed';
+import { loadHistoricalEarthquakes, getHistoricalSummary } from '@/lib/historical';
 import { loadAllEarthquakes } from '@/lib/server-data';
+import { getRegionById } from '@/lib/regions';
 
-const allQuakes = await loadAllEarthquakes('all_week');
+const { env } = Astro.locals.runtime;
+
+// Pull historical data + summary in parallel. Fall back to the USGS week feed
+// if HISTORICAL_R2 is empty (not yet uploaded).
+const [historicalQuakes, summary, weekQuakes] = await Promise.all([
+  loadHistoricalEarthquakes(env.HISTORICAL_R2),
+  getHistoricalSummary(env.HISTORICAL_R2, env.EARTHQUAKE_KV),
+  loadAllEarthquakes('all_week'),
+]);
+
+const allQuakes = historicalQuakes.length > 0 ? historicalQuakes : weekQuakes;
+const hasHistorical = historicalQuakes.length > 0;
+
 const top25 = allQuakes.slice(0, 25).map(eq => ({
   id: eq.id,
   magnitude: eq.magnitude,
@@ -17,6 +31,22 @@ const top25 = allQuakes.slice(0, 25).map(eq => ({
   url: eq.url,
   region: eq.region,
 }));
+
+const dataStartYear = hasHistorical
+  ? new Date(summary.dateRange.start).getFullYear()
+  : new Date().getFullYear();
+const yearsCovered = hasHistorical
+  ? Math.max(1, new Date().getFullYear() - dataStartYear + 1)
+  : 0;
+
+const maxRegionCount = summary.regionStats.length > 0
+  ? Math.max(...summary.regionStats.map(r => r.totalCount), 1)
+  : 1;
+
+const topRegions = summary.regionStats
+  .filter(r => r.totalCount > 0)
+  .sort((a, b) => b.totalCount - a.totalCount)
+  .slice(0, 4);
 ---
 
 <BaseLayout
@@ -29,12 +59,66 @@ const top25 = allQuakes.slice(0, 25).map(eq => ({
       <header class="pt-6 sm:pt-8 pb-6">
         <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Earthquake History</h1>
         <p class="text-neutral-400 mt-2 text-sm sm:text-base max-w-2xl">
-          Bay Area seismic data — swarm patterns, magnitude trends, and regional comparisons along the
-          Calaveras, Hayward, and San Andreas fault lines.
+          {hasHistorical ? `${yearsCovered} years of` : 'Recent'} Bay Area seismic data — swarm patterns,
+          magnitude trends, and regional comparisons along the Calaveras, Hayward, and San Andreas fault lines.
         </p>
       </header>
     </div>
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 space-y-6">
+      {hasHistorical && (
+        <section class="grid md:grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="font-semibold mb-4">{yearsCovered} Years of Data</h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between py-3 border-b border-white/5">
+                <span class="text-neutral-400">Total Earthquakes</span>
+                <span class="text-2xl font-light">{summary.totalCount.toLocaleString()}</span>
+              </div>
+              <div class="flex items-center justify-between py-3 border-b border-white/5">
+                <span class="text-neutral-400">Swarm Events Detected</span>
+                <span class="text-2xl font-light">{summary.swarmSummaries.length}</span>
+              </div>
+              <div class="flex items-center justify-between py-3 border-b border-white/5">
+                <span class="text-neutral-400">Largest Recorded</span>
+                <span class="text-2xl font-light">M{summary.biggestQuake?.magnitude.toFixed(1) ?? '—'}</span>
+              </div>
+              <div class="flex items-center justify-between py-3">
+                <span class="text-neutral-400">Data Range</span>
+                <span class="text-sm text-neutral-300">{dataStartYear} – Present</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h3 class="font-semibold mb-4">Regional Comparison</h3>
+            <p class="text-sm text-neutral-400 mb-4">
+              How does earthquake activity compare across Northern California regions?
+            </p>
+            <div class="space-y-4">
+              {topRegions.map(stat => {
+                const region = getRegionById(stat.regionId);
+                const widthPct = Math.round((stat.totalCount / maxRegionCount) * 100);
+                return (
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                      <span class="text-neutral-300">{region?.name || stat.regionId}</span>
+                      <span class="text-neutral-500">{stat.totalCount.toLocaleString()}</span>
+                    </div>
+                    <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full"
+                        style={`width: ${widthPct}%; background-color: ${region?.color || '#6b7280'};`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       <HistoryFeed client:load initialData={top25} totalCount={allQuakes.length} />
     </div>
   </div>
