@@ -1,7 +1,7 @@
 // Comprehensive SEO utilities and structured data generators
 import { REGIONS, BAY_AREA_LANDMARKS } from './regions';
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://baytremor.com';
+const baseUrl = import.meta.env.PUBLIC_BASE_URL || 'https://baytremor.com';
 
 // WebSite Schema - helps Google understand your site
 export function generateWebsiteSchema() {

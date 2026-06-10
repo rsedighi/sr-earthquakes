@@ -1,6 +1,6 @@
 ---
 import '../styles/globals.css';
-import { NavBar } from '@/components/dashboard/components/nav-bar';
+import { NavBarWithProviders } from '@/components/nav-bar-with-providers';
 import { generateHomepageSchemas } from '@/lib/seo';
 
 interface Props {
@@ -113,7 +113,7 @@ const schemas = schema ?? generateHomepageSchemas();
     />
   </head>
   <body class="font-sans antialiased min-h-screen">
-    <NavBar client:only="react" />
+    <NavBarWithProviders client:only="react" />
     <slot />
   </body>
 </html>

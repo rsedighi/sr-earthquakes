@@ -61,8 +61,8 @@ interface StructuredLog {
 }
 
 const SERVICE_NAME = 'baytremor';
-const ENV = process.env.NODE_ENV || 'development';
-const VERSION = process.env.NEXT_PUBLIC_VERSION || '1.0.0';
+const ENV = import.meta.env.MODE || 'development';
+const VERSION = import.meta.env.PUBLIC_VERSION || '1.0.0';
 
 // Log level priority (higher = more important)
 const LOG_PRIORITY: Record<LogLevel, number> = {

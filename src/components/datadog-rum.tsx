@@ -15,14 +15,14 @@ function getRum(): Promise<DatadogRumModule> {
 
 export function DatadogRUM() {
   useEffect(() => {
-    const applicationId = process.env.NEXT_PUBLIC_DD_APPLICATION_ID;
-    const clientToken = process.env.NEXT_PUBLIC_DD_CLIENT_TOKEN;
-    const site = process.env.NEXT_PUBLIC_DD_SITE || 'datadoghq.com';
+    const applicationId = import.meta.env.PUBLIC_DD_APPLICATION_ID;
+    const clientToken = import.meta.env.PUBLIC_DD_CLIENT_TOKEN;
+    const site = import.meta.env.PUBLIC_DD_SITE || 'datadoghq.com';
 
     if (!applicationId || !clientToken) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(
-          '[Datadog RUM] Not initialized - missing NEXT_PUBLIC_DD_APPLICATION_ID or NEXT_PUBLIC_DD_CLIENT_TOKEN'
+          '[Datadog RUM] Not initialized - missing PUBLIC_DD_APPLICATION_ID or PUBLIC_DD_CLIENT_TOKEN'
         );
       }
       return;
