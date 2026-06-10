@@ -59,8 +59,11 @@ const securityHeadersMiddleware = defineMiddleware(async (_context, next) => {
 // ── Cache API: cache GET responses for public pages (10 min TTL) ─────────────
 const CACHE_TTL = 600; // 10 minutes
 // Bump CACHE_VERSION to invalidate all cached responses after a deploy.
-const CACHE_VERSION = 'v2';
-const CACHE_BYPASS_PREFIXES = ['/api/', '/community/', '/my-area/'];
+const CACHE_VERSION = 'v3';
+// Dynamic routes whose HTML embeds hashed asset paths AND/OR per-user data —
+// must never be served from the edge HTML cache. Matches the exact path or
+// any sub-path (e.g. '/community' and '/community/general/foo').
+const CACHE_BYPASS_PATHS = ['/api', '/community', '/my-area', '/history'];
 
 const cacheMiddleware = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
@@ -71,7 +74,7 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
   if (context.request.method !== 'GET') return next();
 
   // Bypass for private/dynamic routes
-  if (CACHE_BYPASS_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+  if (CACHE_BYPASS_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) {
     const r = await next();
     trackPageView(ae, { route: url.pathname, country, status: r.status, cacheHit: false, durationMs: Date.now() - start });
     return r;
