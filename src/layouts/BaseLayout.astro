@@ -113,7 +113,7 @@ const schemas = schema ?? generateHomepageSchemas();
     />
   </head>
   <body class="font-sans antialiased min-h-screen">
-    <NavBarWithProviders client:only="react" />
+    <NavBarWithProviders client:load />
     <slot />
   </body>
 </html>
