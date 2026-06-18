@@ -74,7 +74,7 @@ const LOG_PRIORITY: Record<LogLevel, number> = {
 
 // Get configured log level - default to 'warn' (use LOG_LEVEL=debug for verbose logs)
 const CONFIGURED_LOG_LEVEL: LogLevel = 
-  (process.env.LOG_LEVEL as LogLevel) || 'warn';
+  (import.meta.env.LOG_LEVEL as LogLevel) || 'warn';
 
 function shouldLog(level: LogLevel): boolean {
   return LOG_PRIORITY[level] >= LOG_PRIORITY[CONFIGURED_LOG_LEVEL];

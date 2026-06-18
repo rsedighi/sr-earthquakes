@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     // In production, you could send this to an error reporting service
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // Example: sendToErrorReportingService(error, errorInfo);
     }
   }
@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
               We encountered an unexpected error. This has been logged and we're working on it.
             </p>
             
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-left">
                 <p className="text-xs font-mono text-red-400 break-all">
                   {this.state.error.message}
@@ -111,7 +111,7 @@ export function ErrorFallback({
           We encountered an unexpected error. Please try again.
         </p>
         
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-left">
             <p className="text-xs font-mono text-red-400 break-all">
               {error.message}
