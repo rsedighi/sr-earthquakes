@@ -15,7 +15,7 @@ const CITY_SLUGS = [
 
 export function getStaticPaths() {
   return CITY_SLUGS.map(citySlug => ({
-    params: { city: `${citySlug}-earthquake-today` },
+    params: { city: citySlug },
   }));
 }
 
@@ -42,9 +42,7 @@ function formatTimeAgo(timestamp: number): string {
   return `${days}d ago`;
 }
 
-const { city: fullSlug } = Astro.params;
-const match = fullSlug?.match(/^(.+)-earthquake-today$/);
-const citySlug = match ? match[1] : null;
+const { city: citySlug } = Astro.params;
 
 if (!citySlug || !CITY_SLUGS.includes(citySlug)) {
   return Astro.redirect('/today', 307);
