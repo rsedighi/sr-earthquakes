@@ -113,7 +113,7 @@ const schemas = schema ?? generateHomepageSchemas();
     />
   </head>
   <body class="font-sans antialiased min-h-screen">
-    <NavBarWithProviders client:load />
+    <NavBarWithProviders client:load currentPath={Astro.url.pathname} />
     <slot />
   </body>
 </html>
