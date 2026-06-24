@@ -12,6 +12,7 @@
 import type { Earthquake, USGSFeature } from './types';
 import { getRegionForCoordinates, REGIONS } from './regions';
 import { detectSwarms } from './analysis';
+import { getEarthquakesSince, HISTORICAL_CUTOFF_MS } from './earthquakes-db';
 
 const BAY_AREA_BOUNDS = {
   minLat: 36.9, maxLat: 38.35,
@@ -235,29 +236,60 @@ function computeSummary(earthquakes: Earthquake[]): HistoricalSummary {
 
 /**
  * Return the historical summary, served from KV cache when available.
- * Cache is invalidated by uploading a new manifest (the etag changes).
+ *
+ * The summary covers BOTH:
+ *   • R2 historical dataset (cutoff = HISTORICAL_CUTOFF_MS)
+ *   • D1 `earthquakes` table (post-cutoff, populated by cron + backfill)
+ *
+ * Cache version = R2 manifest etag + count + max(time_ms) of D1, so the
+ * summary auto-invalidates whenever new quakes are ingested.
  */
 export async function getHistoricalSummary(
   bucket: R2Bucket | undefined,
   kv: KVNamespace,
+  db?: D1Database,
 ): Promise<HistoricalSummary> {
   if (!bucket) return emptySummary();
 
   const manifestHead = await bucket.head(MANIFEST_KEY);
   const etag = manifestHead?.etag ?? 'none';
 
-  const cachedEtag = await kv.get(KV_QUAKES_META_KEY, 'text');
-  if (cachedEtag === etag) {
+  // Fold D1 state into the cache key so additions bust the cache automatically.
+  let d1Version = 'none';
+  if (db) {
+    const row = await db
+      .prepare('SELECT COUNT(*) AS cnt, COALESCE(MAX(time_ms), 0) AS maxt FROM earthquakes')
+      .first<{ cnt: number; maxt: number }>();
+    d1Version = `${row?.cnt ?? 0}:${row?.maxt ?? 0}`;
+  }
+  const versionKey = `${etag}|d1:${d1Version}`;
+
+  const cachedVersion = await kv.get(KV_QUAKES_META_KEY, 'text');
+  if (cachedVersion === versionKey) {
     const cached = await kv.get(KV_SUMMARY_KEY, 'json');
     if (cached) return cached as HistoricalSummary;
   }
 
-  const earthquakes = await loadHistoricalEarthquakes(bucket);
-  const summary = computeSummary(earthquakes);
+  // Build the full corpus: R2 (historical) + D1 (post-cutoff), deduped.
+  const [r2Quakes, recentQuakes] = await Promise.all([
+    loadHistoricalEarthquakes(bucket),
+    db ? getEarthquakesSince(db, HISTORICAL_CUTOFF_MS) : Promise.resolve([] as Earthquake[]),
+  ]);
+
+  const seen = new Set<string>();
+  const merged: Earthquake[] = [];
+  for (const q of recentQuakes) {
+    if (!seen.has(q.id)) { seen.add(q.id); merged.push(q); }
+  }
+  for (const q of r2Quakes) {
+    if (!seen.has(q.id)) { seen.add(q.id); merged.push(q); }
+  }
+
+  const summary = computeSummary(merged);
 
   await Promise.all([
     kv.put(KV_SUMMARY_KEY, JSON.stringify(summary), { expirationTtl: SUMMARY_TTL }),
-    kv.put(KV_QUAKES_META_KEY, etag, { expirationTtl: SUMMARY_TTL }),
+    kv.put(KV_QUAKES_META_KEY, versionKey, { expirationTtl: SUMMARY_TTL }),
   ]);
 
   return summary;

@@ -6,7 +6,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { Activity, Clock, MapPin, Loader2, Flame } from 'lucide-react';
 import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
-import { UnitProvider } from '@/lib/unit-context';
+import { UnitProvider, useUnits } from '@/lib/unit-context';
+import { formatDepthDeep, formatPlaceDistance } from '@/lib/units';
 
 const HistoricalSwarms = dynamic(
   () => import('@/components/historical-swarms').then(mod => mod.HistoricalSwarms),
@@ -41,6 +42,7 @@ export function HistoryFeed(props: HistoryFeedProps) {
 }
 
 function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
+  const { unitSystem } = useUnits();
   const [allEarthquakes, setAllEarthquakes] = useState<Earthquake[] | null>(null);
   const [isLoadingFull, setIsLoadingFull] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -109,7 +111,7 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="text-sm sm:text-base text-neutral-200 truncate group-hover:text-white transition-colors">
-                  {eq.place}
+                  {formatPlaceDistance(eq.place, unitSystem)}
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500">
                   <time
@@ -122,7 +124,7 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
                   </time>
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
-                    {eq.depth.toFixed(1)}km deep
+                    {formatDepthDeep(eq.depth, unitSystem)}
                   </span>
                   {eq.felt != null && eq.felt > 0 && (
                     <span className="px-1.5 py-0.5 rounded bg-white/10 text-neutral-300">

@@ -4,17 +4,34 @@ import { HistoryFeed } from '@/components/history-feed';
 import { loadHistoricalEarthquakes, getHistoricalSummary } from '@/lib/historical';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getRegionById } from '@/lib/regions';
+import { getEarthquakesSince, HISTORICAL_CUTOFF_MS } from '@/lib/earthquakes-db';
+import type { Earthquake } from '@/lib/types';
 
 const { env } = Astro.locals.runtime;
 
-// Pull historical data + summary in parallel. Fall back to the USGS week feed
-// if HISTORICAL_R2 is empty (not yet uploaded).
-const [historicalQuakes, summary, weekQuakes] = await Promise.all([
+// Pull historical data + summary + post-cutoff D1 data in parallel. Fall back
+// to the USGS week feed if HISTORICAL_R2 is empty (not yet uploaded).
+const [r2Quakes, summary, weekQuakes, recentQuakes] = await Promise.all([
   loadHistoricalEarthquakes(env.HISTORICAL_R2),
-  getHistoricalSummary(env.HISTORICAL_R2, env.EARTHQUAKE_KV),
+  getHistoricalSummary(env.HISTORICAL_R2, env.EARTHQUAKE_KV, env.DB),
   loadAllEarthquakes('all_week'),
+  env.DB
+    ? getEarthquakesSince(env.DB, HISTORICAL_CUTOFF_MS)
+    : Promise.resolve([] as Earthquake[]),
 ]);
 
+// Merge R2 (historical) + D1 (post-cutoff), dedupe by id, newest first.
+const seen = new Set<string>();
+const merged: Earthquake[] = [];
+for (const q of recentQuakes) {
+  if (!seen.has(q.id)) { seen.add(q.id); merged.push(q); }
+}
+for (const q of r2Quakes) {
+  if (!seen.has(q.id)) { seen.add(q.id); merged.push(q); }
+}
+merged.sort((a, b) => b.timestamp - a.timestamp);
+
+const historicalQuakes = merged;
 const allQuakes = historicalQuakes.length > 0 ? historicalQuakes : weekQuakes;
 const hasHistorical = historicalQuakes.length > 0;
 

@@ -10,6 +10,16 @@
  */
 import { getEarthquakeFeed, setEarthquakeFeed } from './kv';
 import type { USGSResponse, USGSFeature } from './types';
+import { featuresToInsertable, upsertEarthquakes } from './earthquakes-db';
+import { backfillRange } from './backfill';
+
+// Safety-net backfill: once per hour the cron walks the last 7 days of USGS
+// Bay Area data and re-upserts into D1. Idempotent (INSERT OR IGNORE), so this
+// only inserts rows we somehow missed (e.g. a cron skip, USGS feed lag).
+// Tracked in KV so we run exactly once per UTC hour even with overlapping cron
+// invocations.
+const SAFETY_NET_KV_KEY  = 'earthquakes:safety-net:last-hour';
+const SAFETY_NET_WINDOW  = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const USGS_BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
 const FEEDS     = ['all_hour', 'all_day', 'all_week'] as const;
@@ -19,6 +29,7 @@ interface CronEnv {
   EARTHQUAKE_KV:   KVNamespace;
   EARTHQUAKE_ROOM: DurableObjectNamespace;
   NOTIFICATION_QUEUE?: Queue;
+  DB?: D1Database;
 }
 
 async function fetchUSGS(feed: FeedName): Promise<USGSResponse> {
@@ -48,17 +59,62 @@ export async function handleScheduled(env: CronEnv): Promise<void> {
             })()
           : [];
 
-      return { feed, newQuakes };
+      return { feed, newQuakes, allFeatures: next.features };
     }),
   );
 
   // Collect new quakes from the all_hour diff
   const newQuakes: USGSFeature[] = [];
+  // Also collect the full all_day snapshot so we can persist Bay Area quakes to D1.
+  // `all_day` covers any event the cron might miss with all_hour alone (e.g. if a
+  // run is skipped), giving the D1 store a self-healing 24h overlap window.
+  let allDayFeatures: USGSFeature[] = [];
   for (const r of results) {
-    if (r.status === 'fulfilled' && r.value.feed === 'all_hour') {
-      newQuakes.push(...r.value.newQuakes);
-    } else if (r.status === 'rejected') {
+    if (r.status === 'fulfilled') {
+      if (r.value.feed === 'all_hour') {
+        newQuakes.push(...r.value.newQuakes);
+      } else if (r.value.feed === 'all_day') {
+        allDayFeatures = r.value.allFeatures;
+      }
+    } else {
       console.error('[cron] feed fetch error:', r.reason);
+    }
+  }
+
+  // Persist Bay Area quakes to D1. Idempotent via ON CONFLICT(id) DO NOTHING,
+  // so re-running with the same all_day snapshot is cheap and safe.
+  if (env.DB && allDayFeatures.length > 0) {
+    try {
+      const rows = featuresToInsertable(allDayFeatures);
+      if (rows.length > 0) {
+        const { inserted, attempted } = await upsertEarthquakes(env.DB, rows);
+        if (inserted > 0) {
+          console.log(`[cron] persisted ${inserted}/${attempted} Bay Area quakes to D1`);
+        }
+      }
+    } catch (err) {
+      console.error('[cron] D1 upsertEarthquakes failed:', err);
+    }
+  }
+
+  // Hourly safety-net backfill — walks the last 7 days from USGS and upserts
+  // anything we missed. KV-gated so it runs at most once per UTC hour even
+  // though the cron itself fires every minute.
+  if (env.DB) {
+    try {
+      const hourKey = Math.floor(Date.now() / (60 * 60 * 1000)).toString();
+      const lastRun = await env.EARTHQUAKE_KV.get(SAFETY_NET_KV_KEY);
+      if (lastRun !== hourKey) {
+        // Mark first so a long-running backfill doesn't double-fire.
+        await env.EARTHQUAKE_KV.put(SAFETY_NET_KV_KEY, hourKey, { expirationTtl: 7200 });
+        const now = Date.now();
+        const result = await backfillRange(env.DB, now - SAFETY_NET_WINDOW, now, { minMagnitude: 0 });
+        if (result.totalInserted > 0) {
+          console.log(`[cron] safety-net backfilled ${result.totalInserted} missed quakes (last 7d)`);
+        }
+      }
+    } catch (err) {
+      console.error('[cron] safety-net backfill failed:', err);
     }
   }
 
