@@ -71,6 +71,19 @@ export interface Device {
   createdAt: number;
 }
 
+export interface UserAddress {
+  id: string;
+  visitorId: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city: string | null;
+  createdAt: number;
+  updatedAt: number;
+  searchCount: number;
+  lastSearchAt: number;
+}
+
 export interface Feedback {
   id: string;
   type: FeedbackType;
@@ -494,6 +507,96 @@ export async function addToWaitlist(db: D1Database, data: {
   ).run();
 
   return { isNew: true };
+}
+
+// ── User Addresses ────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToUserAddress(r: any): UserAddress {
+  return {
+    id: r.id,
+    visitorId: r.visitor_id,
+    address: r.address,
+    lat: r.lat,
+    lon: r.lon,
+    city: r.city ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    searchCount: r.search_count,
+    lastSearchAt: r.last_search_at,
+  };
+}
+
+export async function saveUserAddress(db: D1Database, data: {
+  visitorId: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city?: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<UserAddress> {
+  const now = Date.now();
+
+  // Upsert by (visitor_id, address): increment search_count if exists.
+  const existing = await db
+    .prepare('SELECT * FROM user_addresses WHERE visitor_id = ? AND address = ?')
+    .bind(data.visitorId, data.address)
+    .first();
+
+  if (existing) {
+    await db.prepare(
+      `UPDATE user_addresses
+         SET lat = ?, lon = ?, city = ?, updated_at = ?, last_search_at = ?, search_count = search_count + 1
+       WHERE id = ?`
+    ).bind(data.lat, data.lon, data.city ?? null, now, now, (existing as { id: string }).id).run();
+
+    const row = await db
+      .prepare('SELECT * FROM user_addresses WHERE id = ?')
+      .bind((existing as { id: string }).id)
+      .first();
+    return rowToUserAddress(row);
+  }
+
+  const id = uuid();
+  await db.prepare(
+    `INSERT INTO user_addresses
+       (id, visitor_id, address, lat, lon, city, created_at, updated_at, search_count, last_search_at, user_agent, ip_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
+  ).bind(
+    id,
+    data.visitorId,
+    data.address,
+    data.lat,
+    data.lon,
+    data.city ?? null,
+    now,
+    now,
+    now,
+    data.userAgent ?? null,
+    data.ipHash ?? null,
+  ).run();
+
+  return {
+    id,
+    visitorId: data.visitorId,
+    address: data.address,
+    lat: data.lat,
+    lon: data.lon,
+    city: data.city ?? null,
+    createdAt: now,
+    updatedAt: now,
+    searchCount: 1,
+    lastSearchAt: now,
+  };
+}
+
+export async function getAddressesByVisitor(db: D1Database, visitorId: string, limit = 10): Promise<UserAddress[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM user_addresses WHERE visitor_id = ? ORDER BY last_search_at DESC LIMIT ?')
+    .bind(visitorId, limit)
+    .all();
+  return results.map(rowToUserAddress);
 }
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
