@@ -31,27 +31,15 @@ function isInBayArea(lat: number, lon: number): boolean {
  * GET /api/geocode?q=...
  * Provider priority: Mapbox (if MAPBOX_ACCESS_TOKEN configured) → Photon → Nominatim.
  *
- * Responses are cached at the Cloudflare edge keyed by the normalized query so
- * repeated prefixes (e.g. a user typing an address) are served without hitting
- * the upstream geocoder again. This both speeds up autocomplete and keeps any
- * future paid provider (Mapbox) comfortably within free-tier limits.
+ * A `Cache-Control` header lets the browser (and Cloudflare's CDN) reuse
+ * repeated prefix lookups while a user is typing, without relying on the
+ * Cache API at runtime.
  */
-export const GET: APIRoute = async ({ url, locals, request }) => {
+export const GET: APIRoute = async ({ url, locals }) => {
   const rawQuery = url.searchParams.get('q') ?? '';
   const query = rawQuery.trim();
   if (query.length < 2) {
     return Response.json({ results: [] });
-  }
-
-  // Edge cache lookup (Cloudflare runtime only). Key on the normalized query.
-  const cache = (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default;
-  const cacheKey = new Request(
-    new URL(`/api/geocode?q=${encodeURIComponent(query.toLowerCase())}`, request.url).toString(),
-    { method: 'GET' }
-  );
-  if (cache) {
-    const hit = await cache.match(cacheKey);
-    if (hit) return hit;
   }
 
   // Pull token from CF env first, fall back to process.env for dev.
@@ -79,23 +67,15 @@ export const GET: APIRoute = async ({ url, locals, request }) => {
       provider = 'nominatim';
     }
 
-    const response = Response.json(
+    return Response.json(
       { results, provider },
       {
         headers: {
-          // Cache successful lookups for 1 day at the edge, 1h in the browser.
+          // Browser/CDN caching for repeated prefixes; 1h browser, 1d shared.
           'Cache-Control': 'public, max-age=3600, s-maxage=86400',
         },
       }
     );
-
-    if (cache && results.length > 0) {
-      // Store a clone; must not await inside response critical path in prod, but
-      // Astro allows awaiting here since we still return the original response.
-      await cache.put(cacheKey, response.clone());
-    }
-
-    return response;
   } catch (err) {
     console.error('[api/geocode GET]', err);
     return Response.json({ results: [], error: 'Geocoding failed' }, { status: 500 });
