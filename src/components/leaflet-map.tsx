@@ -462,7 +462,9 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
 
   // Fast geocoding using our API route
   const searchAddress = useCallback(async (searchQuery: string) => {
-    if (searchQuery.length < 2) {
+    // Require 3+ chars: fewer wasted upstream calls and protects rate limits
+    // while still surfacing partial street addresses early.
+    if (searchQuery.length < 3) {
       setResults([]);
       setShowResults(false);
       return;
@@ -483,7 +485,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
       
       if (!response.ok) throw new Error('Search failed');
       
-      const data = await response.json();
+      const data = await response.json() as { results?: GeocodingResult[] };
       setResults(data.results || []);
       setShowResults(true);
       setHighlightedIndex(-1);
@@ -497,7 +499,8 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
     }
   }, []);
 
-  // Debounced search - fast 150ms for responsive feel
+  // Debounced search - 250ms balances responsiveness with fewer requests
+  // per keystroke (important for staying inside geocoder free tiers).
   useEffect(() => {
     const timer = setTimeout(() => {
       if (query.trim()) {
@@ -506,7 +509,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
         setResults([]);
         setShowResults(false);
       }
-    }, 150);
+    }, 250);
     return () => clearTimeout(timer);
   }, [query, searchAddress]);
 
@@ -594,7 +597,9 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
           const response = await fetch(
             `https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}&lang=en`
           );
-          const data = await response.json();
+          const data = await response.json() as {
+            features?: { properties: { housenumber?: string; street?: string; name?: string; city?: string; state?: string } }[];
+          };
           
           let address = 'Your current location';
           if (data.features && data.features.length > 0) {

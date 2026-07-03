@@ -30,11 +30,28 @@ function isInBayArea(lat: number, lon: number): boolean {
 /**
  * GET /api/geocode?q=...
  * Provider priority: Mapbox (if MAPBOX_ACCESS_TOKEN configured) → Photon → Nominatim.
+ *
+ * Responses are cached at the Cloudflare edge keyed by the normalized query so
+ * repeated prefixes (e.g. a user typing an address) are served without hitting
+ * the upstream geocoder again. This both speeds up autocomplete and keeps any
+ * future paid provider (Mapbox) comfortably within free-tier limits.
  */
-export const GET: APIRoute = async ({ url, locals }) => {
-  const query = url.searchParams.get('q');
-  if (!query || query.length < 2) {
+export const GET: APIRoute = async ({ url, locals, request }) => {
+  const rawQuery = url.searchParams.get('q') ?? '';
+  const query = rawQuery.trim();
+  if (query.length < 2) {
     return Response.json({ results: [] });
+  }
+
+  // Edge cache lookup (Cloudflare runtime only). Key on the normalized query.
+  const cache = (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default;
+  const cacheKey = new Request(
+    new URL(`/api/geocode?q=${encodeURIComponent(query.toLowerCase())}`, request.url).toString(),
+    { method: 'GET' }
+  );
+  if (cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) return hit;
   }
 
   // Pull token from CF env first, fall back to process.env for dev.
@@ -44,20 +61,41 @@ export const GET: APIRoute = async ({ url, locals }) => {
     (typeof process !== 'undefined' ? process.env?.MAPBOX_ACCESS_TOKEN : undefined);
 
   try {
+    let results: GeocodingResult[] = [];
+    let provider = 'none';
+
     if (mapboxKey) {
-      const results = await searchWithMapbox(query, mapboxKey);
-      if (results.length > 0) {
-        return Response.json({ results, provider: 'mapbox' });
+      results = await searchWithMapbox(query, mapboxKey);
+      provider = 'mapbox';
+    }
+
+    if (results.length === 0) {
+      results = await searchWithPhoton(query);
+      provider = 'photon';
+    }
+
+    if (results.length === 0) {
+      results = await searchWithNominatim(query);
+      provider = 'nominatim';
+    }
+
+    const response = Response.json(
+      { results, provider },
+      {
+        headers: {
+          // Cache successful lookups for 1 day at the edge, 1h in the browser.
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+        },
       }
+    );
+
+    if (cache && results.length > 0) {
+      // Store a clone; must not await inside response critical path in prod, but
+      // Astro allows awaiting here since we still return the original response.
+      await cache.put(cacheKey, response.clone());
     }
 
-    const photonResults = await searchWithPhoton(query);
-    if (photonResults.length > 0) {
-      return Response.json({ results: photonResults, provider: 'photon' });
-    }
-
-    const nominatimResults = await searchWithNominatim(query);
-    return Response.json({ results: nominatimResults, provider: 'nominatim' });
+    return response;
   } catch (err) {
     console.error('[api/geocode GET]', err);
     return Response.json({ results: [], error: 'Geocoding failed' }, { status: 500 });
@@ -98,9 +136,21 @@ async function searchWithMapbox(query: string, accessToken: string): Promise<Geo
 
 async function searchWithPhoton(query: string): Promise<GeocodingResult[]> {
   const u = new URL('https://photon.komoot.io/api/');
-  u.searchParams.set('q', query + ' California');
+  // Do NOT append ', California' — it turns the last token into a complete word
+  // and breaks Photon's prefix/autocomplete matching on partial street names.
+  // Bound + bias to the Bay Area instead so partials like "123 Main" resolve.
+  u.searchParams.set('q', query);
   u.searchParams.set('lat', BAY_AREA_CENTER.lat.toString());
   u.searchParams.set('lon', BAY_AREA_CENTER.lon.toString());
+  u.searchParams.set(
+    'bbox',
+    `${BAY_AREA_BOUNDS.minLon},${BAY_AREA_BOUNDS.minLat},${BAY_AREA_BOUNDS.maxLon},${BAY_AREA_BOUNDS.maxLat}`
+  );
+  // Prioritize civic addresses (house numbers + streets) for lead-gen, while
+  // still allowing cities/localities. Photon accepts repeated `layer` params.
+  ['house', 'street', 'locality', 'district', 'city'].forEach(l =>
+    u.searchParams.append('layer', l)
+  );
   u.searchParams.set('limit', '10');
   u.searchParams.set('lang', 'en');
 
@@ -150,7 +200,7 @@ async function searchWithNominatim(query: string): Promise<GeocodingResult[]> {
 
   const u = new URL('https://nominatim.openstreetmap.org/search');
   u.searchParams.set('format', 'json');
-  u.searchParams.set('q', query + ', California');
+  u.searchParams.set('q', query);
   u.searchParams.set('viewbox', viewbox);
   u.searchParams.set('bounded', '1');
   u.searchParams.set('limit', '8');
