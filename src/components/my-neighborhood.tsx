@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { AddressSearch, getDistanceKm } from './leaflet-map';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { EarthquakeExplorer } from './earthquake-explorer';
 import { AffiliateRecommendations } from './affiliate-recommendations';
+import { HomeRiskReport } from './home-risk-report';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useUnits } from '@/lib/unit-context';
 import { formatDistance, formatRadius, kmToMiles, convertFromKm, getDistanceUnitShort } from '@/lib/units';
@@ -305,6 +306,17 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
         </div>
       )}
       
+      {/* Home Seismic Risk Score + lead-gen CTAs */}
+      {userLocation && !isLoadingHistorical && (
+        <div className="animate-fade-in">
+          <HomeRiskReport
+            userLocation={userLocation}
+            historicalEarthquakes={historicalEarthquakes}
+            visitorId={visitorId}
+          />
+        </div>
+      )}
+
       {/* Earthquake Explorer - Unified filtering interface */}
       {userLocation && !isLoadingHistorical && (
         <div className="animate-fade-in">

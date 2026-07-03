@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Search, MapPin, X, Loader2, Target, Navigation } from 'lucide-react';
@@ -173,7 +173,7 @@ function LeafletMapInner({
     if (!leaflet) return () => null;
     const { useMap } = leaflet;
     
-    return function MapControllerInner({ region }: { region: string }) {
+    return function MapControllerInner({ region, focus }: { region: string; focus: { lat: number; lon: number } | null }) {
       const map = useMap();
       
       useEffect(() => {
@@ -186,6 +186,13 @@ function LeafletMapInner({
           map.flyTo(preset.center, preset.zoom, { duration: 0.8 });
         }
       }, [region, map]);
+      
+      // Auto-center on the user's selected location whenever it changes
+      useEffect(() => {
+        if (focus && map) {
+          map.flyTo([focus.lat, focus.lon], 12, { duration: 0.8 });
+        }
+      }, [focus?.lat, focus?.lon, map]);
       
       return null;
     };
@@ -218,7 +225,7 @@ function LeafletMapInner({
         style={{ background: '#1a1a1a' }}
       >
         {/* Map controller for programmatic navigation */}
-        <MapController region={activeRegion} />
+        <MapController region={activeRegion} focus={userLocation ? { lat: userLocation.lat, lon: userLocation.lon } : null} />
         
         {/* Dark mode tile layer - CartoDB Dark Matter (free, no key needed) */}
         <TileLayer
@@ -331,35 +338,17 @@ function LeafletMapInner({
         })}
       </MapContainer>
       
-      {/* Quick-zoom region presets */}
-      <div className="absolute top-3 left-3 right-14 flex items-center gap-1.5 z-[1000] overflow-x-auto scrollbar-none">
-        {REGION_PRESETS.map(preset => (
-          <button
-            key={preset.id}
-            onClick={() => setActiveRegion(preset.id)}
-            className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md whitespace-nowrap transition-all flex-shrink-0 ${
-              activeRegion === preset.id
-                ? 'bg-white text-black shadow-lg'
-                : 'bg-black/70 text-white/80 hover:bg-black/90 hover:text-white backdrop-blur-sm'
-            }`}
-          >
-            {preset.label}
-          </button>
-        ))}
-        {userLocation && (
-          <button
-            onClick={handleCenterOnUser}
-            className={`p-1.5 rounded-md transition-all flex-shrink-0 ${
-              activeRegion === ''
-                ? 'bg-blue-500 text-white shadow-lg'
-                : 'bg-black/70 text-blue-400 hover:bg-black/90 backdrop-blur-sm'
-            }`}
-            title="Center on my location"
-          >
-            <Navigation className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+      {/* Center on my location */}
+      {userLocation && (
+        <button
+          onClick={handleCenterOnUser}
+          className="absolute top-3 right-3 z-[1000] p-2 rounded-lg bg-black/70 text-blue-400 hover:bg-black/90 hover:text-blue-300 backdrop-blur-sm transition-all shadow-lg"
+          title="Center on my location"
+          aria-label="Center map on my location"
+        >
+          <Navigation className="w-4 h-4" />
+        </button>
+      )}
       
       {/* Stats overlay - only show when user has selected a location */}
       {userLocation && (
@@ -723,7 +712,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
       
       {/* Results dropdown */}
       {showResults && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-[320px] overflow-y-auto overscroll-contain">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-[2000] max-h-[320px] overflow-y-auto overscroll-contain">
           <div className="px-3 py-2 text-xs text-neutral-500 bg-white/5 border-b border-white/10 sticky top-0">
             Bay Area Results
           </div>
@@ -760,7 +749,7 @@ export function AddressSearch({ onLocationSelect, onClear, currentLocation }: Ad
       
       {/* No results state */}
       {showResults && results.length === 0 && query.length >= 2 && !isSearching && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-[2000]">
           <div className="px-4 py-6 text-center text-neutral-500">
             <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No addresses found</p>

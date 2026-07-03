@@ -21,10 +21,10 @@ import {
   Check,
 } from 'lucide-react';
 import { 
-  AffiliateProduct, 
   getProductsByCategory,
   AFFILIATE_PRODUCTS 
 } from '@/lib/affiliate-products';
+import type { AffiliateProduct } from '@/lib/affiliate-products';
 
 // ===== CATEGORY CONFIG =====
 const CATEGORIES = [

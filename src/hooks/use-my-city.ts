@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { BAY_AREA_LANDMARKS, getRegionForCoordinates, getRegionById } from '@/lib/regions';
 
 const STORAGE_KEY = 'earthquake-tracker-my-city';

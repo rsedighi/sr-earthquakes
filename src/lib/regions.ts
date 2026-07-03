@@ -1,4 +1,4 @@
-import { Region } from './types';
+import type { Region } from './types';
 import type { UnitSystem } from './unit-context';
 
 // Define the regions of Northern California with area codes for easy identification

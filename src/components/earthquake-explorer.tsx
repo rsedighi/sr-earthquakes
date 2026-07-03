@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { 
   Search, 
   Filter, 
@@ -13,7 +13,8 @@ import {
   Users,
   Layers
 } from 'lucide-react';
-import { useUnits, UnitSystem } from '@/lib/unit-context';
+import { useUnits } from '@/lib/unit-context';
+import type { UnitSystem } from '@/lib/unit-context';
 import { getDistanceUnitShort, formatDepth } from '@/lib/units';
 
 // Query parser and builder types

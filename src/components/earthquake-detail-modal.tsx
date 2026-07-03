@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useRef, useMemo, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDepth, formatDistance, formatDistanceBoth, kmToMiles, getDepthDescription } from '@/lib/units';
