@@ -1,0 +1,19 @@
+feat(earthquakes): persist USGS quakes to D1 + close history gap
+
+- New migrations/0002_earthquakes.sql table for canonical post-cutoff store
+- src/lib/earthquakes-db.ts: featuresToInsertable / upsertEarthquakes / getEarthquakesSince helpers (idempotent INSERT OR IGNORE)
+- src/lib/backfill.ts: shared week-by-week USGS backfill helper
+- src/lib/cron.ts:
+    * every minute, persist all_day snapshot to D1 (24h self-healing overlap)
+    * once per hour (KV-gated), run safety-net backfill over last 7 days
+- src/pages/api/admin/backfill-earthquakes.ts: protected one-shot backfill endpoint for arbitrary ranges (uses ADMIN_BACKFILL_TOKEN secret)
+- src/pages/api/earthquakes/list.ts + src/pages/history/index.astro: merge R2 historical + D1 recent so history surfaces stay current
+- src/lib/historical.ts: getHistoricalSummary now folds D1 into the corpus and uses (R2 etag + D1 count + max time_ms) as cache version key, so summary auto-invalidates on new ingest
+
+Unit toggle fixes (history feed):
+- src/components/history-feed.tsx: depth + USGS place string now respect selected unit system via useUnits + formatDepthDeep + formatPlaceDistance
+- src/lib/units.ts: new formatPlaceDistance to rewrite "N km DIR of X" -> miles when imperial
+- src/lib/unit-context.tsx: cross-island sync via storage + custom baytremor:unit-change event
+
+Tooling:
+- package.json: deploy script now runs astro build before wrangler deploy

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Earthquake, RegionStats } from '@/lib/types';
+import type { Earthquake, RegionStats } from '@/lib/types';
 import { REGIONS, getRegionById } from '@/lib/regions';
 import { getMagnitudeColor, detectSwarms } from '@/lib/analysis';
 import { 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';

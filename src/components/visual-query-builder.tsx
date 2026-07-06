@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, X, Save, Play } from 'lucide-react';
-import { QueryCondition } from './earthquake-explorer';
+import type { QueryCondition } from './earthquake-explorer';
 import { useUnits } from '@/lib/unit-context';
 import { getDistanceUnitShort } from '@/lib/units';
 

@@ -11,6 +11,8 @@ function uuid(): string {
 export type ForumCategory = 'earthquake' | 'general' | 'neighborhood' | 'preparedness' | 'science';
 export type FeedbackType  = 'feedback' | 'improvement' | 'bug' | 'feature' | 'advertising';
 export type FeedbackStatus = 'new' | 'reviewed' | 'resolved' | 'archived';
+export type LeadCategory  = 'insurance' | 'retrofit' | 'preparedness' | 'general';
+export type LeadStatus    = 'new' | 'contacted' | 'sold' | 'invalid' | 'unsubscribed';
 
 export interface Comment {
   id: string;
@@ -71,6 +73,19 @@ export interface Device {
   createdAt: number;
 }
 
+export interface UserAddress {
+  id: string;
+  visitorId: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city: string | null;
+  createdAt: number;
+  updatedAt: number;
+  searchCount: number;
+  lastSearchAt: number;
+}
+
 export interface Feedback {
   id: string;
   type: FeedbackType;
@@ -83,6 +98,38 @@ export interface Feedback {
   ipHash: string | null;
   status: FeedbackStatus;
   notes: string | null;
+}
+
+export interface Lead {
+  id: string;
+  visitorId: string | null;
+  addressId: string | null;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  lat: number | null;
+  lon: number | null;
+  category: LeadCategory;
+  riskScore: number | null;
+  riskBand: string | null;
+  nearestFault: string | null;
+  ownership: string | null;
+  homeAge: string | null;
+  foundationType: string | null;
+  hasInsurance: boolean | null;
+  consent: boolean;
+  consentText: string | null;
+  consentAt: number | null;
+  source: string;
+  userAgent: string | null;
+  ipHash: string | null;
+  status: LeadStatus;
+  soldTo: string | null;
+  notes: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // ── Row → domain mappers ──────────────────────────────────────────────────────
@@ -496,6 +543,96 @@ export async function addToWaitlist(db: D1Database, data: {
   return { isNew: true };
 }
 
+// ── User Addresses ────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToUserAddress(r: any): UserAddress {
+  return {
+    id: r.id,
+    visitorId: r.visitor_id,
+    address: r.address,
+    lat: r.lat,
+    lon: r.lon,
+    city: r.city ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    searchCount: r.search_count,
+    lastSearchAt: r.last_search_at,
+  };
+}
+
+export async function saveUserAddress(db: D1Database, data: {
+  visitorId: string;
+  address: string;
+  lat: number;
+  lon: number;
+  city?: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<UserAddress> {
+  const now = Date.now();
+
+  // Upsert by (visitor_id, address): increment search_count if exists.
+  const existing = await db
+    .prepare('SELECT * FROM user_addresses WHERE visitor_id = ? AND address = ?')
+    .bind(data.visitorId, data.address)
+    .first();
+
+  if (existing) {
+    await db.prepare(
+      `UPDATE user_addresses
+         SET lat = ?, lon = ?, city = ?, updated_at = ?, last_search_at = ?, search_count = search_count + 1
+       WHERE id = ?`
+    ).bind(data.lat, data.lon, data.city ?? null, now, now, (existing as { id: string }).id).run();
+
+    const row = await db
+      .prepare('SELECT * FROM user_addresses WHERE id = ?')
+      .bind((existing as { id: string }).id)
+      .first();
+    return rowToUserAddress(row);
+  }
+
+  const id = uuid();
+  await db.prepare(
+    `INSERT INTO user_addresses
+       (id, visitor_id, address, lat, lon, city, created_at, updated_at, search_count, last_search_at, user_agent, ip_hash)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
+  ).bind(
+    id,
+    data.visitorId,
+    data.address,
+    data.lat,
+    data.lon,
+    data.city ?? null,
+    now,
+    now,
+    now,
+    data.userAgent ?? null,
+    data.ipHash ?? null,
+  ).run();
+
+  return {
+    id,
+    visitorId: data.visitorId,
+    address: data.address,
+    lat: data.lat,
+    lon: data.lon,
+    city: data.city ?? null,
+    createdAt: now,
+    updatedAt: now,
+    searchCount: 1,
+    lastSearchAt: now,
+  };
+}
+
+export async function getAddressesByVisitor(db: D1Database, visitorId: string, limit = 10): Promise<UserAddress[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM user_addresses WHERE visitor_id = ? ORDER BY last_search_at DESC LIMIT ?')
+    .bind(visitorId, limit)
+    .all();
+  return results.map(rowToUserAddress);
+}
+
 // ── Feedback ──────────────────────────────────────────────────────────────────
 
 export async function saveFeedback(db: D1Database, data: {
@@ -535,4 +672,163 @@ export async function getAllFeedback(db: D1Database, options?: { limit?: number;
   ]);
 
   return { feedback: results.map(rowToFeedback), total: countRow?.cnt ?? 0 };
+}
+
+// ── Leads ─────────────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToLead(r: any): Lead {
+  return {
+    id: r.id,
+    visitorId: r.visitor_id ?? null,
+    addressId: r.address_id ?? null,
+    name: r.name ?? null,
+    email: r.email,
+    phone: r.phone ?? null,
+    address: r.address ?? null,
+    city: r.city ?? null,
+    lat: r.lat ?? null,
+    lon: r.lon ?? null,
+    category: r.category as LeadCategory,
+    riskScore: r.risk_score ?? null,
+    riskBand: r.risk_band ?? null,
+    nearestFault: r.nearest_fault ?? null,
+    ownership: r.ownership ?? null,
+    homeAge: r.home_age ?? null,
+    foundationType: r.foundation_type ?? null,
+    hasInsurance: r.has_insurance === null || r.has_insurance === undefined ? null : r.has_insurance === 1,
+    consent: r.consent === 1,
+    consentText: r.consent_text ?? null,
+    consentAt: r.consent_at ?? null,
+    source: r.source,
+    userAgent: r.user_agent ?? null,
+    ipHash: r.ip_hash ?? null,
+    status: r.status as LeadStatus,
+    soldTo: r.sold_to ?? null,
+    notes: r.notes ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export async function saveLead(db: D1Database, data: {
+  visitorId?: string;
+  addressId?: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  lat?: number;
+  lon?: number;
+  category: LeadCategory;
+  riskScore?: number;
+  riskBand?: string;
+  nearestFault?: string;
+  ownership?: string;
+  homeAge?: string;
+  foundationType?: string;
+  hasInsurance?: boolean;
+  consent: boolean;
+  consentText?: string;
+  source?: string;
+  userAgent?: string;
+  ipHash?: string;
+}): Promise<Lead> {
+  const id  = uuid();
+  const now = Date.now();
+  const consentInt = data.consent ? 1 : 0;
+
+  await db.prepare(
+    `INSERT INTO leads (
+       id, visitor_id, address_id, name, email, phone, address, city, lat, lon,
+       category, risk_score, risk_band, nearest_fault,
+       ownership, home_age, foundation_type, has_insurance,
+       consent, consent_text, consent_at, source, user_agent, ip_hash,
+       status, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)`
+  ).bind(
+    id,
+    data.visitorId ?? null,
+    data.addressId ?? null,
+    data.name ?? null,
+    data.email.toLowerCase(),
+    data.phone ?? null,
+    data.address ?? null,
+    data.city ?? null,
+    data.lat ?? null,
+    data.lon ?? null,
+    data.category,
+    data.riskScore ?? null,
+    data.riskBand ?? null,
+    data.nearestFault ?? null,
+    data.ownership ?? null,
+    data.homeAge ?? null,
+    data.foundationType ?? null,
+    data.hasInsurance === undefined ? null : (data.hasInsurance ? 1 : 0),
+    consentInt,
+    data.consentText ?? null,
+    data.consent ? now : null,
+    data.source ?? 'my-area',
+    data.userAgent ?? null,
+    data.ipHash ?? null,
+    now,
+    now,
+  ).run();
+
+  return {
+    id,
+    visitorId: data.visitorId ?? null,
+    addressId: data.addressId ?? null,
+    name: data.name ?? null,
+    email: data.email.toLowerCase(),
+    phone: data.phone ?? null,
+    address: data.address ?? null,
+    city: data.city ?? null,
+    lat: data.lat ?? null,
+    lon: data.lon ?? null,
+    category: data.category,
+    riskScore: data.riskScore ?? null,
+    riskBand: data.riskBand ?? null,
+    nearestFault: data.nearestFault ?? null,
+    ownership: data.ownership ?? null,
+    homeAge: data.homeAge ?? null,
+    foundationType: data.foundationType ?? null,
+    hasInsurance: data.hasInsurance ?? null,
+    consent: data.consent,
+    consentText: data.consentText ?? null,
+    consentAt: data.consent ? now : null,
+    source: data.source ?? 'my-area',
+    userAgent: data.userAgent ?? null,
+    ipHash: data.ipHash ?? null,
+    status: 'new',
+    soldTo: null,
+    notes: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export async function getLeads(db: D1Database, options?: {
+  limit?: number;
+  skip?: number;
+  status?: LeadStatus;
+  category?: LeadCategory;
+}): Promise<{ leads: Lead[]; total: number }> {
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (options?.status)   { conditions.push('status = ?');   params.push(options.status); }
+  if (options?.category) { conditions.push('category = ?'); params.push(options.category); }
+
+  const where  = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const limit  = options?.limit ?? 50;
+  const offset = options?.skip ?? 0;
+
+  const [{ results }, countRow] = await Promise.all([
+    db.prepare(`SELECT * FROM leads ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...params, limit, offset).all(),
+    db.prepare(`SELECT COUNT(*) as cnt FROM leads ${where}`).bind(...params).first<{ cnt: number }>(),
+  ]);
+
+  return { leads: results.map(rowToLead), total: countRow?.cnt ?? 0 };
 }

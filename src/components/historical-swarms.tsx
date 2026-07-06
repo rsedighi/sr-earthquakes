@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { format, getYear, differenceInHours, differenceInDays, formatDistanceToNow } from 'date-fns';
-import { Earthquake, SwarmEvent, SwarmEpisode, DailyActivityCluster } from '@/lib/types';
+import type { Earthquake, SwarmEvent, SwarmEpisode, DailyActivityCluster } from '@/lib/types';
 import { REGIONS, getRegionById, getLocationContext } from '@/lib/regions';
 import { detectSwarms, detectSwarmEpisodes, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDepth } from '@/lib/units';

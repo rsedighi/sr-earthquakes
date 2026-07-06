@@ -1,6 +1,7 @@
 'use client';
 
-import { useUnits, UnitSystem } from '@/lib/unit-context';
+import { useUnits } from '@/lib/unit-context';
+import type { UnitSystem } from '@/lib/unit-context';
 import { Ruler } from 'lucide-react';
 
 interface UnitToggleProps {

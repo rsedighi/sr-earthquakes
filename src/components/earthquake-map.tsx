@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { getRegionById } from '@/lib/regions';
 import { formatDistanceToNow } from 'date-fns';

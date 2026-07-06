@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Earthquake } from '@/lib/types';
+import type { Earthquake } from '@/lib/types';
 import { getRegionForCoordinates } from '@/lib/regions';
 
 interface UseHistoricalEarthquakesOptions {

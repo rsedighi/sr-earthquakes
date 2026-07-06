@@ -222,3 +222,23 @@ export function convertFromKm(km: number, unitSystem: UnitSystem = 'imperial'): 
 export function convertToKm(value: number, unitSystem: UnitSystem = 'imperial'): number {
   return unitSystem === 'metric' ? value : milesToKm(value);
 }
+
+/**
+ * Rewrite a USGS "place" string so the embedded distance respects the user's
+ * unit preference. USGS always formats places as e.g. "9 km WSW of Cotati, CA".
+ * When unitSystem === 'imperial' we convert that leading number to miles.
+ * Falls back to the original string if the pattern isn't matched.
+ */
+const PLACE_DISTANCE_RE = /^(\d+(?:\.\d+)?)\s*km\b/i;
+export function formatPlaceDistance(place: string, unitSystem: UnitSystem = 'imperial'): string {
+  if (unitSystem === 'metric' || !place) return place;
+  const match = place.match(PLACE_DISTANCE_RE);
+  if (!match) return place;
+  const km = parseFloat(match[1]);
+  if (!Number.isFinite(km)) return place;
+  const miles = kmToMiles(km);
+  // Round to whole miles when the input was a whole-km value (USGS convention),
+  // otherwise keep one decimal so we don't lose precision.
+  const display = Number.isInteger(km) ? Math.round(miles).toString() : miles.toFixed(1);
+  return place.replace(PLACE_DISTANCE_RE, `${display} mi`);
+}
