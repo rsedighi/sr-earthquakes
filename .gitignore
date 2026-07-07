@@ -63,3 +63,9 @@ BayTremor Observations.docx
 
 new-improvements.md
 will-reccomendation.md
+
+# Wrangler local secrets
+.dev.vars
+
+# Claude Code local state
+.claude/

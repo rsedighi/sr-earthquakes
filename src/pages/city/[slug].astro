@@ -92,6 +92,17 @@ const faqs = generateCityFAQs(cityLandmark.name, cityLandmark.county, region?.fa
         </a>
       </div>
 
+      <!-- Risk page cross-link -->
+      <div class="bg-neutral-900 border border-white/10 rounded-xl p-5 mb-8 flex items-center justify-between gap-4">
+        <div>
+          <div class="font-semibold text-white mb-1">Earthquake risk in {cityLandmark.name}</div>
+          <div class="text-neutral-400 text-sm">Nearest fault, state liquefaction &amp; landslide zones, and felt-quake history.</div>
+        </div>
+        <a href={`/risk/${slug}`} class="px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0">
+          View Risk Profile
+        </a>
+      </div>
+
       <!-- Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-neutral-900 rounded-xl p-5 border border-white/10">

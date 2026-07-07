@@ -1,0 +1,214 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getCityData, generateBreadcrumbSchema } from '@/lib/seo';
+import { getCachedRiskReport } from '@/lib/risk-report-service';
+import type { RiskReport, ZoneFinding } from '@/lib/risk-report';
+
+const { city: slug } = Astro.params;
+const cityData = getCityData(slug!);
+if (!cityData) return Astro.redirect('/my-area', 307);
+
+const city = cityData.city;
+const { env } = Astro.locals.runtime;
+
+let report: RiskReport | null = null;
+try {
+  const result = await getCachedRiskReport(env, city.lat, city.lon, p =>
+    Astro.locals.runtime.ctx.waitUntil(p),
+  );
+  report = result.report;
+} catch (err) {
+  console.error(`[risk/${slug}]`, err);
+}
+if (!report) return Astro.redirect('/my-area', 307);
+
+const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
+const pageUrl = `${baseUrl}/risk/${slug}`;
+
+const f = report.nearestFault;
+const faultAnswer =
+  f.status === 'found'
+    ? `The nearest mapped fault to ${city.name} is the ${f.name}${f.section ? ` (${f.section})` : ''}, about ${f.distanceKm! < 1 ? 'less than 1 km' : `${f.distanceKm!.toFixed(1)} km`} from the city center. USGS classifies its most recent activity as "${f.age ?? 'Quaternary'}".`
+    : `No mapped Quaternary fault lies within 30 km of ${city.name}'s center, but regional Bay Area faults still drive significant shaking risk.`;
+
+function zoneAnswer(finding: ZoneFinding, kind: string): string {
+  switch (finding.status) {
+    case 'in-zone':
+      return `Yes — ${city.name}'s center point falls inside a state-designated ${kind} zone (CGS quadrangle: ${finding.quadName ?? 'see map'}). Individual parcels vary; check your exact address.`;
+    case 'not-in-zone':
+      return `The center of ${city.name} is outside mapped ${kind} zones, but zone boundaries are street-level — parts of the city may still be inside. Check your exact address.`;
+    case 'not-evaluated':
+      return `The state has not yet published ${kind} zone maps for this area, so absence of a zone here is not evidence of safety.`;
+    default:
+      return 'Zone data is temporarily unavailable.';
+  }
+}
+
+const liqAnswer = zoneAnswer(report.liquefactionZone, 'liquefaction');
+
+const h = report.quakeHistory;
+const historyAnswer =
+  h.status === 'found' && (h.totalCount ?? 0) > 0
+    ? `Our USGS dataset records ${h.totalCount!.toLocaleString()} earthquakes within ${h.radiusKm} km of ${city.name}${h.sinceYear ? ` since ${h.sinceYear}` : ''}, of which ${h.feltCount!.toLocaleString()} were felt by people${h.largest ? `. The largest was a M${h.largest.magnitude.toFixed(1)} in ${new Date(h.largest.timestamp).getFullYear()}` : ''}.`
+    : `Few earthquakes are on record near ${city.name} in our dataset, though regional Bay Area events are routinely felt across the region.`;
+
+const faqs = [
+  { q: `Is ${city.name} near an earthquake fault?`, a: faultAnswer },
+  { q: `Is ${city.name} in a liquefaction zone?`, a: liqAnswer },
+  { q: `How many earthquakes have been felt near ${city.name}?`, a: historyAnswer },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
+const breadcrumbSchema = generateBreadcrumbSchema([
+  { name: 'Home', url: baseUrl },
+  { name: 'Earthquake Risk', url: `${baseUrl}/my-area` },
+  { name: city.name, url: pageUrl },
+]);
+
+const bandStyles: Record<RiskReport['band'], string> = {
+  'Moderate': 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  'High': 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  'Very High': 'bg-red-500/15 text-red-400 border-red-500/30',
+};
+
+function zoneLabel(finding: ZoneFinding): { text: string; cls: string } {
+  switch (finding.status) {
+    case 'in-zone': return { text: 'Yes — state-designated zone', cls: 'text-orange-300' };
+    case 'not-in-zone': return { text: 'No (at city center)', cls: 'text-green-400/90' };
+    case 'not-evaluated': return { text: 'Not yet mapped by the state', cls: 'text-neutral-400' };
+    default: return { text: 'Unavailable', cls: 'text-neutral-500' };
+  }
+}
+
+const rows: { label: string; value: string; cls: string; link?: string }[] = [
+  {
+    label: 'Nearest mapped fault',
+    value: f.status === 'found'
+      ? `${f.name}${f.section ? ` (${f.section})` : ''} — ${f.distanceKm! < 1 ? '<1 km' : `${f.distanceKm!.toFixed(1)} km`}`
+      : 'None within 30 km',
+    cls: 'text-neutral-200',
+    link: f.status === 'found' ? f.faultUrl : undefined,
+  },
+  { label: 'Alquist-Priolo fault rupture zone', ...zoneObj(report.faultRuptureZone) },
+  { label: 'Liquefaction zone', ...zoneObj(report.liquefactionZone) },
+  { label: 'Earthquake-induced landslide zone', ...zoneObj(report.landslideZone) },
+  ...(report.tsunamiZone.status === 'in-zone'
+    ? [{ label: 'Tsunami hazard area', ...zoneObj(report.tsunamiZone) }]
+    : []),
+];
+
+function zoneObj(finding: ZoneFinding): { value: string; cls: string; link?: string } {
+  const l = zoneLabel(finding);
+  return { value: l.text, cls: l.cls, link: finding.mapUrl ?? finding.reportUrl };
+}
+
+const title = `${city.name} Earthquake Risk: Faults, Liquefaction Zones & Hazards | Bay Tremor`;
+const description = `Is ${city.name} at risk in an earthquake? ${report.band} risk at the city center — nearest fault, state liquefaction and landslide zones, and felt earthquake history from official CGS and USGS data.`;
+
+// Reports change slowly; let the CDN serve this page for a day.
+Astro.response.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={pageUrl}
+  schema={[breadcrumbSchema, faqSchema]}
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-24 md:pb-12">
+    <div class="max-w-3xl mx-auto px-4 pt-8">
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-neutral-400 flex-wrap">
+          <li><a href="/" class="hover:text-white">Home</a></li>
+          <li aria-hidden="true">/</li>
+          <li><a href="/my-area" class="hover:text-white">Earthquake Risk</a></li>
+          <li aria-hidden="true">/</li>
+          <li class="text-neutral-200">{city.name}</li>
+        </ol>
+      </nav>
+
+      <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight mb-3">
+        Earthquake Risk in {city.name}, CA
+      </h1>
+
+      <div class="flex items-center gap-3 mb-6">
+        <span class={`px-3 py-1.5 rounded-full text-sm font-semibold border ${bandStyles[report.band]}`}>
+          {report.band} Risk
+        </span>
+        <span class="text-xs text-neutral-500">measured at the city center · {city.county} County</span>
+      </div>
+
+      <ul class="space-y-1.5 mb-8">
+        {report.reasons.map(r => (
+          <li class="flex items-start gap-2 text-sm text-neutral-200">
+            <span class="text-orange-400 mt-0.5">▲</span>
+            {r}
+          </li>
+        ))}
+      </ul>
+
+      <div class="rounded-2xl border border-white/10 bg-white/[0.02] divide-y divide-white/5 px-5 mb-8">
+        {rows.map(row => (
+          <div class="py-3 flex items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-neutral-500">{row.label}</div>
+              <div class={`text-sm ${row.cls}`}>{row.value}</div>
+            </div>
+            {row.link && (
+              <a
+                href={row.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-[11px] text-neutral-500 hover:text-neutral-300 whitespace-nowrap"
+              >official map ↗</a>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <!-- Primary CTA into the address flow -->
+      <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 mb-10 text-center">
+        <h2 class="text-lg font-semibold mb-1">Zone boundaries are street-level</h2>
+        <p class="text-sm text-neutral-400 mb-4 max-w-md mx-auto">
+          Two homes a block apart can have different zone findings. Get the free report for
+          your exact address — same official state data, plus your home&apos;s felt-quake history.
+        </p>
+        <a
+          href="/my-area"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-neutral-200 transition-colors"
+        >
+          Check my address free →
+        </a>
+      </div>
+
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-4">Frequently asked questions</h2>
+        <div class="space-y-4">
+          {faqs.map(({ q, a }) => (
+            <div class="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <h3 class="text-sm font-medium text-white mb-1.5">{q}</h3>
+              <p class="text-sm text-neutral-400 leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <p class="text-[11px] text-neutral-600 leading-relaxed">
+        Sources: California Geological Survey Earthquake Zones of Required Investigation ·
+        USGS Quaternary Fault Database · USGS earthquake catalog. Findings above are measured
+        at the geographic center of {city.name} and are informational, not an engineering
+        evaluation. See also
+        <a href={`/city/${slug}`} class="underline hover:text-neutral-400">current earthquake activity in {city.name}</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

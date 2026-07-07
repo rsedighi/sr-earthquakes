@@ -45,9 +45,11 @@ export const GET: APIRoute = () => {
     url(`/${slug}-earthquake-today`, '0.8', 'always'),
   );
 
+  const riskUrls = CITY_SLUGS.map((slug) => url(`/risk/${slug}`, '0.8', 'weekly'));
+
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticUrls, ...regionUrls, ...cityUrls].join('\n')}
+${[...staticUrls, ...regionUrls, ...cityUrls, ...riskUrls].join('\n')}
 </urlset>`;
 
   return new Response(body, {
