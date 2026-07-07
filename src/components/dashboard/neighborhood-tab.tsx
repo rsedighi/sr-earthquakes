@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import type { Earthquake } from '@/lib/types';
 import { DashboardFooter } from './footer';
 import { FeedbackModal } from '@/components/feedback-modal';
@@ -50,37 +49,21 @@ function NeighborhoodTabInner() {
   const [historicalLoading, setHistoricalLoading] = useState(false);
   const [historicalLoaded, setHistoricalLoaded] = useState(false);
 
-  const { earthquakes: recentQuakes } = useHistoricalEarthquakes({
-    minMagnitude: 0.1,
-    autoFetch: true,
-  });
-
+  // /api/earthquakes/list?all=true already merges the R2 historical archive
+  // with recent D1 rows, so it is the single data source for this page.
   const loadHistoricalQuakes = useCallback(async () => {
     if (historicalLoading || historicalLoaded) return;
     setHistoricalLoading(true);
     try {
       const res = await fetch('/api/earthquakes/list?all=true');
       if (res.ok) {
-        const data = await res.json();
-        const quakes: Earthquake[] = data.earthquakes.map(
-          (eq: {
-            id: string;
-            magnitude: number;
-            place: string;
-            time: string;
-            timestamp: number;
-            latitude: number;
-            longitude: number;
-            depth: number;
-            felt: number | null;
-            significance: number;
-            url: string;
-            region: string;
-          }) => ({
-            ...eq,
-            time: new Date(eq.time),
-          })
-        );
+        const data = (await res.json()) as {
+          earthquakes: Array<Omit<Earthquake, 'time'> & { time: string }>;
+        };
+        const quakes: Earthquake[] = data.earthquakes.map(eq => ({
+          ...eq,
+          time: new Date(eq.time),
+        }));
         setHistoricalQuakes(quakes);
         setHistoricalLoaded(true);
       }
@@ -91,28 +74,10 @@ function NeighborhoodTabInner() {
     }
   }, [historicalLoading, historicalLoaded]);
 
-  const allHistoricalQuakes = useMemo(() => {
-    const seenIds = new Set<string>();
-    const merged: Earthquake[] = [];
-    for (const eq of recentQuakes) {
-      if (!seenIds.has(eq.id)) {
-        seenIds.add(eq.id);
-        merged.push(eq);
-      }
-    }
-    for (const eq of historicalQuakes) {
-      if (!seenIds.has(eq.id)) {
-        seenIds.add(eq.id);
-        merged.push(eq);
-      }
-    }
-    return merged.sort((a, b) => b.timestamp - a.timestamp);
-  }, [recentQuakes, historicalQuakes]);
-
   return (
     <div className="space-y-3 sm:space-y-4">
       <MyNeighborhood
-        historicalEarthquakes={allHistoricalQuakes}
+        historicalEarthquakes={historicalQuakes}
         isLoadingHistorical={historicalLoading}
         onRequestHistoricalData={loadHistoricalQuakes}
       />

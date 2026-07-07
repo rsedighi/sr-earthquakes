@@ -20,6 +20,8 @@ interface Env {
   HISTORICAL_R2?: R2Bucket;
   MEDIA_UPLOAD_TOKEN?: string;
   ADMIN_BACKFILL_TOKEN?: string;
+  ADMIN_TOKEN?: string;
+  LEAD_WEBHOOK_URL?: string;
   ANALYTICS?: AnalyticsEngineDataset;
 }
 

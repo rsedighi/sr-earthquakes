@@ -51,28 +51,34 @@ export function useHistoricalEarthquakes({
     setError(null);
 
     try {
-      // Only fetch RECENT data (since Dec 8, 2025) - historical data comes from static files
+      // Only fetch RECENT data (since the R2 cutoff) — the deep archive comes
+      // from /api/earthquakes/list?all=true where pages need it.
       const params = new URLSearchParams({
         recent: 'true',
-        minmag: minMagnitude.toString(),
-        felt: feltOnly.toString(),
+        minMag: minMagnitude.toString(),
       });
 
-      // Add cache-busting timestamp
-      params.set('_', Date.now().toString());
-      const response = await fetch(`/api/earthquakes/historical?${params}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      
+      const response = await fetch(`/api/earthquakes/list?${params}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch recent earthquake data');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        earthquakes: Array<{
+          id: string;
+          magnitude: number;
+          place: string;
+          time: string;
+          timestamp: number;
+          latitude: number;
+          longitude: number;
+          depth: number;
+          felt: number | null;
+          significance: number;
+          url: string;
+        }>;
+      };
 
       // Deduplicate by ID
       const seenIds = new Set<string>();
@@ -100,10 +106,19 @@ export function useHistoricalEarthquakes({
           ...eq,
           time: new Date(eq.time),
           region: getRegionForCoordinates(eq.latitude, eq.longitude),
-        }));
+        }))
+        .filter((eq: Earthquake) => !feltOnly || (eq.felt ?? 0) > 0);
 
       setEarthquakes(transformedQuakes);
-      setMetadata(data.metadata);
+      setMetadata(
+        transformedQuakes.length > 0
+          ? {
+              count: transformedQuakes.length,
+              startDate: transformedQuakes[transformedQuakes.length - 1].time.toISOString(),
+              endDate: transformedQuakes[0].time.toISOString(),
+            }
+          : null
+      );
     } catch (err) {
       // Don't set error for this - we have historical data from files
       console.warn('Could not fetch recent earthquake data:', err);

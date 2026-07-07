@@ -12,6 +12,7 @@ import type { Earthquake } from '@/lib/types';
  *
  * Query params:
  *   ?all=true       Return all available historical data (default response when present)
+ *   ?recent=true    Only rows since the R2 cutoff (D1-only — skips the R2 load)
  *   ?minMag=N       Filter to magnitude >= N
  *   ?limit=N        Cap the response (server applies after sorting)
  */
@@ -20,8 +21,22 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const url = new URL(request.url);
   const minMag = parseFloat(url.searchParams.get('minMag') ?? '0');
   const limit = parseInt(url.searchParams.get('limit') ?? '0', 10);
+  const recentOnly = url.searchParams.get('recent') === 'true';
 
   try {
+    if (recentOnly) {
+      const recent = env.DB
+        ? await getEarthquakesSince(env.DB, HISTORICAL_CUTOFF_MS, { minMagnitude: minMag })
+        : ([] as Earthquake[]);
+      const rows = limit > 0 ? recent.slice(0, limit) : recent;
+      return Response.json(
+        {
+          earthquakes: rows.map((eq) => ({ ...eq, time: eq.time.toISOString() })),
+          count: rows.length,
+        },
+        { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300' } },
+      );
+    }
     // R2 covers everything up to HISTORICAL_CUTOFF_MS (2025-12-08).
     // D1 covers everything from the cutoff forward (cron + backfill).
     const [historical, recent] = await Promise.all([

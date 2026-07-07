@@ -1,0 +1,167 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Leads Admin | Bay Tremor"
+  description="Internal leads dashboard"
+  canonical="https://baytremor.com/admin/leads"
+  noindex
+>
+  <div class="min-h-screen bg-[#0a0a0a] text-white pb-24 md:pb-6">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pt-8">
+      <h1 class="text-xl font-semibold mb-6">Leads</h1>
+
+      <div id="auth" class="max-w-sm space-y-3">
+        <label class="block text-sm text-neutral-400">Admin token</label>
+        <input
+          id="token"
+          type="password"
+          class="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-white focus:outline-none focus:border-white/30"
+          placeholder="Paste ADMIN_TOKEN"
+        />
+        <button
+          id="load"
+          class="px-5 py-2.5 rounded-xl bg-white text-black font-medium text-sm hover:bg-neutral-200"
+        >Load leads</button>
+        <p id="error" class="text-xs text-red-400 hidden"></p>
+      </div>
+
+      <div id="results" class="hidden mt-6">
+        <div class="flex items-center gap-3 mb-4 text-sm text-neutral-400">
+          <span id="count"></span>
+          <select id="category" class="px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-xs text-white">
+            <option value="">All categories</option>
+            <option value="insurance">Insurance</option>
+            <option value="retrofit">Retrofit</option>
+            <option value="preparedness">Preparedness</option>
+            <option value="general">General</option>
+          </select>
+          <button id="csv" class="px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-xs hover:bg-white/10">Download CSV</button>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-white/10">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-neutral-500 uppercase tracking-wider bg-white/[0.02]">
+                <th class="px-3 py-2.5">Date</th>
+                <th class="px-3 py-2.5">Category</th>
+                <th class="px-3 py-2.5">Name</th>
+                <th class="px-3 py-2.5">Email</th>
+                <th class="px-3 py-2.5">Phone</th>
+                <th class="px-3 py-2.5">City</th>
+                <th class="px-3 py-2.5">Risk</th>
+                <th class="px-3 py-2.5">Own</th>
+                <th class="px-3 py-2.5">Built</th>
+                <th class="px-3 py-2.5">Foundation</th>
+                <th class="px-3 py-2.5">Insured</th>
+                <th class="px-3 py-2.5">Status</th>
+              </tr>
+            </thead>
+            <tbody id="rows" class="divide-y divide-white/5"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const TOKEN_KEY = 'baytremor_admin_token';
+
+  interface LeadRow {
+    createdAt: number;
+    category: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    city: string | null;
+    address: string | null;
+    riskScore: number | null;
+    riskBand: string | null;
+    ownership: string | null;
+    homeAge: string | null;
+    foundationType: string | null;
+    hasInsurance: boolean | null;
+    status: string;
+  }
+
+  let leads: LeadRow[] = [];
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const tokenInput = $('token') as HTMLInputElement;
+  const errorEl = $('error');
+
+  const saved = localStorage.getItem(TOKEN_KEY);
+  if (saved) tokenInput.value = saved;
+
+  async function load() {
+    const token = tokenInput.value.trim();
+    if (!token) return;
+    errorEl.classList.add('hidden');
+
+    const category = ($('category') as HTMLSelectElement).value;
+    const params = new URLSearchParams({ limit: '500' });
+    if (category) params.set('category', category);
+
+    const res = await fetch(`/api/leads?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      errorEl.textContent = res.status === 401 ? 'Invalid token.' : `Error ${res.status}`;
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    localStorage.setItem(TOKEN_KEY, token);
+
+    const data = (await res.json()) as { leads: LeadRow[]; total: number };
+    leads = data.leads;
+    $('count').textContent = `${data.total} lead${data.total === 1 ? '' : 's'}`;
+    $('results').classList.remove('hidden');
+
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    $('rows').innerHTML = leads
+      .map(l => `
+        <tr class="hover:bg-white/[0.02]">
+          <td class="px-3 py-2.5 whitespace-nowrap text-neutral-400">${new Date(l.createdAt).toLocaleDateString()}</td>
+          <td class="px-3 py-2.5">${esc(l.category)}</td>
+          <td class="px-3 py-2.5">${esc(l.name ?? '—')}</td>
+          <td class="px-3 py-2.5">${esc(l.email)}</td>
+          <td class="px-3 py-2.5 whitespace-nowrap">${esc(l.phone ?? '—')}</td>
+          <td class="px-3 py-2.5" title="${esc(l.address ?? '')}">${esc(l.city ?? '—')}</td>
+          <td class="px-3 py-2.5 whitespace-nowrap">${l.riskScore != null ? `${l.riskScore} (${esc(l.riskBand ?? '')})` : '—'}</td>
+          <td class="px-3 py-2.5">${esc(l.ownership ?? '—')}</td>
+          <td class="px-3 py-2.5">${esc(l.homeAge ?? '—')}</td>
+          <td class="px-3 py-2.5">${esc(l.foundationType ?? '—')}</td>
+          <td class="px-3 py-2.5">${l.hasInsurance == null ? '—' : l.hasInsurance ? 'Yes' : 'No'}</td>
+          <td class="px-3 py-2.5">${esc(l.status)}</td>
+        </tr>`)
+      .join('');
+  }
+
+  function downloadCsv() {
+    if (leads.length === 0) return;
+    const cols = ['createdAt', 'category', 'name', 'email', 'phone', 'city', 'address', 'riskScore', 'riskBand', 'ownership', 'homeAge', 'foundationType', 'hasInsurance', 'status'] as const;
+    const cell = (v: unknown) => {
+      if (v == null) return '';
+      const s = v instanceof Date ? v.toISOString() : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = [
+      cols.join(','),
+      ...leads.map(l => cols.map(c => cell(c === 'createdAt' ? new Date(l.createdAt).toISOString() : l[c])).join(',')),
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `baytremor-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  $('load').addEventListener('click', load);
+  $('category').addEventListener('change', load);
+  $('csv').addEventListener('click', downloadCsv);
+  tokenInput.addEventListener('keydown', e => e.key === 'Enter' && load());
+</script>
