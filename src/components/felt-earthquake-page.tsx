@@ -156,7 +156,7 @@ export function FeltEarthquakePage() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Did You Feel an Earthquake?</h1>
           <p className="text-xl text-neutral-400 max-w-3xl">
             {mostRecentQuake ? (
-              <>Most recent: <span className="text-white font-semibold">M{mostRecentQuake.magnitude.toFixed(1)}</span> {formatTimeAgo(mostRecentQuake.timestamp)} near <span className="text-white">{mostRecentQuake.place.split(',')[0]}</span></>
+              <>Most recent: <span className="text-white font-semibold">M{(mostRecentQuake.magnitude ?? 0).toFixed(1)}</span> {formatTimeAgo(mostRecentQuake.timestamp)} near <span className="text-white">{mostRecentQuake.place.split(',')[0]}</span></>
             ) : 'Check recent earthquakes and report what you felt'}
           </p>
         </header>
@@ -197,14 +197,14 @@ export function FeltEarthquakePage() {
         </div>
 
         {/* Recent significant quake alert */}
-        {mostRecentQuake && mostRecentQuake.magnitude >= 3.0 && (Date.now() - mostRecentQuake.timestamp) < 3600000 && (
+        {mostRecentQuake && (mostRecentQuake.magnitude ?? 0) >= 3.0 && (Date.now() - mostRecentQuake.timestamp) < 3600000 && (
           <div className="bg-gradient-to-r from-amber-500/20 to-red-500/20 border border-amber-500/30 rounded-xl p-6 mb-8">
             <div className="flex items-start gap-4">
               <svg className="w-8 h-8 text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
               <div>
                 <h2 className="text-xl font-bold text-amber-400 mb-2">Recent Earthquake Detected</h2>
                 <p className="text-neutral-300 mb-3">
-                  A <strong className="text-white">M{mostRecentQuake.magnitude.toFixed(1)}</strong> earthquake occurred {formatTimeAgo(mostRecentQuake.timestamp)} near <strong className="text-white">{mostRecentQuake.place}</strong>.
+                  A <strong className="text-white">M{(mostRecentQuake.magnitude ?? 0).toFixed(1)}</strong> earthquake occurred {formatTimeAgo(mostRecentQuake.timestamp)} near <strong className="text-white">{mostRecentQuake.place}</strong>.
                 </p>
                 <a href={`/earthquake/${mostRecentQuake.id}`} className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-medium">
                   View earthquake details
@@ -237,7 +237,7 @@ export function FeltEarthquakePage() {
                           className={`w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors text-left ${selectedEarthquake === eq.id ? 'bg-white/10' : ''}`}
                         >
                           <div className="w-14 h-14 rounded-lg flex items-center justify-center font-bold flex-shrink-0" style={{ backgroundColor: color + '20', color }}>
-                            <span className="text-lg">{eq.magnitude.toFixed(1)}</span>
+                            <span className="text-lg">{(eq.magnitude ?? 0).toFixed(1)}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{eq.place}</div>

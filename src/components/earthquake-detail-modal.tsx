@@ -151,12 +151,22 @@ export function EarthquakeDetailModal({
   const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
+  const formattedMag = typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) && earthquake.magnitude > 0
+    ? earthquake.magnitude.toFixed(1)
+    : '—';
+
   // Share URLs
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/earthquake/${earthquake.id}`
     : `/earthquake/${earthquake.id}`;
-  const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
-  const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
+  const shareTitle = formattedMag !== '—' ? `M${formattedMag} Earthquake near ${earthquake.place}` : `Earthquake near ${earthquake.place}`;
+  const shareText = `Just ${(() => {
+    try {
+      return formatDistanceToNow(earthquake.time, { addSuffix: false });
+    } catch {
+      return 'recently';
+    }
+  })()} ago - ${shareTitle}. Did you feel it?`;
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
@@ -197,7 +207,7 @@ export function EarthquakeDetailModal({
         switch (sortNearbyBy) {
           case 'distance': return a.distance - b.distance;
           case 'time': return Math.abs(earthquake.timestamp - a.timestamp) - Math.abs(earthquake.timestamp - b.timestamp);
-          case 'magnitude': return b.magnitude - a.magnitude;
+          case 'magnitude': return (b.magnitude ?? 0) - (a.magnitude ?? 0);
           default: return a.distance - b.distance;
         }
       });
@@ -208,12 +218,13 @@ export function EarthquakeDetailModal({
     if (allEarthquakes.length === 0) return [];
     
     const magRange = 0.5;
+    const currentMag = earthquake.magnitude ?? 0;
     
     return allEarthquakes
       .filter(eq => {
         if (eq.id === earthquake.id) return false;
         if (eq.region !== earthquake.region) return false;
-        return Math.abs(eq.magnitude - earthquake.magnitude) <= magRange;
+        return Math.abs((eq.magnitude ?? 0) - currentMag) <= magRange;
       })
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 20);
@@ -221,19 +232,20 @@ export function EarthquakeDetailModal({
   
   // Calculate statistics
   const stats = useMemo(() => {
+    const mag = earthquake.magnitude ?? 0;
     const regionQuakes = allEarthquakes.filter(eq => eq.region === earthquake.region);
-    const largerInRegion = regionQuakes.filter(eq => eq.magnitude > earthquake.magnitude).length;
+    const largerInRegion = regionQuakes.filter(eq => (eq.magnitude ?? 0) > mag).length;
     const percentile = regionQuakes.length > 0 
       ? Math.round(((regionQuakes.length - largerInRegion) / regionQuakes.length) * 100)
       : 0;
     
     // Energy calculation (Gutenberg-Richter)
-    const energyJoules = Math.pow(10, 1.5 * earthquake.magnitude + 4.8);
+    const energyJoules = Math.pow(10, 1.5 * mag + 4.8);
     const tntKg = energyJoules / 4.184e6; // Convert to kg of TNT
     
     // Estimated felt radius (rough approximation)
-    const feltRadiusKm = earthquake.magnitude >= 3 
-      ? Math.pow(10, 0.5 * earthquake.magnitude - 0.5) * (earthquake.depth < 20 ? 1.5 : 1)
+    const feltRadiusKm = mag >= 3 
+      ? Math.pow(10, 0.5 * mag - 0.5) * (earthquake.depth < 20 ? 1.5 : 1)
       : 0;
     
     return {
@@ -248,10 +260,11 @@ export function EarthquakeDetailModal({
   
   // Determine severity level
   const getSeverityInfo = () => {
-    if (earthquake.magnitude >= 5) return { level: 'Significant', color: 'red', desc: 'Can cause damage' };
-    if (earthquake.magnitude >= 4) return { level: 'Moderate', color: 'orange', desc: 'Felt widely' };
-    if (earthquake.magnitude >= 3) return { level: 'Minor', color: 'yellow', desc: 'Often felt' };
-    if (earthquake.magnitude >= 2) return { level: 'Micro', color: 'lime', desc: 'Rarely felt' };
+    const mag = earthquake.magnitude ?? 0;
+    if (mag >= 5) return { level: 'Significant', color: 'red', desc: 'Can cause damage' };
+    if (mag >= 4) return { level: 'Moderate', color: 'orange', desc: 'Felt widely' };
+    if (mag >= 3) return { level: 'Minor', color: 'yellow', desc: 'Often felt' };
+    if (mag >= 2) return { level: 'Micro', color: 'lime', desc: 'Rarely felt' };
     return { level: 'Trace', color: 'green', desc: 'Not felt' };
   };
   
@@ -293,7 +306,7 @@ export function EarthquakeDetailModal({
                 <ChevronRight className="w-4 h-4" />
               </>
             )}
-            <span className="text-white font-medium">M{earthquake.magnitude.toFixed(1)} Earthquake</span>
+            <span className="text-white font-medium">{formattedMag !== '—' ? `M${formattedMag} Earthquake` : 'Earthquake'}</span>
           </div>
           
           <div className="flex items-start justify-between gap-4">
@@ -307,7 +320,7 @@ export function EarthquakeDetailModal({
                   className="text-3xl font-bold"
                   style={{ color: magnitudeColor }}
                 >
-                  {earthquake.magnitude.toFixed(1)}
+                  {formattedMag}
                 </span>
                 <span className="text-xs text-neutral-400 uppercase">{magnitudeLabel}</span>
                 
@@ -498,7 +511,7 @@ export function EarthquakeDetailModal({
             <MetricCard
               icon={<Zap className="w-4 h-4" />}
               label="Magnitude"
-              value={earthquake.magnitude.toFixed(2)}
+              value={typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) ? earthquake.magnitude.toFixed(2) : '—'}
               color={magnitudeColor}
             />
             <MetricCard
@@ -614,7 +627,7 @@ export function EarthquakeDetailModal({
                         color: getMagnitudeColor(eq.magnitude)
                       }}
                     >
-                      {eq.magnitude.toFixed(1)}
+                      {typeof eq.magnitude === 'number' && !isNaN(eq.magnitude) && eq.magnitude > 0 ? eq.magnitude.toFixed(1) : '—'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm truncate">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
@@ -688,7 +701,7 @@ export function EarthquakeDetailModal({
                       className="text-xs font-bold"
                       style={{ color: getMagnitudeColor(eq.magnitude) }}
                     >
-                      M{eq.magnitude.toFixed(1)}
+                      {typeof eq.magnitude === 'number' && !isNaN(eq.magnitude) && eq.magnitude > 0 ? `M${eq.magnitude.toFixed(1)}` : 'M—'}
                     </span>
                     <span className="text-xs text-neutral-500">
                       {format(eq.time, 'MMM yyyy')}
@@ -715,25 +728,25 @@ export function EarthquakeDetailModal({
             What This Means
           </h3>
           <div className="space-y-3 text-sm text-neutral-300">
-            {earthquake.magnitude >= 4 ? (
+            {(earthquake.magnitude ?? 0) >= 4 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is considered <span className="font-medium" style={{ color: magnitudeColor }}>{magnitudeLabel.toLowerCase()}</span> and 
+                A magnitude {(earthquake.magnitude ?? 0).toFixed(1)} earthquake is considered <span className="font-medium" style={{ color: magnitudeColor }}>{magnitudeLabel.toLowerCase()}</span> and 
                 would typically be felt by most people in the area. Indoor objects may shake or rattle.
                 {stats.feltRadiusKm > 0 && ` It could potentially be felt up to ${formatDistanceBoth(stats.feltRadiusKm, unitSystem)} from the epicenter.`}
               </p>
-            ) : earthquake.magnitude >= 3 ? (
+            ) : (earthquake.magnitude ?? 0) >= 3 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is often felt by people indoors, especially 
+                A magnitude {(earthquake.magnitude ?? 0).toFixed(1)} earthquake is often felt by people indoors, especially 
                 on upper floors. It may feel like a truck passing by.
               </p>
-            ) : earthquake.magnitude >= 2 ? (
+            ) : (earthquake.magnitude ?? 0) >= 2 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is rarely felt by people but is recorded 
+                A magnitude {(earthquake.magnitude ?? 0).toFixed(1)} earthquake is rarely felt by people but is recorded 
                 by seismometers. These small earthquakes are very common.
               </p>
             ) : (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is typically not felt and is only detected 
+                A magnitude {(earthquake.magnitude ?? 0).toFixed(1)} earthquake is typically not felt and is only detected 
                 by sensitive instruments. Thousands of these occur daily worldwide.
               </p>
             )}

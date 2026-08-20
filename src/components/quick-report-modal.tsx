@@ -313,14 +313,20 @@ export function QuickReportModal({
                               border: `1px solid ${getMagnitudeColor(eq.magnitude)}40`
                             }}
                           >
-                            {eq.magnitude.toFixed(1)}
+                            {(eq.magnitude ?? 0).toFixed(1)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white truncate">
                               {getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
-                              <span suppressHydrationWarning>{formatDistanceToNow(eq.time, { addSuffix: true })} · {new Date(eq.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST</span>
+                              <span suppressHydrationWarning>{(() => {
+                                try {
+                                  return formatDistanceToNow(eq.time, { addSuffix: true });
+                                } catch {
+                                  return 'recently';
+                                }
+                              })()} · {new Date(eq.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST</span>
                               {distanceKm !== null && (
                                 <>
                                   <span>•</span>
@@ -353,14 +359,20 @@ export function QuickReportModal({
                       color: getMagnitudeColor(selectedQuake.magnitude),
                     }}
                   >
-                    {selectedQuake.magnitude.toFixed(1)}
+                    {(selectedQuake.magnitude ?? 0).toFixed(1)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs md:text-sm font-medium text-white truncate">
                       {selectedQuake.place}
                     </div>
                     <div className="text-[10px] md:text-xs text-neutral-500">
-                      {formatDistanceToNow(selectedQuake.time, { addSuffix: true })}
+                      {(() => {
+                        try {
+                          return formatDistanceToNow(selectedQuake.time, { addSuffix: true });
+                        } catch {
+                          return 'recently';
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -423,7 +435,7 @@ export function QuickReportModal({
                         color: getMagnitudeColor(selectedQuake.magnitude),
                       }}
                     >
-                      {selectedQuake.magnitude.toFixed(1)}
+                      {(selectedQuake.magnitude ?? 0).toFixed(1)}
                     </div>
                     <div>
                       <div className="text-sm text-white font-medium">{selectedQuake.place}</div>

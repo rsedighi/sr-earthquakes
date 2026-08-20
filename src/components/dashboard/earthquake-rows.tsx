@@ -33,6 +33,30 @@ export function CompactEarthquakeRow({
   const minutesAgo = (Date.now() - earthquake.timestamp) / (1000 * 60);
   const isVeryRecent = minutesAgo < 5;
   
+  const formattedMag = typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) && earthquake.magnitude > 0
+    ? earthquake.magnitude.toFixed(1)
+    : '—';
+  
+  const timeDate = earthquake.time instanceof Date && !isNaN(earthquake.time.getTime())
+    ? earthquake.time
+    : new Date(earthquake.timestamp || Date.now());
+  
+  const formattedTimeAgo = (() => {
+    try {
+      return formatDistanceToNow(timeDate, { addSuffix: true });
+    } catch {
+      return 'recently';
+    }
+  })();
+  
+  const formattedLocalTime = (() => {
+    try {
+      return timeDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <button 
       className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all relative
@@ -45,7 +69,7 @@ export function CompactEarthquakeRow({
         className={`text-lg font-light tabular-nums w-10 text-center flex-shrink-0 ${isVeryRecent ? 'animate-bounce-subtle' : ''}`}
         style={{ color: getMagnitudeColor(earthquake.magnitude) }}
       >
-        {earthquake.magnitude.toFixed(1)}
+        {formattedMag}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -59,7 +83,7 @@ export function CompactEarthquakeRow({
         </div>
         <div className="text-xs text-neutral-500 flex items-center gap-2">
           <span suppressHydrationWarning className={isVeryRecent ? 'text-green-400/70' : ''}>
-            {formatDistanceToNow(earthquake.time, { addSuffix: true })} · {new Date(earthquake.time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} PST
+            {formattedTimeAgo}{formattedLocalTime ? ` · ${formattedLocalTime} PST` : ''}
           </span>
           {distanceKm !== null && (
             <span className="text-blue-400/80 flex items-center gap-0.5">
@@ -103,6 +127,22 @@ export function EarthquakeRow({
   const region = getRegionById(earthquake.region);
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
+  const formattedMag = typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) && earthquake.magnitude > 0
+    ? earthquake.magnitude.toFixed(1)
+    : '—';
+  
+  const timeDate = earthquake.time instanceof Date && !isNaN(earthquake.time.getTime())
+    ? earthquake.time
+    : new Date(earthquake.timestamp || Date.now());
+
+  const formattedTimeAgo = (() => {
+    try {
+      return formatDistanceToNow(timeDate, { addSuffix: true });
+    } catch {
+      return 'recently';
+    }
+  })();
+
   return (
     <div 
       className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all text-left cursor-pointer group
@@ -115,7 +155,7 @@ export function EarthquakeRow({
           className="text-2xl font-light"
           style={{ color: getMagnitudeColor(earthquake.magnitude) }}
         >
-          {earthquake.magnitude.toFixed(1)}
+          {formattedMag}
         </div>
         <div className="text-[10px] text-neutral-500 uppercase">
           {getMagnitudeLabel(earthquake.magnitude)}
@@ -134,7 +174,7 @@ export function EarthquakeRow({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-neutral-500">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {formatDistanceToNow(earthquake.time, { addSuffix: true })}
+            {formattedTimeAgo}
           </span>
           <span className="hidden sm:inline">·</span>
           <span className="hidden sm:inline">{formatDepthDeep(earthquake.depth, unitSystem)}</span>

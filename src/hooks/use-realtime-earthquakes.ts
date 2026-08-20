@@ -7,7 +7,7 @@ import { getRegionForCoordinates } from '@/lib/regions';
 interface USGSFeature {
   id: string;
   properties: {
-    mag: number;
+    mag: number | null;
     place: string;
     time: number;
     url: string;
@@ -35,19 +35,26 @@ interface UseRealtimeEarthquakesResult {
 }
 
 function convertFeature(feature: USGSFeature): Earthquake {
-  const [longitude, latitude, depth] = feature.geometry.coordinates;
+  const [longitude = 0, latitude = 0, depth = 0] = feature.geometry?.coordinates ?? [0, 0, 0];
+  const mag = typeof feature.properties?.mag === 'number' && !isNaN(feature.properties.mag)
+    ? feature.properties.mag
+    : 0;
+  const timeMs = typeof feature.properties?.time === 'number' && !isNaN(feature.properties.time)
+    ? feature.properties.time
+    : Date.now();
+
   return {
     id: feature.id,
-    magnitude: feature.properties.mag,
-    place: feature.properties.place,
-    time: new Date(feature.properties.time),
-    timestamp: feature.properties.time,
+    magnitude: mag,
+    place: feature.properties?.place || 'Bay Area',
+    time: new Date(timeMs),
+    timestamp: timeMs,
     latitude,
     longitude,
-    depth,
-    felt: feature.properties.felt,
-    significance: feature.properties.sig,
-    url: feature.properties.url,
+    depth: typeof depth === 'number' && !isNaN(depth) ? depth : 0,
+    felt: feature.properties?.felt ?? null,
+    significance: feature.properties?.sig ?? 0,
+    url: feature.properties?.url || (feature.id ? `https://earthquake.usgs.gov/earthquakes/eventpage/${feature.id}` : 'https://earthquake.usgs.gov/'),
     region: getRegionForCoordinates(latitude, longitude),
   };
 }
@@ -64,6 +71,8 @@ export function useRealtimeEarthquakes({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const wsConnected = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
@@ -75,7 +84,7 @@ export function useRealtimeEarthquakes({
       if (!res.ok) throw new Error(`API error: ${res.status}`);
 
       const data = await res.json() as { features: USGSFeature[] };
-      const converted = data.features.map(convertFeature);
+      const converted = (data.features || []).map(convertFeature);
       converted.sort((a, b) => b.timestamp - a.timestamp);
       setEarthquakes(converted);
       setLastUpdated(new Date());
@@ -98,41 +107,65 @@ export function useRealtimeEarthquakes({
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
 
+    let active = true;
+
     function connect() {
-      const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const ws = new WebSocket(`${proto}://${window.location.host}/api/ws/earthquakes`);
-      wsRef.current = ws;
+      if (!active || wsConnected.current || wsRef.current) return;
+      if (retryCountRef.current >= 5) {
+        // Stop retrying WebSocket after consecutive failures, fallback cleanly to polling
+        return;
+      }
 
-      ws.onopen = () => {
-        wsConnected.current = true;
-      };
+      try {
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const ws = new WebSocket(`${proto}://${window.location.host}/api/ws/earthquakes`);
+        wsRef.current = ws;
 
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data as string);
-          if (msg?.type === 'new_earthquake') {
-            fetchData(true);
+        ws.onopen = () => {
+          wsConnected.current = true;
+          retryCountRef.current = 0;
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data as string);
+            if (msg?.type === 'new_earthquake') {
+              fetchData(true);
+            }
+          } catch {
+            // ignore malformed messages
           }
-        } catch {
-          // ignore malformed messages
-        }
-      };
+        };
 
-      ws.onclose = () => {
+        ws.onclose = () => {
+          wsConnected.current = false;
+          wsRef.current = null;
+          if (active && retryCountRef.current < 5) {
+            retryCountRef.current += 1;
+            const delay = Math.min(5000 * Math.pow(2, retryCountRef.current - 1), 60000);
+            reconnectTimeoutRef.current = setTimeout(connect, delay);
+          }
+        };
+
+        ws.onerror = () => {
+          ws.close();
+        };
+      } catch {
         wsConnected.current = false;
         wsRef.current = null;
-        // Reconnect after 5s if still enabled
-        setTimeout(connect, 5_000);
-      };
-
-      ws.onerror = () => ws.close();
+      }
     }
 
     connect();
 
     return () => {
+      active = false;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       wsRef.current?.close();
       wsRef.current = null;
+      wsConnected.current = false;
     };
   }, [enabled, fetchData]);
 

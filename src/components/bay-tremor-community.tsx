@@ -574,7 +574,7 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
                 color: getMagnitudeColor(post.earthquakeData.magnitude)
               }}
             >
-              M{post.earthquakeData.magnitude.toFixed(1)}
+              M{(post.earthquakeData.magnitude ?? 0).toFixed(1)}
             </span>
           )}
           <span className={`px-2 py-0.5 rounded-full text-xs ${flair.color}`}>
@@ -588,7 +588,15 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
             </span>
           )}
           <span>•</span>
-          <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+          <span>
+            {(() => {
+              try {
+                return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+              } catch {
+                return 'recently';
+              }
+            })()}
+          </span>
         </div>
 
         {/* Title */}
@@ -609,7 +617,7 @@ function PostCard({ post }: { post: ForumThreadWithId }) {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-white truncate">{post.earthquakeData.place}</div>
               <div className="text-xs text-neutral-500">
-                Magnitude {post.earthquakeData.magnitude.toFixed(1)} • Depth {post.earthquakeData.depth ? formatDepth(post.earthquakeData.depth, unitSystem) : '?'}
+                Magnitude {(post.earthquakeData.magnitude ?? 0).toFixed(1)} • Depth {post.earthquakeData.depth ? formatDepth(post.earthquakeData.depth, unitSystem) : '?'}
               </div>
             </div>
           </div>
@@ -748,7 +756,7 @@ function EarthquakePicker({
               style={{ backgroundColor: getMagnitudeColor(selectedEarthquake.properties.mag) + '33' }}
             >
               <span style={{ color: getMagnitudeColor(selectedEarthquake.properties.mag) }}>
-                {selectedEarthquake.properties.mag.toFixed(1)}
+                {(selectedEarthquake.properties.mag ?? 0).toFixed(1)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
@@ -837,7 +845,7 @@ function EarthquakePicker({
                       style={{ backgroundColor: getMagnitudeColor(eq.properties.mag) + '33' }}
                     >
                       <span style={{ color: getMagnitudeColor(eq.properties.mag) }}>
-                        {eq.properties.mag.toFixed(1)}
+                        {(eq.properties.mag ?? 0).toFixed(1)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1362,7 +1370,15 @@ function ThreadDetailViewInner({ slug, category }: { slug: string; category: For
                   </span>
                 )}
                 <span>•</span>
-                <span>{formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true })}</span>
+                <span>
+                  {(() => {
+                    try {
+                      return formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true });
+                    } catch {
+                      return 'recently';
+                    }
+                  })()}
+                </span>
               </div>
 
               {/* Title */}
@@ -1393,7 +1409,7 @@ function ThreadDetailViewInner({ slug, category }: { slug: string; category: For
                       color: getMagnitudeColor(thread.earthquakeData.magnitude)
                     }}
                   >
-                    {thread.earthquakeData.magnitude.toFixed(1)}
+                    {(thread.earthquakeData.magnitude ?? 0).toFixed(1)}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-white">{thread.earthquakeData.place}</div>
@@ -1593,7 +1609,13 @@ function CommentCard({ post, isOP, index }: { post: ForumPostWithId; isOP: boole
             )}
             <span className="text-neutral-600">•</span>
             <span className="text-neutral-500">
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              {(() => {
+                try {
+                  return formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+                } catch {
+                  return 'recently';
+                }
+              })()}
             </span>
           </div>
 
@@ -1689,7 +1711,13 @@ export function CommunityWidget() {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-white line-clamp-1">{post.title}</div>
               <div className="text-xs text-neutral-500 mt-0.5">
-                {post.postCount - 1} comments • {formatDistanceToNow(new Date(post.lastPostAt), { addSuffix: true })}
+                {post.postCount - 1} comments • {(() => {
+                  try {
+                    return formatDistanceToNow(new Date(post.lastPostAt), { addSuffix: true });
+                  } catch {
+                    return 'recently';
+                  }
+                })()}
               </div>
             </div>
             {post.earthquakeData && (
@@ -1697,7 +1725,7 @@ export function CommunityWidget() {
                 className="text-sm font-bold"
                 style={{ color: getMagnitudeColor(post.earthquakeData.magnitude) }}
               >
-                M{post.earthquakeData.magnitude.toFixed(1)}
+                M{(post.earthquakeData.magnitude ?? 0).toFixed(1)}
               </span>
             )}
           </a>

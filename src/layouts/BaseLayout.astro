@@ -101,7 +101,10 @@ const schemas = schema ?? generateHomepageSchemas();
       const env = import.meta.env.PUBLIC_DD_ENV || (import.meta.env.PROD ? 'prod' : 'dev');
       const version = import.meta.env.PUBLIC_DD_VERSION || '2.0.0';
 
-      if (applicationId && clientToken && !datadogRum.getInitConfiguration()) {
+      const isPlaceholderToken = !clientToken || clientToken.startsWith('pubXXXX') || clientToken.includes('XXXX');
+      const isPlaceholderAppId = !applicationId || applicationId.startsWith('appXXXX') || applicationId.includes('XXXX');
+
+      if (!isPlaceholderAppId && !isPlaceholderToken && !datadogRum.getInitConfiguration()) {
         datadogRum.init({
           applicationId,
           clientToken,
@@ -125,10 +128,10 @@ const schemas = schema ?? generateHomepageSchemas();
         datadogRum.setGlobalContextProperty('region', 'bay_area');
         // Expose for helper functions elsewhere in the app.
         (window as any).__ddRum = datadogRum;
-      } else if (!applicationId || !clientToken) {
+      } else if (isPlaceholderAppId || isPlaceholderToken) {
         if (import.meta.env.DEV) {
           console.warn(
-            '[Datadog RUM] Not initialized — set PUBLIC_DD_APPLICATION_ID and PUBLIC_DD_CLIENT_TOKEN in .env'
+            '[Datadog RUM] Not initialized — set valid PUBLIC_DD_APPLICATION_ID and PUBLIC_DD_CLIENT_TOKEN in .env'
           );
         }
       }

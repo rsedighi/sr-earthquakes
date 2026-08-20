@@ -495,7 +495,8 @@ export function getRecentActivity(
 
 // Get magnitude color for visual representation
 // Using distinct colors for better visibility: red (critical) -> orange (high) -> yellow (moderate) -> green (minor)
-export function getMagnitudeColor(magnitude: number): string {
+export function getMagnitudeColor(magnitude: number | null | undefined): string {
+  if (magnitude == null || isNaN(magnitude)) return '#6b7280';
   if (magnitude >= 5) return '#ef4444'; // red-500 - critical/major
   if (magnitude >= 4) return '#f97316'; // orange-500 - strong
   if (magnitude >= 3) return '#eab308'; // yellow-500 - moderate
@@ -505,7 +506,8 @@ export function getMagnitudeColor(magnitude: number): string {
 }
 
 // Get magnitude severity label
-export function getMagnitudeLabel(magnitude: number): string {
+export function getMagnitudeLabel(magnitude: number | null | undefined): string {
+  if (magnitude == null || isNaN(magnitude)) return 'Unknown';
   if (magnitude >= 7) return 'Major';
   if (magnitude >= 6) return 'Strong';
   if (magnitude >= 5) return 'Moderate';
@@ -516,10 +518,12 @@ export function getMagnitudeLabel(magnitude: number): string {
 }
 
 // Calculate if felt
-export function wasLikelyFelt(magnitude: number, depth: number): boolean {
+export function wasLikelyFelt(magnitude: number | null | undefined, depth: number | null | undefined): boolean {
+  if (magnitude == null || isNaN(magnitude)) return false;
+  const d = depth != null && !isNaN(depth) ? depth : 10;
   // Generally earthquakes M2.5+ can be felt, but depth matters
   // Shallow quakes are more likely to be felt
-  const depthFactor = depth < 10 ? 0.3 : depth < 20 ? 0.5 : 0.8;
+  const depthFactor = d < 10 ? 0.3 : d < 20 ? 0.5 : 0.8;
   return magnitude >= 2.5 - depthFactor;
 }
 

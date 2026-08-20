@@ -42,6 +42,22 @@ export function HeroQuake({
   
   const isRecent = Date.now() - notableQuake.timestamp < 60 * 60 * 1000;
   
+  const formattedMag = typeof notableQuake.magnitude === 'number' && !isNaN(notableQuake.magnitude) && notableQuake.magnitude > 0
+    ? notableQuake.magnitude.toFixed(1)
+    : '—';
+  
+  const timeDate = notableQuake.time instanceof Date && !isNaN(notableQuake.time.getTime())
+    ? notableQuake.time
+    : new Date(notableQuake.timestamp || Date.now());
+  
+  const formattedTimeAgo = (() => {
+    try {
+      return formatDistanceToNow(timeDate, { addSuffix: true });
+    } catch {
+      return 'recently';
+    }
+  })();
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
       <button
@@ -74,14 +90,14 @@ export function HeroQuake({
               className="text-xl sm:text-2xl font-light"
               style={{ color: getMagnitudeColor(notableQuake.magnitude) }}
             >
-              {notableQuake.magnitude.toFixed(1)}
+              {formattedMag}
             </span>
           </div>
           
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
               <span className="text-xs text-neutral-500" suppressHydrationWarning>
-                {formatDistanceToNow(notableQuake.time, { addSuffix: true })}
+                {formattedTimeAgo}
               </span>
               {notableQuake.felt && notableQuake.felt > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">

@@ -106,7 +106,7 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
                   border: `1.5px solid ${getMagnitudeColor(eq.magnitude)}30`,
                 }}
               >
-                {eq.magnitude.toFixed(1)}
+                {(eq.magnitude ?? 0).toFixed(1)}
               </div>
 
               <div className="flex-1 min-w-0">
@@ -115,12 +115,24 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-neutral-500">
                   <time
-                    dateTime={new Date(eq.timestamp).toISOString()}
+                    dateTime={(() => {
+                      try {
+                        return new Date(eq.timestamp).toISOString();
+                      } catch {
+                        return '';
+                      }
+                    })()}
                     className="flex items-center gap-1"
                     suppressHydrationWarning
                   >
                     <Clock className="w-3 h-3" />
-                    {formatDistanceToNow(new Date(eq.timestamp), { addSuffix: true })}
+                    {(() => {
+                      try {
+                        return formatDistanceToNow(new Date(eq.timestamp), { addSuffix: true });
+                      } catch {
+                        return 'recently';
+                      }
+                    })()}
                   </time>
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />

@@ -104,7 +104,7 @@ export interface RegionStats {
 export interface USGSFeature {
   id: string;
   properties: {
-    mag: number;
+    mag: number | null;
     place: string;
     time: number;
     url: string;

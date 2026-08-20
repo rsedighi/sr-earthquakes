@@ -88,7 +88,7 @@ function WeeklyContextBanner({
           <>
             {' — '}the largest was a{' '}
             <span className="font-medium" style={{ color: getMagnitudeColor(largestRecent.magnitude) }}>
-              M{largestRecent.magnitude.toFixed(1)}
+              M{(largestRecent.magnitude ?? 0).toFixed(1)}
             </span>
             {' '}near {largestRecent.place?.split(',')[0] || 'Bay Area'}
           </>
@@ -448,7 +448,9 @@ export function LiveTab({
                     className="text-lg font-light tabular-nums w-10 text-center flex-shrink-0"
                     style={{ color: getMagnitudeColor(eq.magnitude) }}
                   >
-                    {eq.magnitude.toFixed(1)}
+                    {typeof eq.magnitude === 'number' && !isNaN(eq.magnitude) && eq.magnitude > 0
+                      ? eq.magnitude.toFixed(1)
+                      : '—'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-white truncate font-medium">
@@ -456,7 +458,14 @@ export function LiveTab({
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-neutral-500">
-                        {formatDistanceToNow(eq.time, { addSuffix: true })}
+                        {(() => {
+                          try {
+                            const d = eq.time instanceof Date && !isNaN(eq.time.getTime()) ? eq.time : new Date(eq.timestamp || Date.now());
+                            return formatDistanceToNow(d, { addSuffix: true });
+                          } catch {
+                            return 'recently';
+                          }
+                        })()}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-[10px] text-amber-400 mt-0.5">
@@ -500,7 +509,9 @@ export function LiveTab({
             className="text-xl sm:text-2xl font-light"
             style={{ color: largestRecent ? getMagnitudeColor(largestRecent.magnitude) : undefined }}
           >
-            {largestRecent?.magnitude.toFixed(1) || '—'}
+            {largestRecent != null && typeof largestRecent.magnitude === 'number' && !isNaN(largestRecent.magnitude) && largestRecent.magnitude > 0
+              ? largestRecent.magnitude.toFixed(1)
+              : '—'}
           </div>
           <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate">
             {largestRecent ? getMagnitudeLabel(largestRecent.magnitude) : 'No data'}
@@ -547,10 +558,20 @@ export function LiveTab({
             className="text-xl sm:text-2xl font-light"
             style={{ color: strongestToday ? getMagnitudeColor(strongestToday.magnitude) : undefined }}
           >
-            {strongestToday?.magnitude.toFixed(1) || '—'}
+            {strongestToday != null && typeof strongestToday.magnitude === 'number' && !isNaN(strongestToday.magnitude) && strongestToday.magnitude > 0
+              ? strongestToday.magnitude.toFixed(1)
+              : '—'}
           </div>
           <div className="text-[10px] sm:text-xs text-neutral-500 mt-0.5 sm:mt-1 truncate" suppressHydrationWarning>
-            {strongestToday ? formatDistanceToNow(strongestToday.time, { addSuffix: true }) : 'None yet'}
+            {(() => {
+              if (!strongestToday) return 'None yet';
+              try {
+                const d = strongestToday.time instanceof Date && !isNaN(strongestToday.time.getTime()) ? strongestToday.time : new Date(strongestToday.timestamp || Date.now());
+                return formatDistanceToNow(d, { addSuffix: true });
+              } catch {
+                return 'recently';
+              }
+            })()}
           </div>
         </div>
       </div>

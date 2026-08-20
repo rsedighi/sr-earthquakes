@@ -199,7 +199,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
               sub="reported to USGS"
             />
             <FactCard
-              value={`M${facts.largest.magnitude.toFixed(1)}`}
+              value={`M${(facts.largest.magnitude ?? 0).toFixed(1)}`}
               label="largest nearby"
               sub={format(facts.largest.time, 'yyyy')}
             />
@@ -300,7 +300,7 @@ function EarthquakeListItem({
           color: getMagnitudeColor(earthquake.magnitude)
         }}
       >
-        {earthquake.magnitude.toFixed(1)}
+        {(earthquake.magnitude ?? 0).toFixed(1)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm truncate">{earthquake.place}</div>

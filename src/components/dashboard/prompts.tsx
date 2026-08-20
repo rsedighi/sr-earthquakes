@@ -174,7 +174,7 @@ export function FeltItPrompt({
               className="text-lg font-bold"
               style={{ color: getMagnitudeColor(earthquake.magnitude) }}
             >
-              {earthquake.magnitude.toFixed(1)}
+              {(earthquake.magnitude ?? 0).toFixed(1)}
             </span>
           </div>
           <div>
@@ -246,7 +246,7 @@ export function NewEarthquakeToast({
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-white">
             {newQuakes.length === 1 
-              ? `New M${largest.magnitude.toFixed(1)} earthquake` 
+              ? `New M${(largest.magnitude ?? 0).toFixed(1)} earthquake` 
               : `${newQuakes.length} new earthquakes`
             }
           </div>

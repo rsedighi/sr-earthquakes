@@ -156,8 +156,8 @@ function LeafletMapInner({
   }, [earthquakes, showOnlyFelt, userLocation, searchRadius, minMagnitudeFilter]);
 
   // Get size based on magnitude - exponential scaling for better visual distinction
-  const getMagnitudeSize = (magnitude: number): number => {
-    // More aggressive scaling: M5+ are much larger than M1-2
+  const getMagnitudeSize = (magnitude: number | null | undefined): number => {
+    if (magnitude == null || isNaN(magnitude)) return 5;
     if (magnitude >= 5) return 30;
     if (magnitude >= 4) return 22;
     if (magnitude >= 3) return 16;
@@ -299,19 +299,37 @@ function LeafletMapInner({
                       className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
                       style={{ backgroundColor: getMagnitudeColor(eq.magnitude) }}
                     >
-                      {eq.magnitude.toFixed(1)}
+                      {typeof eq.magnitude === 'number' && !isNaN(eq.magnitude) && eq.magnitude > 0
+                        ? eq.magnitude.toFixed(1)
+                        : '—'}
                     </div>
                     <div>
                       <div className="font-semibold text-sm">{getMagnitudeLabel(eq.magnitude)}</div>
                       <div className="text-xs text-gray-500">
-                        {formatDistanceToNow(eq.time, { addSuffix: true })}
+                        {(() => {
+                          try {
+                            const d = eq.time instanceof Date && !isNaN(eq.time.getTime()) ? eq.time : new Date(eq.timestamp || Date.now());
+                            return formatDistanceToNow(d, { addSuffix: true });
+                          } catch {
+                            return 'recently';
+                          }
+                        })()}
                       </div>
                     </div>
                   </div>
                   <div className="text-sm text-gray-700 mb-2">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
                   <div className="text-xs text-gray-500 space-y-1">
                     <div>Depth: {formatDepth(eq.depth, unitSystem)}</div>
-                    <div>Time: {format(eq.time, 'PPpp')}</div>
+                    <div>
+                      Time: {(() => {
+                        try {
+                          const d = eq.time instanceof Date && !isNaN(eq.time.getTime()) ? eq.time : new Date(eq.timestamp || Date.now());
+                          return format(d, 'PPpp');
+                        } catch {
+                          return '';
+                        }
+                      })()}
+                    </div>
                     {eq.felt && eq.felt > 0 && (
                       <div className="text-amber-600 font-medium">
                         👋 {eq.felt} {eq.felt === 1 ? 'person' : 'people'} felt this

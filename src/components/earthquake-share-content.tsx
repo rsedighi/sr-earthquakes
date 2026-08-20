@@ -102,12 +102,22 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
   const locationContext = getLocationContext(earthquake.latitude, earthquake.longitude, unitSystem);
   
+  const formattedMag = typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) && earthquake.magnitude > 0
+    ? earthquake.magnitude.toFixed(1)
+    : '—';
+
   // Share URLs - constructed in useEffect for client-side only
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/earthquake/${earthquake.id}`
     : `/earthquake/${earthquake.id}`;
-  const shareTitle = `M${earthquake.magnitude.toFixed(1)} Earthquake near ${earthquake.place}`;
-  const shareText = `Just ${formatDistanceToNow(earthquake.time, { addSuffix: false })} ago - ${shareTitle}. Did you feel it?`;
+  const shareTitle = formattedMag !== '—' ? `M${formattedMag} Earthquake near ${earthquake.place}` : `Earthquake near ${earthquake.place}`;
+  const shareText = `Just ${(() => {
+    try {
+      return formatDistanceToNow(earthquake.time, { addSuffix: false });
+    } catch {
+      return 'recently';
+    }
+  })()} ago - ${shareTitle}. Did you feel it?`;
   
   // Warm the OG image cache by fetching it when the page loads
   // This triggers server-side generation and CDN caching
@@ -154,7 +164,8 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   };
   
   // Energy calculation (Gutenberg-Richter)
-  const energyJoules = Math.pow(10, 1.5 * earthquake.magnitude + 4.8);
+  const mag = earthquake.magnitude ?? 0;
+  const energyJoules = Math.pow(10, 1.5 * mag + 4.8);
   const tntKg = energyJoules / 4.184e6;
   
   // Format energy for display
@@ -167,17 +178,29 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
   
   // Determine severity level
   const getSeverityInfo = () => {
-    if (earthquake.magnitude >= 5) return { level: 'Significant', color: 'red', desc: 'Can cause damage' };
-    if (earthquake.magnitude >= 4) return { level: 'Moderate', color: 'orange', desc: 'Felt widely' };
-    if (earthquake.magnitude >= 3) return { level: 'Minor', color: 'yellow', desc: 'Often felt' };
-    if (earthquake.magnitude >= 2) return { level: 'Micro', color: 'lime', desc: 'Rarely felt' };
+    if (mag >= 5) return { level: 'Significant', color: 'red', desc: 'Can cause damage' };
+    if (mag >= 4) return { level: 'Moderate', color: 'orange', desc: 'Felt widely' };
+    if (mag >= 3) return { level: 'Minor', color: 'yellow', desc: 'Often felt' };
+    if (mag >= 2) return { level: 'Micro', color: 'lime', desc: 'Rarely felt' };
     return { level: 'Trace', color: 'green', desc: 'Not felt' };
   };
   
   const severity = getSeverityInfo();
 
-  const formattedDate = format(earthquake.time, 'EEEE, MMMM d, yyyy');
-  const formattedTime = format(earthquake.time, 'h:mm:ss a');
+  const formattedDate = (() => {
+    try {
+      return format(earthquake.time, 'EEEE, MMMM d, yyyy');
+    } catch {
+      return 'Recent';
+    }
+  })();
+  const formattedTime = (() => {
+    try {
+      return format(earthquake.time, 'h:mm:ss a');
+    } catch {
+      return '';
+    }
+  })();
   
   return (
     <div className="max-w-4xl mx-auto">
@@ -198,7 +221,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
                 className="text-4xl font-bold"
                 style={{ color: magnitudeColor }}
               >
-                {earthquake.magnitude.toFixed(1)}
+                {formattedMag}
               </span>
               <span className="text-xs text-neutral-400 uppercase tracking-wider">
                 {magnitudeLabel}
@@ -419,7 +442,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
             <MetricCard
               icon={<Zap className="w-4 h-4" />}
               label="Magnitude"
-              value={earthquake.magnitude.toFixed(2)}
+              value={typeof earthquake.magnitude === 'number' && !isNaN(earthquake.magnitude) ? earthquake.magnitude.toFixed(2) : '—'}
               color={magnitudeColor}
             />
             <MetricCard
@@ -483,7 +506,7 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
         <div className="p-4 border-b border-white/10">
           <AffiliateRecommendations 
             context="post-earthquake"
-            earthquakeMagnitude={earthquake.magnitude}
+            earthquakeMagnitude={earthquake.magnitude ?? 0}
             limit={6}
           />
         </div>
@@ -534,24 +557,24 @@ export function EarthquakeShareContent({ earthquake }: EarthquakeShareContentPro
             What This Means
           </h3>
           <div className="space-y-3 text-sm text-neutral-300">
-            {earthquake.magnitude >= 4 ? (
+            {mag >= 4 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is considered <span className="font-medium" style={{ color: magnitudeColor }}>{magnitudeLabel.toLowerCase()}</span> and 
+                A magnitude {mag.toFixed(1)} earthquake is considered <span className="font-medium" style={{ color: magnitudeColor }}>{magnitudeLabel.toLowerCase()}</span> and 
                 would typically be felt by most people in the area. Indoor objects may shake or rattle.
               </p>
-            ) : earthquake.magnitude >= 3 ? (
+            ) : mag >= 3 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is often felt by people indoors, especially 
+                A magnitude {mag.toFixed(1)} earthquake is often felt by people indoors, especially 
                 on upper floors. It may feel like a truck passing by.
               </p>
-            ) : earthquake.magnitude >= 2 ? (
+            ) : mag >= 2 ? (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is rarely felt by people but is recorded 
+                A magnitude {mag.toFixed(1)} earthquake is rarely felt by people but is recorded 
                 by seismometers. These small earthquakes are very common.
               </p>
             ) : (
               <p>
-                A magnitude {earthquake.magnitude.toFixed(1)} earthquake is typically not felt and is only detected 
+                A magnitude {mag.toFixed(1)} earthquake is typically not felt and is only detected 
                 by sensitive instruments. Thousands of these occur daily worldwide.
               </p>
             )}
