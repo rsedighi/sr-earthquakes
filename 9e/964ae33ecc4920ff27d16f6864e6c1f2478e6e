@@ -1,0 +1,29 @@
+src/components/earthquake-detail-map.tsx
+  s_1a6671c175e421::t_28b7c84e4d05d0 132
+src/components/fault-map.tsx
+  s_1a6671c175e421::t_3557dfd5bdfc4f 184
+src/components/leaflet-map.tsx
+  s_1a6671c175e421::t_e0349f22f95dc4 230,233
+src/env.d.ts
+  s_1a6671c175e421::t_6d96ada846530c 14
+src/middleware.ts
+  s_1a6671c175e421::t_5d1b0cf4851227 63
+src/pages/api/map-tiles/[z]/[x]/[tile].png.ts
+  s_1a6671c175e421::t_161eee8fe95b31 1-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9e964ae33ecc4920ff27d16f6864e6c1f2478e6e",
+  "prompts": {},
+  "sessions": {
+    "s_1a6671c175e421": {
+      "agent_id": {
+        "tool": "devin",
+        "id": "s_1a6671c175e421",
+        "model": "unknown"
+      },
+      "human_author": "Ramin <ramin@baytremor.com>"
+    }
+  }
+}
