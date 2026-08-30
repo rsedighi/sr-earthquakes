@@ -11,6 +11,7 @@ declare module '@astrojs/cloudflare/entrypoints/server.js' {
 // Augment it here with secrets and env vars not tracked in wrangler.toml.
 interface Env {
   OPENAI_API_KEY?: string;
+  CARTO_API?: string;
   APNS_KEY?: string;
   APNS_KEY_ID?: string;
   APNS_TEAM_ID?: string;

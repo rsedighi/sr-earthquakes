@@ -60,7 +60,7 @@ const securityHeadersMiddleware = defineMiddleware(async (_context, next) => {
 // ── Cache API: cache GET responses for public pages (10 min TTL) ─────────────
 const CACHE_TTL = 600; // 10 minutes
 // Bump CACHE_VERSION to invalidate all cached responses after a deploy.
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 // Dynamic routes whose HTML embeds hashed asset paths AND/OR per-user data —
 // must never be served from the edge HTML cache. Matches the exact path or
 // any sub-path (e.g. '/community' and '/community/general/foo').
