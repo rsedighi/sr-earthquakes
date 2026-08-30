@@ -1,0 +1,19 @@
+src/middleware.ts
+  s_479e77718b09a8::t_22f1091de9c006 63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "72535e13915c789b13448fea4893c989359ebcca",
+  "prompts": {},
+  "sessions": {
+    "s_479e77718b09a8": {
+      "agent_id": {
+        "tool": "devin",
+        "id": "s_479e77718b09a8",
+        "model": "unknown"
+      },
+      "human_author": "Ramin <ramin@baytremor.com>"
+    }
+  }
+}
