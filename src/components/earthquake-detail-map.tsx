@@ -39,6 +39,7 @@ export function EarthquakeDetailMap({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
+    AttributionControl: typeof import('react-leaflet').AttributionControl;
     TileLayer: typeof import('react-leaflet').TileLayer;
     CircleMarker: typeof import('react-leaflet').CircleMarker;
     Circle: typeof import('react-leaflet').Circle;
@@ -80,6 +81,7 @@ export function EarthquakeDetailMap({
       if (mounted) {
         setLeaflet({
           MapContainer: reactLeaflet.MapContainer,
+          AttributionControl: reactLeaflet.AttributionControl,
           TileLayer: reactLeaflet.TileLayer,
           CircleMarker: reactLeaflet.CircleMarker,
           Circle: reactLeaflet.Circle,
@@ -111,7 +113,7 @@ export function EarthquakeDetailMap({
     );
   }
 
-  const { MapContainer, TileLayer, CircleMarker, Circle, Popup } = leaflet;
+  const { MapContainer, AttributionControl, TileLayer, CircleMarker, Circle, Popup } = leaflet;
   const mainColor = getMagnitudeColor(earthquake.magnitude);
   const mainSize = getMagnitudeSize(earthquake.magnitude);
 
@@ -125,7 +127,9 @@ export function EarthquakeDetailMap({
         scrollWheelZoom={false}
         dragging={true}
         zoomControl={true}
+        attributionControl={false}
       >
+        <AttributionControl prefix={false} />
         {/* Dark mode tile layer - CartoDB Dark Matter */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

@@ -63,6 +63,7 @@ function LeafletMapInner({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
+    AttributionControl: typeof import('react-leaflet').AttributionControl;
     TileLayer: typeof import('react-leaflet').TileLayer;
     CircleMarker: typeof import('react-leaflet').CircleMarker;
     Circle: typeof import('react-leaflet').Circle;
@@ -111,6 +112,7 @@ function LeafletMapInner({
       if (mounted) {
         setLeaflet({
           MapContainer: reactLeaflet.MapContainer,
+          AttributionControl: reactLeaflet.AttributionControl,
           TileLayer: reactLeaflet.TileLayer,
           CircleMarker: reactLeaflet.CircleMarker,
           Circle: reactLeaflet.Circle,
@@ -214,7 +216,7 @@ function LeafletMapInner({
     );
   }
 
-  const { MapContainer, TileLayer, CircleMarker, Circle, Popup } = leaflet;
+  const { MapContainer, AttributionControl, TileLayer, CircleMarker, Circle, Popup } = leaflet;
 
   return (
     <div className={`relative ${className}`}>
@@ -223,9 +225,11 @@ function LeafletMapInner({
         zoom={9}
         className="w-full h-full min-h-[400px] rounded-xl z-0"
         style={{ background: '#1a1a1a' }}
+        attributionControl={false}
       >
         {/* Map controller for programmatic navigation */}
         <MapController region={activeRegion} focus={userLocation ? { lat: userLocation.lat, lon: userLocation.lon } : null} />
+        <AttributionControl prefix={false} />
         
         {/* Dark mode tile layer - CARTO Dark Matter via cached proxy */}
         <TileLayer

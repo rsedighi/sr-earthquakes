@@ -31,6 +31,7 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
+    AttributionControl: typeof import('react-leaflet').AttributionControl;
     TileLayer: typeof import('react-leaflet').TileLayer;
     GeoJSON: typeof import('react-leaflet').GeoJSON;
     CircleMarker: typeof import('react-leaflet').CircleMarker;
@@ -67,6 +68,7 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
       if (mounted) {
         setLeaflet({
           MapContainer: reactLeaflet.MapContainer,
+          AttributionControl: reactLeaflet.AttributionControl,
           TileLayer: reactLeaflet.TileLayer,
           GeoJSON: reactLeaflet.GeoJSON,
           CircleMarker: reactLeaflet.CircleMarker,
@@ -153,7 +155,7 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
     );
   }
 
-  const { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip } = leaflet;
+  const { MapContainer, AttributionControl, TileLayer, GeoJSON, CircleMarker, Tooltip } = leaflet;
 
   // Bay Area cities for reference
   const cities = [
@@ -177,7 +179,9 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
         className="w-full h-full z-0"
         style={{ background: '#1a1a1a' }}
         scrollWheelZoom={true}
+        attributionControl={false}
       >
+        <AttributionControl prefix={false} />
         {/* Dark mode tile layer - CartoDB Dark Matter */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
