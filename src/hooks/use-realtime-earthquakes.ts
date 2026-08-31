@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Earthquake } from '@/lib/types';
+import type { Earthquake, EarthquakeFeedSnapshot, FeedState } from '@/lib/types';
 import { getRegionForCoordinates } from '@/lib/regions';
+import { trackAction, trackError } from '@/components/datadog-rum';
 
 interface USGSFeature {
   id: string;
@@ -23,6 +24,7 @@ interface UseRealtimeEarthquakesOptions {
   feed?: 'all_hour' | 'all_day' | 'all_week';
   refreshInterval?: number;
   enabled?: boolean;
+  initialData?: EarthquakeFeedSnapshot;
 }
 
 interface UseRealtimeEarthquakesResult {
@@ -30,9 +32,12 @@ interface UseRealtimeEarthquakesResult {
   isLoading: boolean;
   error: Error | null;
   lastUpdated: Date | null;
+  feedState: FeedState;
   refresh: () => Promise<void>;
   isRefreshing: boolean;
 }
+
+const LIVE_FEED_MAX_AGE_MS = 5 * 60 * 1000;
 
 function convertFeature(feature: USGSFeature): Earthquake {
   const [longitude = 0, latitude = 0, depth = 0] = feature.geometry?.coordinates ?? [0, 0, 0];
@@ -63,36 +68,68 @@ export function useRealtimeEarthquakes({
   feed = 'all_day',
   refreshInterval = 60_000,
   enabled = true,
+  initialData,
 }: UseRealtimeEarthquakesOptions = {}): UseRealtimeEarthquakesResult {
-  const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [earthquakes, setEarthquakes] = useState<Earthquake[]>(initialData?.earthquakes ?? []);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData?.generatedAt ? new Date(initialData.generatedAt) : null);
+  const [feedState, setFeedState] = useState<FeedState>(initialData?.state ?? 'loading');
+  const earthquakesRef = useRef(initialData?.earthquakes ?? []);
+  const hasInitialDataRef = useRef(Boolean(initialData));
+  const hasValidFeedRef = useRef(Boolean(initialData && initialData.state !== 'unavailable'));
+  const requestIdRef = useRef(0);
   const wsRef = useRef<WebSocket | null>(null);
   const wsConnected = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
 
   const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setIsRefreshing(true);
+    const requestId = ++requestIdRef.current;
+    if (isRefresh || hasInitialDataRef.current) setIsRefreshing(true);
     else setIsLoading(true);
     setError(null);
+    const startedAt = performance.now();
 
     try {
       const res = await fetch(`/api/earthquakes?feed=${feed}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
 
-      const data = await res.json() as { features: USGSFeature[] };
-      const converted = (data.features || []).map(convertFeature);
+      const data = await res.json() as { features: USGSFeature[]; metadata?: { generated?: number } };
+      if (!Array.isArray(data.features)) throw new Error('Invalid earthquake feed');
+      const converted = data.features.map(convertFeature);
+      const generatedAt = typeof data.metadata?.generated === 'number' ? data.metadata.generated : null;
+      const sourceAgeMs = generatedAt === null ? null : Math.max(0, Date.now() - generatedAt);
       converted.sort((a, b) => b.timestamp - a.timestamp);
+      if (requestId !== requestIdRef.current) return;
+      earthquakesRef.current = converted;
+      hasValidFeedRef.current = true;
       setEarthquakes(converted);
-      setLastUpdated(new Date());
+      setError(null);
+      setLastUpdated(generatedAt === null ? null : new Date(generatedAt));
+      setFeedState(sourceAgeMs !== null && sourceAgeMs <= LIVE_FEED_MAX_AGE_MS ? 'live' : 'delayed');
+      if (!isRefresh) {
+        trackAction('feed_ready', {
+          feed,
+          earthquakeCount: converted.length,
+          latencyMs: Math.round(performance.now() - startedAt),
+          sourceAgeMs: sourceAgeMs ?? undefined,
+        });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+      if (requestId !== requestIdRef.current) return;
+      const error = err instanceof Error ? err : new Error('Unknown error');
+      setError(error);
+      setFeedState(hasValidFeedRef.current ? 'delayed' : 'unavailable');
+      trackError(error, { feed, operation: isRefresh ? 'refresh' : 'initial_load' });
+      trackAction('feed_failed', { feed, message: error.message });
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        hasInitialDataRef.current = false;
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, [feed]);
 
@@ -176,5 +213,12 @@ export function useRealtimeEarthquakes({
     return () => clearInterval(id);
   }, [enabled, refreshInterval, fetchData]);
 
-  return { earthquakes, isLoading, error, lastUpdated, refresh, isRefreshing };
+  useEffect(() => {
+    if (feedState !== 'live' || !lastUpdated) return;
+    const remainingFreshness = LIVE_FEED_MAX_AGE_MS - Math.max(0, Date.now() - lastUpdated.getTime());
+    const id = setTimeout(() => setFeedState(current => current === 'live' ? 'delayed' : current), Math.max(0, remainingFreshness));
+    return () => clearTimeout(id);
+  }, [feedState, lastUpdated]);
+
+  return { earthquakes, isLoading, error, lastUpdated, feedState, refresh, isRefreshing };
 }

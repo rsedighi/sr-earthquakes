@@ -12,6 +12,7 @@ import { getEarthquakeFeed, setEarthquakeFeed } from './kv';
 import type { USGSResponse, USGSFeature } from './types';
 import { featuresToInsertable, upsertEarthquakes } from './earthquakes-db';
 import { backfillRange } from './backfill';
+import { trackNewQuake } from './analytics';
 
 // Safety-net backfill: once per hour the cron walks the last 7 days of USGS
 // Bay Area data and re-upserts into D1. Idempotent (INSERT OR IGNORE), so this
@@ -25,12 +26,10 @@ const USGS_BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
 const FEEDS     = ['all_hour', 'all_day', 'all_week'] as const;
 type FeedName   = typeof FEEDS[number];
 
-interface CronEnv {
-  EARTHQUAKE_KV:   KVNamespace;
-  EARTHQUAKE_ROOM: DurableObjectNamespace;
-  NOTIFICATION_QUEUE?: Queue;
-  DB?: D1Database;
-}
+type CronEnv = Pick<
+  Env,
+  'EARTHQUAKE_KV' | 'EARTHQUAKE_ROOM' | 'NOTIFICATION_QUEUE' | 'DB' | 'ANALYTICS'
+>;
 
 async function fetchUSGS(feed: FeedName): Promise<USGSResponse> {
   const res = await fetch(`${USGS_BASE}/${feed}.geojson`);

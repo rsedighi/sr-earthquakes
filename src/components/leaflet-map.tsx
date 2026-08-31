@@ -8,6 +8,7 @@ import { Search, MapPin, X, Loader2, Target, Navigation } from 'lucide-react';
 import { formatDistance, formatDepth, formatDistanceBoth, kmToMiles } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { getLocationContext } from '@/lib/regions';
+import { trackAction, trackError } from '@/components/datadog-rum';
 
 // Quick-zoom region presets for Bay Area
 const REGION_PRESETS = [
@@ -60,6 +61,10 @@ function LeafletMapInner({
   const [hoveredQuake, setHoveredQuake] = useState<Earthquake | null>(null);
   const [containerClean, setContainerClean] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<Error | null>(null);
+  const [tileState, setTileState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const tileReadyTracked = useRef(false);
+  const tileFailureTracked = useRef(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [leaflet, setLeaflet] = useState<{
     MapContainer: typeof import('react-leaflet').MapContainer;
@@ -124,7 +129,13 @@ function LeafletMapInner({
       }
     };
 
-    loadLeaflet();
+    loadLeaflet().catch((err) => {
+      if (!mounted) return;
+      const error = err instanceof Error ? err : new Error('Map module failed to load');
+      setMapError(error);
+      trackError(error, { component: 'leaflet-map', phase: 'module_load' });
+      trackAction('map_failed', { phase: 'module_load', message: error.message });
+    });
 
     return () => {
       mounted = false;
@@ -208,9 +219,34 @@ function LeafletMapInner({
     }
   }, [userLocation]);
 
+  const handleTilesLoaded = useCallback(() => {
+    setTileState('ready');
+    if (!tileReadyTracked.current) {
+      tileReadyTracked.current = true;
+      trackAction('map_ready', { earthquakeCount: earthquakes.length });
+    }
+  }, [earthquakes.length]);
+
+  const handleTileError = useCallback((event: import('leaflet').TileErrorEvent) => {
+    setTileState('error');
+    if (!tileFailureTracked.current) {
+      tileFailureTracked.current = true;
+      trackError(event.error, { component: 'leaflet-map', phase: 'tile_load' });
+      trackAction('map_failed', { phase: 'tile_load', message: event.error.message });
+    }
+  }, []);
+
+  if (mapError) {
+    return (
+      <div data-map-state="error" className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
+        <p className="text-sm text-neutral-400">Map temporarily unavailable</p>
+      </div>
+    );
+  }
+
   if (!containerClean || !mapReady || !leaflet) {
     return (
-      <div ref={wrapperRef} className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
+      <div ref={wrapperRef} data-map-state="loading" className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
         <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
       </div>
     );
@@ -219,7 +255,7 @@ function LeafletMapInner({
   const { MapContainer, AttributionControl, TileLayer, CircleMarker, Circle, Popup } = leaflet;
 
   return (
-    <div className={`relative ${className}`}>
+    <div data-map-state={tileState} className={`relative ${className}`}>
       <MapContainer
         center={[37.75, -122.0]}
         zoom={9}
@@ -235,6 +271,7 @@ function LeafletMapInner({
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="/api/map-tiles/{z}/{x}/{y}{r}.png"
+          eventHandlers={{ load: handleTilesLoaded, tileerror: handleTileError }}
         />
         
         {/* User location circle radius */}

@@ -6,6 +6,7 @@
 
 const KEYS = {
   feed:        (name: string) => `feed:${name}`,
+  lastFeed:    (name: string) => `feed:last-known:${name}`,
   city:        (slug: string) => `city:${slug}`,
   aiSummary:   (quakeId: string) => `ai-summary:${quakeId}`,
   featureFlag: (key: string) => `flag:${key}`,
@@ -32,6 +33,14 @@ export async function getEarthquakeFeed<T = unknown>(
   return value as T | null;
 }
 
+export async function getLastKnownEarthquakeFeed<T = unknown>(
+  kv: KVNamespace,
+  feed: 'all_hour' | 'all_day' | 'all_week',
+): Promise<T | null> {
+  const value = await kv.get(KEYS.lastFeed(feed), 'json');
+  return value as T | null;
+}
+
 export async function setEarthquakeFeed<T = unknown>(
   kv: KVNamespace,
   feed: 'all_hour' | 'all_day' | 'all_week',
@@ -39,7 +48,13 @@ export async function setEarthquakeFeed<T = unknown>(
   ttlSeconds?: number,
 ): Promise<void> {
   const ttl = ttlSeconds ?? (feed === 'all_hour' ? TTL.FEED_HOUR : feed === 'all_day' ? TTL.FEED_DAY : TTL.FEED_WEEK);
-  await kv.put(KEYS.feed(feed), JSON.stringify(data), { expirationTtl: ttl });
+  const serialized = JSON.stringify(data);
+  const [currentWrite, lastKnownWrite] = await Promise.allSettled([
+    kv.put(KEYS.feed(feed), serialized, { expirationTtl: ttl }),
+    kv.put(KEYS.lastFeed(feed), serialized),
+  ]);
+  if (lastKnownWrite.status === 'rejected') console.error('[kv] last-known feed write failed:', lastKnownWrite.reason);
+  if (currentWrite.status === 'rejected') throw currentWrite.reason;
 }
 
 // ── City cache ────────────────────────────────────────────────────────────────

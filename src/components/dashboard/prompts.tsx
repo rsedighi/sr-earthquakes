@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-import type { Earthquake } from '@/lib/types';
+import type { Earthquake, FeedState } from '@/lib/types';
 import { getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { useUnits } from '@/lib/unit-context';
@@ -277,40 +277,57 @@ export function NewEarthquakeToast({
   );
 }
 
-export function LiveTimestamp({ lastUpdated, isRefreshing }: { lastUpdated: Date | null; isRefreshing: boolean }) {
+export function LiveTimestamp({
+  lastUpdated,
+  isRefreshing,
+  feedState,
+}: {
+  lastUpdated: Date | null;
+  isRefreshing: boolean;
+  feedState: FeedState;
+}) {
   const [, forceUpdate] = useState(0);
-  
+
   useEffect(() => {
     if (!lastUpdated) return;
     const interval = setInterval(() => forceUpdate(n => n + 1), 1000);
     return () => clearInterval(interval);
   }, [lastUpdated]);
-  
-  if (!lastUpdated) return null;
-  
-  const secondsAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-  
-  let timeText: string;
-  if (secondsAgo < 5) {
-    timeText = 'just now';
-  } else if (secondsAgo < 60) {
-    timeText = `${secondsAgo}s ago`;
-  } else if (secondsAgo < 3600) {
-    const minutes = Math.floor(secondsAgo / 60);
-    timeText = `${minutes}m ago`;
-  } else {
-    timeText = format(lastUpdated, 'h:mm a');
+
+  const secondsAgo = lastUpdated ? Math.max(0, Math.floor((Date.now() - lastUpdated.getTime()) / 1000)) : null;
+  let timeText: string | null = null;
+  if (secondsAgo !== null && lastUpdated) {
+    if (secondsAgo < 5) {
+      timeText = 'just now';
+    } else if (secondsAgo < 60) {
+      timeText = `${secondsAgo}s ago`;
+    } else if (secondsAgo < 3600) {
+      timeText = `${Math.floor(secondsAgo / 60)}m ago`;
+    } else {
+      timeText = format(lastUpdated, 'h:mm a');
+    }
   }
-  
+
+  const status = feedState === 'live'
+    ? { label: isRefreshing ? 'Updating' : 'Live', classes: 'bg-green-500/15 border-green-500/30 text-green-200', dot: 'bg-green-500' }
+    : feedState === 'delayed'
+      ? { label: isRefreshing ? 'Retrying' : 'Delayed', classes: 'bg-amber-500/15 border-amber-500/30 text-amber-200', dot: 'bg-amber-400' }
+      : feedState === 'unavailable'
+        ? { label: isRefreshing ? 'Retrying' : 'Unavailable', classes: 'bg-red-500/15 border-red-500/30 text-red-200', dot: 'bg-red-400' }
+        : { label: 'Connecting', classes: 'bg-white/10 border-white/20 text-neutral-300', dot: 'bg-neutral-400' };
+
   return (
-    <span className="hidden md:flex items-center gap-1.5 text-sm text-neutral-500" suppressHydrationWarning>
-      <span className={`transition-opacity ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
-        Updated {timeText}
-      </span>
-      {isRefreshing && (
-        <Loader2 className="w-3 h-3 animate-spin" />
-      )}
-    </span>
+    <div
+      role="status"
+      aria-live="polite"
+      className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs sm:text-sm ${status.classes}`}
+      suppressHydrationWarning
+    >
+      <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${status.dot} ${isRefreshing ? 'animate-pulse' : ''}`} />
+      <span className="font-medium">{status.label}</span>
+      {timeText && <span className="hidden sm:inline opacity-70">· {timeText}</span>}
+      {isRefreshing && <Loader2 className="w-3 h-3 animate-spin" />}
+    </div>
   );
 }
 

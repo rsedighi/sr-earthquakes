@@ -1,6 +1,33 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { DashboardWithProviders } from '@/components/dashboard-with-providers';
+import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { loadHomepageSnapshot } from '@/lib/server-data';
+
+const { env } = Astro.locals.runtime;
+const snapshot = await loadHomepageSnapshot(env.EARTHQUAKE_KV);
+const latestEarthquake = snapshot.earthquakes[0] ?? null;
+const latestSignificant = snapshot.earthquakes.find(earthquake => earthquake.magnitude >= 2.5) ?? null;
+const primaryEarthquake = latestSignificant ?? latestEarthquake;
+const primaryLabel = latestSignificant ? 'Latest significant earthquake' : 'Latest Bay Area earthquake';
+const generatedText = snapshot.generatedAt
+  ? new Date(snapshot.generatedAt).toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    })
+  : null;
+const formatEarthquakeTime = (timestamp: number) => new Date(timestamp).toLocaleString('en-US', {
+  timeZone: 'America/Los_Angeles',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short',
+});
 ---
 
 <BaseLayout>
@@ -8,5 +35,111 @@ import { DashboardWithProviders } from '@/components/dashboard-with-providers';
     client:only="react"
     historicalSummary={null}
     initialTab="live"
-  />
+    initialFeed={snapshot}
+  >
+    <div
+      slot="fallback"
+      id="server-earthquake-snapshot"
+      data-monitor-state={snapshot.state === 'unavailable' ? 'error' : 'ready'}
+      data-feed-state={snapshot.state}
+      class="min-h-screen bg-[#0a0a0a] text-white"
+    >
+      <header class="border-b border-white/10 bg-[#0a0a0a]">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="font-semibold text-sm sm:text-lg">Bay Area Quake Tracker</h1>
+            <p class="text-[10px] sm:text-xs text-neutral-500">Current USGS earthquake information</p>
+          </div>
+          <div class:list={[
+            'flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs sm:text-sm font-medium',
+            snapshot.state === 'live' && 'bg-green-500/15 border-green-500/30 text-green-200',
+            snapshot.state === 'delayed' && 'bg-amber-500/15 border-amber-500/30 text-amber-200',
+            snapshot.state === 'unavailable' && 'bg-red-500/15 border-red-500/30 text-red-200',
+          ]} role="status">
+            <span class:list={[
+              'w-2 h-2 rounded-full',
+              snapshot.state === 'live' && 'bg-green-500',
+              snapshot.state === 'delayed' && 'bg-amber-400',
+              snapshot.state === 'unavailable' && 'bg-red-400',
+            ]}></span>
+            {snapshot.state === 'live' ? 'Live' : snapshot.state === 'delayed' ? 'Delayed' : 'Unavailable'}
+          </div>
+        </div>
+      </header>
+
+      <main class="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 space-y-4">
+        {snapshot.state !== 'live' && (
+          <div class:list={[
+            'px-4 py-3 rounded-xl border',
+            snapshot.state === 'delayed' && 'bg-amber-500/10 border-amber-500/30 text-amber-100',
+            snapshot.state === 'unavailable' && 'bg-red-500/10 border-red-500/30 text-red-100',
+          ]} role="alert">
+            <p class="text-sm font-semibold">
+              {snapshot.state === 'delayed' ? 'Earthquake updates are delayed' : 'Live earthquake data is unavailable'}
+            </p>
+            <p class="text-xs mt-1 opacity-80">
+              {snapshot.state === 'delayed'
+                ? 'Showing the last known USGS earthquake information.'
+                : 'No current or last-known feed could be loaded. Check the official USGS earthquake map.'}
+            </p>
+          </div>
+        )}
+
+        {primaryEarthquake ? (
+          <section class="card p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <p class="text-[10px] sm:text-xs uppercase tracking-wider text-neutral-500 font-medium">{primaryLabel}</p>
+              <p class="text-xs text-neutral-400">Event time: {formatEarthquakeTime(primaryEarthquake.timestamp)}</p>
+            </div>
+            <div class="flex items-center gap-4">
+              <div
+                class="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 border-2"
+                style={`color:${getMagnitudeColor(primaryEarthquake.magnitude)};background:${getMagnitudeColor(primaryEarthquake.magnitude)}20;border-color:${getMagnitudeColor(primaryEarthquake.magnitude)}50`}
+              >
+                <span class="text-2xl font-light">{primaryEarthquake.magnitude.toFixed(1)}</span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h2 class="text-lg sm:text-xl font-semibold">{primaryEarthquake.place}</h2>
+                <p class="text-sm text-neutral-400 mt-1">
+                  {getMagnitudeLabel(primaryEarthquake.magnitude)} earthquake · {primaryEarthquake.depth.toFixed(1)} km deep
+                  {primaryEarthquake.felt ? ` · ${primaryEarthquake.felt} felt reports` : ''}
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-white/5">
+              <a href={`/earthquake/${primaryEarthquake.id}`} class="px-3 py-2 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200">
+                View event details
+              </a>
+              <a href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/15">
+                Open official USGS map
+              </a>
+            </div>
+          </section>
+        ) : (
+          <section class="card p-5">
+            <h2 class="text-lg font-semibold">No Bay Area earthquake events are available</h2>
+            <p class="text-sm text-neutral-400 mt-2">Check the official USGS map for current earthquake information.</p>
+            <a href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" rel="noopener noreferrer" class="inline-flex mt-4 px-3 py-2 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200">
+              Open official USGS map
+            </a>
+          </section>
+        )}
+
+        {latestEarthquake && primaryEarthquake?.id !== latestEarthquake.id && (
+          <section class="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <p class="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Latest earthquake of any magnitude</p>
+              <p class="text-sm font-medium mt-1">M{latestEarthquake.magnitude.toFixed(1)} · {latestEarthquake.place}</p>
+            </div>
+            <p class="text-xs text-neutral-400">{formatEarthquakeTime(latestEarthquake.timestamp)}</p>
+          </section>
+        )}
+
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500 px-1">
+          <span>Source: U.S. Geological Survey</span>
+          <span>{generatedText ? `Feed generated ${generatedText}` : 'Feed generation time unavailable'}</span>
+        </div>
+      </main>
+    </div>
+  </DashboardWithProviders>
 </BaseLayout>

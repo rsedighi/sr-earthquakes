@@ -14,6 +14,14 @@ export interface Earthquake {
   region: string;
 }
 
+export type FeedState = 'loading' | 'live' | 'delayed' | 'unavailable';
+
+export interface EarthquakeFeedSnapshot {
+  earthquakes: Earthquake[];
+  generatedAt: number | null;
+  state: Exclude<FeedState, 'loading'>;
+}
+
 export interface Region {
   id: string;
   name: string;

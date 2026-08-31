@@ -1,4 +1,4 @@
-import type { Earthquake } from '@/lib/types';
+import type { Earthquake, EarthquakeFeedSnapshot } from '@/lib/types';
 
 export type TabId = 'live' | 'community' | 'neighborhood' | 'compare' | 'history' | 'learn';
 
@@ -60,6 +60,7 @@ export interface HistoricalSummary {
 export interface DashboardProps {
   historicalSummary: HistoricalSummary | null;
   initialTab?: TabId;
+  initialFeed?: EarthquakeFeedSnapshot;
   forumCategory?: ForumCategory;
   forumThread?: string;
 }

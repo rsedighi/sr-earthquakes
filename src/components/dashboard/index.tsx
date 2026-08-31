@@ -25,6 +25,7 @@ import { QuickReportButton } from '@/components/community-hub';
 import { QuickReportModal } from '@/components/quick-report-modal';
 import { FeedbackModal } from '@/components/feedback-modal';
 import { EarthquakeDetailModal } from '@/components/earthquake-detail-modal';
+import { trackAction } from '@/components/datadog-rum';
 
 import type { DashboardProps, HotspotRegion } from './types';
 import { deduplicateEarthquakes } from './utils';
@@ -56,7 +57,7 @@ const RegionComparison = dynamic(() => import('@/components/region-comparison').
 });
 
 
-export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardProps) {
+export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed }: DashboardProps) {
   const { unitSystem } = useUnits();
   const activeTab = initialTab;
 
@@ -107,15 +108,29 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
   }, [showCitySelector, showAllQuakes]);
 
   // --- Real-time data ---
-  const { 
-    earthquakes: realtimeQuakes, 
-    isLoading, 
-    lastUpdated, 
+  const {
+    earthquakes: realtimeQuakes,
+    isLoading,
+    error: realtimeError,
+    lastUpdated,
+    feedState,
     refresh,
-    isRefreshing 
+    isRefreshing,
   } = useRealtimeEarthquakes({
     feed: 'all_week',
+    initialData: initialFeed,
   });
+
+  const dashboardReadyTracked = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !dashboardReadyTracked.current) {
+      dashboardReadyTracked.current = true;
+      trackAction('dashboard_ready', {
+        feedState,
+        earthquakeCount: realtimeQuakes.length,
+      });
+    }
+  }, [isLoading, feedState, realtimeQuakes.length]);
 
   // --- Historical data (lazy) ---
   const [historicalQuakes, setHistoricalQuakes] = useState<Earthquake[]>([]);
@@ -367,7 +382,12 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
 
   // ========== RENDER ==========
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div
+      id="baytremor-dashboard"
+      data-monitor-state={feedState === 'unavailable' ? 'error' : 'ready'}
+      data-feed-state={feedState}
+      className="min-h-screen bg-[#0a0a0a] text-white"
+    >
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
@@ -399,31 +419,62 @@ export function Dashboard({ historicalSummary, initialTab = 'live' }: DashboardP
                   )}
                 </button>
               )}
-              <LiveTimestamp lastUpdated={lastUpdated} isRefreshing={isRefreshing} />
-              <button 
+              <LiveTimestamp lastUpdated={lastUpdated} isRefreshing={isRefreshing} feedState={feedState} />
+              <button
                 onClick={refresh}
                 disabled={isRefreshing}
                 className="p-1.5 sm:p-2 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-50"
-                aria-label="Refresh data"
+                aria-label="Refresh earthquake data"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-all ${
-                isRefreshing 
-                  ? 'bg-green-500/20 border-green-500/40' 
-                  : 'bg-white/10 border-white/20'
-              }`}>
-                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 ${
-                  isRefreshing ? 'animate-ping' : 'animate-pulse-gentle'
-                }`} />
-                <span className="text-white text-xs sm:text-sm font-medium">Live</span>
-              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 pb-24 md:pb-6 space-y-3 sm:space-y-4">
+        {activeTab === 'live' && (feedState === 'delayed' || feedState === 'unavailable') && (
+          <div
+            role="alert"
+            className={`flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border ${
+              feedState === 'unavailable'
+                ? 'bg-red-500/10 border-red-500/30 text-red-100'
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-100'
+            }`}
+          >
+            <div className="flex-1">
+              <p className="text-sm font-semibold">
+                {feedState === 'unavailable' ? 'Live earthquake data is unavailable' : 'Earthquake updates are delayed'}
+              </p>
+              <p className="text-xs mt-0.5 opacity-80">
+                {feedState === 'unavailable'
+                  ? 'No current feed could be loaded. Retry or check the official USGS earthquake map.'
+                  : realtimeError
+                    ? 'The latest refresh failed. Showing the last known earthquake information.'
+                    : 'Showing the latest available USGS information while we wait for a newer update.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={refresh}
+                disabled={isRefreshing}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-medium disabled:opacity-50"
+              >
+                {isRefreshing ? 'Retrying…' : 'Retry now'}
+              </button>
+              <a
+                href="https://earthquake.usgs.gov/earthquakes/map/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs font-semibold"
+              >
+                Open USGS
+              </a>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'live' && (
           <LiveTab
             realtimeQuakes={realtimeQuakes}

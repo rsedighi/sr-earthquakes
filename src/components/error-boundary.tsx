@@ -4,6 +4,7 @@ import { Component } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import Link from 'next/link';
+import { trackAction, trackError } from '@/components/datadog-rum';
 
 interface Props {
   children: ReactNode;
@@ -32,6 +33,8 @@ export class ErrorBoundary extends Component<Props, State> {
     // In production, you could send this to an error reporting service
     if (import.meta.env.PROD) {
       // Example: sendToErrorReportingService(error, errorInfo);
+      trackError(error, { componentStack: errorInfo.componentStack });
+      trackAction('error_boundary_rendered', { message: error.message });
     }
   }
 
@@ -46,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-[400px] flex items-center justify-center p-8">
+        <div data-monitor-state="error" className="min-h-[400px] flex items-center justify-center p-8">
           <div className="max-w-md w-full text-center">
             <div className="w-16 h-16 mx-auto mb-6 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-red-400" />

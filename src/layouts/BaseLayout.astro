@@ -128,6 +128,7 @@ const schemas = schema ?? generateHomepageSchemas();
         datadogRum.setGlobalContextProperty('region', 'bay_area');
         // Expose for helper functions elsewhere in the app.
         (window as any).__ddRum = datadogRum;
+        (window as any).DD_RUM = datadogRum;
       } else if (isPlaceholderAppId || isPlaceholderToken) {
         if (import.meta.env.DEV) {
           console.warn(

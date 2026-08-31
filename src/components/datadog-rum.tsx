@@ -13,6 +13,15 @@ function getRum(): Promise<DatadogRumModule> {
   return rumPromise;
 }
 
+async function withRum(callback: (rum: DatadogRumModule['datadogRum']) => void): Promise<void> {
+  try {
+    const { datadogRum } = await getRum();
+    if (datadogRum.getInitConfiguration()) callback(datadogRum);
+  } catch {
+    return;
+  }
+}
+
 export function DatadogRUM() {
   useEffect(() => {
     const applicationId = import.meta.env.PUBLIC_DD_APPLICATION_ID;
@@ -60,27 +69,27 @@ export function DatadogRUM() {
 }
 
 export function trackAction(name: string, context?: Record<string, unknown>) {
-  getRum().then(({ datadogRum }) => datadogRum.addAction(name, context));
+  void withRum((datadogRum) => datadogRum.addAction(name, context));
 }
 
 export function trackError(error: Error, context?: Record<string, unknown>) {
-  getRum().then(({ datadogRum }) => datadogRum.addError(error, context));
+  void withRum((datadogRum) => datadogRum.addError(error, context));
 }
 
 export function setUser(user: { id?: string; name?: string; email?: string }) {
-  getRum().then(({ datadogRum }) => datadogRum.setUser(user));
+  void withRum((datadogRum) => datadogRum.setUser(user));
 }
 
 export function trackView(name: string) {
-  getRum().then(({ datadogRum }) => datadogRum.startView({ name }));
+  void withRum((datadogRum) => datadogRum.startView({ name }));
 }
 
 export function trackFeatureFlag(flagKey: string, value: boolean | string) {
-  getRum().then(({ datadogRum }) => datadogRum.addFeatureFlagEvaluation(flagKey, value));
+  void withRum((datadogRum) => datadogRum.addFeatureFlagEvaluation(flagKey, value));
 }
 
 export function trackFeatureFlags(flags: Record<string, boolean | string>) {
-  getRum().then(({ datadogRum }) => {
+  void withRum((datadogRum) => {
     Object.entries(flags).forEach(([key, value]) => {
       datadogRum.addFeatureFlagEvaluation(key, value);
     });
