@@ -1,5 +1,6 @@
 import { defineMiddleware, sequence } from 'astro:middleware';
 import { trackPageView } from '@/lib/analytics';
+import { classifyTraffic } from '@/lib/telemetry-shared';
 
 // ── Security headers (ported from next.config.js) ────────────────────────────
 const SECURITY_HEADERS: Record<string, string> = {
@@ -11,11 +12,11 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'Content-Security-Policy-Report-Only': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://*.datadoghq.com https://static.cloudflareinsights.com https://ep2.adtrafficquality.google https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://static.cloudflareinsights.com https://ep2.adtrafficquality.google https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
     "style-src 'self' 'unsafe-inline' https://unpkg.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://ws-na.amazon-adsystem.com https://www.google-analytics.com https://ep1.adtrafficquality.google",
     "font-src 'self'",
-    "connect-src 'self' https://earthquake.usgs.gov wss: https://*.datadoghq.com https://browser-intake-datadoghq.com https://www.google-analytics.com https://cloudflareinsights.com",
+    "connect-src 'self' https://earthquake.usgs.gov wss: https://www.google-analytics.com https://cloudflareinsights.com",
     "frame-src 'self' https://googleads.g.doubleclick.net https://ep2.adtrafficquality.google https://www.google.com/recaptcha/",
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -23,6 +24,17 @@ const SECURITY_HEADERS: Record<string, string> = {
     "form-action 'self'",
   ].join('; '),
 };
+
+const CANONICAL_HOST = 'baytremor.com';
+
+const canonicalHostMiddleware = defineMiddleware(async (context, next) => {
+  const url = new URL(context.request.url);
+  if (url.hostname === `www.${CANONICAL_HOST}`) {
+    url.hostname = CANONICAL_HOST;
+    return new Response(null, { status: 301, headers: { Location: url.toString() } });
+  }
+  return next();
+});
 
 const geoMiddleware = defineMiddleware(async (context, next) => {
   // Cloudflare Workers expose the parsed CF properties via Astro.locals.runtime.cf
@@ -59,8 +71,9 @@ const securityHeadersMiddleware = defineMiddleware(async (_context, next) => {
 
 // ── Cache API: cache GET responses for public pages (10 min TTL) ─────────────
 const CACHE_TTL = 600; // 10 minutes
-// Bump CACHE_VERSION to invalidate all cached responses after a deploy.
-const CACHE_VERSION = 'v7';
+// Browsers must always revalidate HTML so a cached page can never reference
+// hashed assets from a previous deployment.
+const BROWSER_HTML_CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 // Dynamic routes whose HTML embeds hashed asset paths AND/OR per-user data —
 // must never be served from the edge HTML cache. Matches the exact path or
 // any sub-path (e.g. '/community' and '/community/general/foo').
@@ -69,15 +82,23 @@ const CACHE_BYPASS_PATHS = ['/', '/api', '/community', '/my-area', '/history'];
 const cacheMiddleware = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
   const start = Date.now();
-  const ae = context.locals.runtime?.env?.ANALYTICS;
+  const env = context.locals.runtime?.env;
+  const ae = env?.ANALYTICS;
   const country = context.locals.cf?.country;
+  const cf = context.locals.runtime?.cf as { verifiedBotCategory?: string } | undefined;
+  const traffic = classifyTraffic({
+    userAgent: context.request.headers.get('user-agent'),
+    verifiedBotCategory: cf?.verifiedBotCategory,
+  });
+  // Every deployment gets a fresh edge-cache namespace automatically.
+  const cacheVersion = env?.CF_VERSION_METADATA?.id ?? 'dev';
 
   if (context.request.method !== 'GET') return next();
 
   // Bypass for private/dynamic routes
   if (CACHE_BYPASS_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) {
     const r = await next();
-    trackPageView(ae, { route: url.pathname, country, status: r.status, cacheHit: false, durationMs: Date.now() - start });
+    trackPageView(ae, { route: url.pathname, country, status: r.status, cacheHit: false, durationMs: Date.now() - start, traffic });
     return r;
   }
 
@@ -91,22 +112,19 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
   const cache = typeof caches !== 'undefined' ? caches.default : null;
   if (!cache) return next();
 
-  // Cache key: URL-only + version. Including all request headers causes
+  // Cache key: URL-only + deployment version. Including all request headers causes
   // fragmentation and unpredictable hits (Cache API ignores most headers anyway).
   const versionedUrl = new URL(url.toString());
-  versionedUrl.searchParams.set('__cv', CACHE_VERSION);
+  versionedUrl.searchParams.set('__cv', cacheVersion);
   const cacheKey = new Request(versionedUrl.toString(), { method: 'GET' });
   const cached = await cache.match(cacheKey);
   // Defensive: never serve cached redirects or non-2xx responses.
   if (cached && cached.ok && cached.status >= 200 && cached.status < 300) {
-    trackPageView(ae, { route: url.pathname, country, status: cached.status, cacheHit: true, durationMs: Date.now() - start });
-    return new Response(cached.body, {
-      status: cached.status,
-      headers: new Headers([
-        ...cached.headers,
-        ['X-Cache', 'HIT'],
-      ] as [string, string][]),
-    });
+    trackPageView(ae, { route: url.pathname, country, status: cached.status, cacheHit: true, durationMs: Date.now() - start, traffic });
+    const headers = new Headers(cached.headers);
+    headers.set('X-Cache', 'HIT');
+    headers.set('Cache-Control', BROWSER_HTML_CACHE_CONTROL);
+    return new Response(cached.body, { status: cached.status, headers });
   }
 
   const response = await next();
@@ -118,10 +136,11 @@ const cacheMiddleware = defineMiddleware(async (context, next) => {
     cacheableResponse.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`);
     context.locals.runtime?.ctx?.waitUntil?.(cache.put(cacheKey, cacheableResponse));
     response.headers.set('X-Cache', 'MISS');
+    response.headers.set('Cache-Control', BROWSER_HTML_CACHE_CONTROL);
   }
 
-  trackPageView(ae, { route: url.pathname, country, status: response.status, cacheHit: false, durationMs: Date.now() - start });
+  trackPageView(ae, { route: url.pathname, country, status: response.status, cacheHit: false, durationMs: Date.now() - start, traffic });
   return response;
 });
 
-export const onRequest = sequence(geoMiddleware, securityHeadersMiddleware, cacheMiddleware);
+export const onRequest = sequence(canonicalHostMiddleware, geoMiddleware, securityHeadersMiddleware, cacheMiddleware);

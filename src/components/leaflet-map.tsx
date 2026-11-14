@@ -8,7 +8,7 @@ import { Search, MapPin, X, Loader2, Target, Navigation } from 'lucide-react';
 import { formatDistance, formatDepth, formatDistanceBoth, kmToMiles } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { getLocationContext } from '@/lib/regions';
-import { trackAction, trackError } from '@/components/datadog-rum';
+import { trackAction, trackError } from '@/lib/telemetry';
 
 // Quick-zoom region presets for Bay Area
 const REGION_PRESETS = [

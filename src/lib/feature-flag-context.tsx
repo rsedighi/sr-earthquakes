@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { datadogRum } from '@datadog/browser-rum';
+import { trackAction } from '@/lib/telemetry';
+import type { TelemetryEvent } from '@/lib/telemetry-shared';
 
 /**
  * Client-side Feature Flag Context and Hooks
@@ -76,31 +77,18 @@ function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
 }
 
 /**
- * Track feature flag evaluation in Datadog RUM
+ * Track feature flag evaluation
  */
 function trackFeatureFlagEvaluation(
   flagKey: string,
   result: FeatureFlagResult
 ): void {
-  try {
-    // Check if RUM is initialized
-    if (!datadogRum.getInitConfiguration()) {
-      return;
-    }
-    
-    // Add feature flag evaluation to RUM context
-    datadogRum.addFeatureFlagEvaluation(flagKey, result.enabled);
-    
-    // Also track as custom action for detailed analytics
-    datadogRum.addAction('feature_flag_evaluated', {
-      flag_key: flagKey,
-      enabled: result.enabled,
-      variant: result.variant,
-      reason: result.reason,
-    });
-  } catch {
-    // Silently fail if RUM is not available
-  }
+  trackAction('feature_flag_evaluated', {
+    flag_key: flagKey,
+    enabled: result.enabled,
+    variant: result.variant ?? null,
+    reason: result.reason,
+  });
 }
 
 export function FeatureFlagProvider({
@@ -147,7 +135,7 @@ export function FeatureFlagProvider({
       
       const data = await response.json() as { flags: Record<string, FeatureFlagResult> };
       
-      // Track evaluations in Datadog RUM
+      // Track evaluations
       Object.entries(data.flags).forEach(
         ([key, result]) => {
           trackFeatureFlagEvaluation(key, result);
@@ -293,25 +281,14 @@ export function FeatureGate({
 }
 
 /**
- * Track custom feature flag event in Datadog
+ * Track custom feature flag event
  */
 export function trackFeatureFlagEvent(
-  eventName: string,
+  eventName: TelemetryEvent,
   flagKey: string,
   context?: Record<string, unknown>
 ): void {
-  try {
-    if (!datadogRum.getInitConfiguration()) {
-      return;
-    }
-    
-    datadogRum.addAction(eventName, {
-      flag_key: flagKey,
-      ...context,
-    });
-  } catch {
-    // Silently fail if RUM is not available
-  }
+  trackAction(eventName, { flag_key: flagKey, ...context });
 }
 
 export default FeatureFlagProvider;

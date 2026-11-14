@@ -74,3 +74,7 @@ crons = ["*/1 * * * *"]
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "earthquake_events"
+
+# ── Deployment version (cache keys, telemetry release tagging) ───────────────
+[version_metadata]
+binding = "CF_VERSION_METADATA"

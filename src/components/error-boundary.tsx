@@ -4,7 +4,7 @@ import { Component } from 'react';
 import type { ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import Link from 'next/link';
-import { trackAction, trackError } from '@/components/datadog-rum';
+import { trackAction, trackError } from '@/lib/telemetry';
 
 interface Props {
   children: ReactNode;

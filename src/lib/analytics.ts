@@ -16,6 +16,8 @@
  *   GROUP BY index1, blob1
  */
 
+import { routeFamily, type TrafficClass } from '@/lib/telemetry-shared';
+
 type AE = AnalyticsEngineDataset | undefined;
 
 function write(ae: AE, point: { blobs: string[]; doubles: number[]; indexes: string[] }): void {
@@ -31,11 +33,12 @@ function write(ae: AE, point: { blobs: string[]; doubles: number[]; indexes: str
 // index = route, so we can rank routes by traffic
 export function trackPageView(
   ae: AE,
-  args: { route: string; country?: string; status: number; cacheHit: boolean; durationMs: number },
+  args: { route: string; country?: string; status: number; cacheHit: boolean; durationMs: number; traffic?: TrafficClass },
 ): void {
   write(ae, {
     indexes: [args.route.slice(0, 96)],
-    blobs: ['page_view', args.country ?? 'XX', args.cacheHit ? 'hit' : 'miss'],
+    // blob4 = traffic class (human | bot | automation), blob5 = route family
+    blobs: ['page_view', args.country ?? 'XX', args.cacheHit ? 'hit' : 'miss', args.traffic ?? 'human', routeFamily(args.route)],
     doubles: [args.status, args.durationMs],
   });
 }

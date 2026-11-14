@@ -521,16 +521,10 @@ export async function addToWaitlist(db: D1Database, data: {
   userAgent?: string;
   ipHash?: string;
 }): Promise<{ isNew: boolean }> {
-  const existing = await db
-    .prepare('SELECT email FROM ios_waitlist WHERE email = ?')
-    .bind(data.email.toLowerCase())
-    .first();
-
-  if (existing) return { isNew: false };
-
-  await db.prepare(
+  const result = await db.prepare(
     `INSERT INTO ios_waitlist (email, source, referral_code, created_at, user_agent, ip_hash, notified, unsubscribed)
-     VALUES (?, ?, ?, ?, ?, ?, 0, 0)`
+     VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+     ON CONFLICT(email) DO NOTHING`
   ).bind(
     data.email.toLowerCase(),
     data.source ?? 'website',
@@ -540,7 +534,14 @@ export async function addToWaitlist(db: D1Database, data: {
     data.ipHash ?? null,
   ).run();
 
-  return { isNew: true };
+  return { isNew: (result.meta?.changes ?? 0) > 0 };
+}
+
+export async function getWaitlistCount(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS total FROM ios_waitlist WHERE unsubscribed = 0')
+    .first<{ total: number }>();
+  return row?.total ?? 0;
 }
 
 // ── User Addresses ────────────────────────────────────────────────────────────

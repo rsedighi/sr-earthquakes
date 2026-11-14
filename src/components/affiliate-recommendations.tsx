@@ -25,6 +25,7 @@ import {
   AFFILIATE_PRODUCTS 
 } from '@/lib/affiliate-products';
 import type { AffiliateProduct } from '@/lib/affiliate-products';
+import { trackAction } from '@/lib/telemetry';
 
 // ===== CATEGORY CONFIG =====
 const CATEGORIES = [
@@ -109,14 +110,11 @@ export function AffiliateShowcase({
     : getProductsByCategory(activeCategory as AffiliateProduct['category']);
 
   const handleProductClick = (product: AffiliateProduct) => {
-    if (typeof window !== 'undefined' && (window as any).DD_RUM) {
-      (window as any).DD_RUM.addAction('affiliate_link_clicked', {
-        productId: product.id,
-        productName: product.shortName,
-        price: product.price,
-        category: product.category,
-      });
-    }
+    trackAction('affiliate_link_clicked', {
+      productId: product.id,
+      price: product.price,
+      category: product.category,
+    });
   };
 
   return (
@@ -409,15 +407,12 @@ export function AffiliateRecommendations({
   const Icon = content.icon;
 
   const handleProductClick = (product: AffiliateProduct) => {
-    if (typeof window !== 'undefined' && (window as any).DD_RUM) {
-      (window as any).DD_RUM.addAction('affiliate_link_clicked', {
-        productId: product.id,
-        productName: product.shortName,
-        price: product.price,
-        category: product.category,
-        context,
-      });
-    }
+    trackAction('affiliate_link_clicked', {
+      productId: product.id,
+      price: product.price,
+      category: product.category,
+      context,
+    });
   };
 
   return (

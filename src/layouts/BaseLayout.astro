@@ -26,6 +26,7 @@ const {
 } = Astro.props;
 
 const schemas = schema ?? generateHomepageSchemas();
+const appVersion = Astro.locals.runtime?.env?.CF_VERSION_METADATA?.id ?? 'dev';
 ---
 
 <!DOCTYPE html>
@@ -91,51 +92,115 @@ const schemas = schema ?? generateHomepageSchemas();
     <script type="application/ld+json" set:html={JSON.stringify(schemas)} />
     <slot name="head" />
 
-    <!-- Datadog RUM (bundled + hoisted so it initializes before hydration) -->
-    <script>
-      import { datadogRum } from '@datadog/browser-rum';
+    <meta name="app-version" content={appVersion} />
 
-      const applicationId = import.meta.env.PUBLIC_DD_APPLICATION_ID;
-      const clientToken = import.meta.env.PUBLIC_DD_CLIENT_TOKEN;
-      const site = import.meta.env.PUBLIC_DD_SITE || 'datadoghq.com';
-      const env = import.meta.env.PUBLIC_DD_ENV || (import.meta.env.PROD ? 'prod' : 'dev');
-      const version = import.meta.env.PUBLIC_DD_VERSION || '2.0.0';
-
-      const isPlaceholderToken = !clientToken || clientToken.startsWith('pubXXXX') || clientToken.includes('XXXX');
-      const isPlaceholderAppId = !applicationId || applicationId.startsWith('appXXXX') || applicationId.includes('XXXX');
-
-      if (!isPlaceholderAppId && !isPlaceholderToken && !datadogRum.getInitConfiguration()) {
-        datadogRum.init({
-          applicationId,
-          clientToken,
-          site,
-          service: 'BayTremor',
-          env,
-          version,
-          sessionSampleRate: 100,
-          sessionReplaySampleRate: 100,
-          trackUserInteractions: true,
-          trackResources: true,
-          trackLongTasks: true,
-          defaultPrivacyLevel: 'mask-user-input',
-          enableExperimentalFeatures: ['feature_flags'],
-          allowedTracingUrls: [
-            { match: /https:\/\/.*\.baytremor\.com/, propagatorTypes: ['tracecontext', 'datadog'] },
-            { match: window.location.origin, propagatorTypes: ['tracecontext', 'datadog'] },
-          ],
-        });
-        datadogRum.setGlobalContextProperty('app_name', 'baytremor.com');
-        datadogRum.setGlobalContextProperty('region', 'bay_area');
-        // Expose for helper functions elsewhere in the app.
-        (window as any).__ddRum = datadogRum;
-        (window as any).DD_RUM = datadogRum;
-      } else if (isPlaceholderAppId || isPlaceholderToken) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            '[Datadog RUM] Not initialized — set valid PUBLIC_DD_APPLICATION_ID and PUBLIC_DD_CLIENT_TOKEN in .env'
-          );
+    <!-- First-party telemetry transport + stale-asset recovery. Inline so it
+         still works when bundled chunks fail to load. -->
+    <script is:inline define:vars={{ appVersion }}>
+      (function () {
+        var ENDPOINT = '/api/events';
+        var queue = [];
+        var timer = null;
+        function makeId() {
+          return window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
         }
+        function remember(kind, key, make) {
+          try {
+            var store = window[kind];
+            var value = store.getItem(key);
+            if (!value) { value = make(); store.setItem(key, value); }
+            return value;
+          } catch (e) { return make(); }
+        }
+        var vid = remember('localStorage', 'bt-vid', makeId);
+        var sid = remember('sessionStorage', 'bt-sid', makeId);
+        var landing = remember('sessionStorage', 'bt-landing', function () { return location.pathname; });
+        var ref = remember('sessionStorage', 'bt-ref', function () { return document.referrer || ''; });
+        var internal = false;
+        try { internal = localStorage.getItem('bt-internal') === '1'; } catch (e) {}
+
+        function flush() {
+          if (timer) { clearTimeout(timer); timer = null; }
+          while (queue.length) {
+            var body = JSON.stringify({
+              v: appVersion, sid: sid, vid: vid, path: location.pathname, landing: landing, ref: ref,
+              wd: navigator.webdriver === true, internal: internal, events: queue.splice(0, 25),
+            });
+            var sent = false;
+            try { sent = !!(navigator.sendBeacon && navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'text/plain' }))); } catch (e) {}
+            if (!sent) {
+              try { fetch(ENDPOINT, { method: 'POST', body: body, keepalive: true, headers: { 'Content-Type': 'text/plain' } }); } catch (e) {}
+            }
+          }
+        }
+        window.btTrack = function (name, props, value) {
+          queue.push({ n: name, p: props || {}, val: typeof value === 'number' ? value : undefined });
+          if (queue.length >= 20) flush();
+          else if (!timer) timer = setTimeout(flush, 5000);
+        };
+        addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); });
+        addEventListener('pagehide', flush);
+
+        var CHUNK_ERROR = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload CSS|ChunkLoadError|Loading chunk/i;
+        function recover(message, source) {
+          window.btTrack('asset_load_failed', { message: String(message).slice(0, 160), source: source });
+          var key = 'bt-asset-reload:' + appVersion;
+          var alreadyTried = true;
+          try { alreadyTried = sessionStorage.getItem(key) === '1'; sessionStorage.setItem(key, '1'); } catch (e) {}
+          if (alreadyTried) return;
+          window.btTrack('asset_reload_attempted', { source: source });
+          flush();
+          location.reload();
+        }
+        addEventListener('vite:preloadError', function (event) {
+          event.preventDefault();
+          recover((event.payload && event.payload.message) || 'preload failed', 'vite');
+        });
+        addEventListener('error', function (event) {
+          var target = event.target;
+          if (target && target !== window && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+            var url = target.src || target.href || '';
+            if (url.indexOf('/_astro/') !== -1) recover('resource failed: ' + url.replace(location.origin, ''), 'resource');
+            return;
+          }
+          var message = event.message || '';
+          if (!message || message === 'Script error.') return;
+          if (CHUNK_ERROR.test(message)) return recover(message, 'error');
+          window.btTrack('js_error', {
+            message: message.slice(0, 160),
+            source: (event.filename || '').replace(location.origin, '').slice(0, 120),
+            line: event.lineno || 0,
+            kind: 'error',
+          });
+        }, true);
+        addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason;
+          var message = (reason && reason.message) || String(reason);
+          if (CHUNK_ERROR.test(message)) return recover(message, 'rejection');
+          window.btTrack('js_error', { message: message.slice(0, 160), kind: 'unhandledrejection' });
+        });
+        window.btTrack('page_view', {});
+      })();
+    </script>
+
+    <!-- Core Web Vitals -> /api/events -->
+    <script>
+      import { onCLS, onFCP, onINP, onLCP, onTTFB, type MetricWithAttribution } from 'web-vitals/attribution';
+
+      function report(metric: MetricWithAttribution) {
+        const attribution = metric.attribution as { target?: string; interactionTarget?: string; largestShiftTarget?: string } | undefined;
+        window.btTrack?.('web_vital', {
+          metric: metric.name,
+          rating: metric.rating,
+          navigationType: metric.navigationType,
+          target: (attribution?.target ?? attribution?.interactionTarget ?? attribution?.largestShiftTarget ?? '').slice(0, 120),
+        }, metric.value);
       }
+      onLCP(report);
+      onINP(report);
+      onCLS(report);
+      onFCP(report);
+      onTTFB(report);
     </script>
 
     <!-- Google Analytics (Sprint 6: move to CF Analytics Engine) -->

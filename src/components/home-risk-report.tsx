@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { RiskReport, ZoneFinding } from '@/lib/risk-report';
 import type { LeadCategory } from '@/lib/d1';
+import { trackAction } from '@/lib/telemetry';
 
 interface UserLocation {
   lat: number;
@@ -33,12 +34,7 @@ interface HomeRiskReportProps {
   className?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function track(action: string, data: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && (window as any).DD_RUM) {
-    (window as any).DD_RUM.addAction(action, data);
-  }
-}
+const track = trackAction;
 
 const BAND_STYLES: Record<RiskReport['band'], { text: string; bg: string; border: string; chip: string }> = {
   'Moderate': { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', chip: 'bg-amber-500/15' },

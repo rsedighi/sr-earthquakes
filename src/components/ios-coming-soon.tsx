@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { trackAction } from '@/lib/telemetry';
 
 export function IOSComingSoon() {
   const [email, setEmail] = useState('');
@@ -13,7 +14,7 @@ export function IOSComingSoon() {
   useEffect(() => {
     fetch('/api/ios-waitlist')
       .then(res => res.json())
-      .then((data: unknown) => { const d = data as { totalSignups?: number }; if (d.totalSignups) setWaitlistCount(d.totalSignups); })
+      .then((data: unknown) => { const d = data as { totalSignups?: number | null }; if (typeof d.totalSignups === 'number' && d.totalSignups > 0) setWaitlistCount(d.totalSignups); })
       .catch(() => {});
   }, []);
 
@@ -22,19 +23,26 @@ export function IOSComingSoon() {
     if (!email || status === 'loading') return;
     setStatus('loading');
     setMessage('');
+    trackAction('waitlist_started', { source: 'ios_page' });
+    let failureStatus = 0;
     try {
       const res = await fetch('/api/ios-waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'website' }),
       });
-      const data = await res.json() as { error?: string; message: string; isNew: boolean };
-      if (!res.ok) throw new Error(data.error || 'Failed to join waitlist');
+      const data = await res.json().catch(() => ({})) as { error?: string; message?: string; isNew?: boolean };
+      if (!res.ok) {
+        failureStatus = res.status;
+        throw new Error(data.error || 'Failed to join waitlist');
+      }
+      trackAction('waitlist_submitted', { source: 'ios_page', isNew: Boolean(data.isNew) });
       setStatus('success');
-      setMessage(data.message);
+      setMessage(data.message ?? "You're on the list!");
       setIsAlreadySignedUp(!data.isNew);
       if (data.isNew && waitlistCount !== null) setWaitlistCount(waitlistCount + 1);
     } catch (err) {
+      trackAction('waitlist_failed', { source: 'ios_page', status: failureStatus });
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Something went wrong');
     }

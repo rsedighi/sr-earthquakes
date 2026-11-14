@@ -25,12 +25,12 @@ import { QuickReportButton } from '@/components/community-hub';
 import { QuickReportModal } from '@/components/quick-report-modal';
 import { FeedbackModal } from '@/components/feedback-modal';
 import { EarthquakeDetailModal } from '@/components/earthquake-detail-modal';
-import { trackAction } from '@/components/datadog-rum';
+import { trackAction } from '@/lib/telemetry';
 
 import type { DashboardProps, HotspotRegion } from './types';
 import { deduplicateEarthquakes } from './utils';
 import { CompactEarthquakeRow } from './earthquake-rows';
-import { LiveTimestamp, FirstVisitPrompt, FeltItPrompt, NewEarthquakeToast } from './prompts';
+import { LiveTimestamp, FeltItPrompt, NewEarthquakeToast } from './prompts';
 import { LiveTab } from './live-tab';
 import { HistoryTab } from './history-tab';
 import { LearnSection } from './learn-tab';
@@ -71,7 +71,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
   const [geolocating, setGeolocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [showAllQuakes, setShowAllQuakes] = useState(false);
-  const [showFirstVisitPrompt, setShowFirstVisitPrompt] = useState(false);
   const [newQuakesToast, setNewQuakesToast] = useState<Earthquake[]>([]);
   const [seenQuakeIds, setSeenQuakeIds] = useState<Set<string>>(new Set());
   const [feltPromptQuake, setFeltPromptQuake] = useState<Earthquake | null>(null);
@@ -153,7 +152,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
     try {
       const res = await fetch(`/api/earthquakes/list?all=true`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { earthquakes: Array<{ id: string; magnitude: number; place: string; time: string; timestamp: number; latitude: number; longitude: number; depth: number; felt: number | null; significance: number; url: string; region: string; }> };
         const quakes = data.earthquakes.map((eq: { id: string; magnitude: number; place: string; time: string; timestamp: number; latitude: number; longitude: number; depth: number; felt: number | null; significance: number; url: string; region: string; }) => ({
           ...eq,
           time: new Date(eq.time),
@@ -290,25 +289,10 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
     }
   }, [realtimeQuakes, isLoading, seenQuakeIds, dismissedFeltPrompts, feltPromptQuake]);
 
-  // --- First visit prompt ---
-  useEffect(() => {
-    if (typeof window === 'undefined' || initialTab !== 'live') return;
-    if (experienceMode !== 'calm') {
-      setShowFirstVisitPrompt(false);
-      return;
-    }
-    const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
-    const hasCitySet = localStorage.getItem('baytremor-my-city');
-    if (!hasSeenPrompt && !hasCitySet && !isLoading) {
-      const timer = setTimeout(() => setShowFirstVisitPrompt(true), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [initialTab, isLoading, experienceMode]);
-
-  const handleFirstVisitDismiss = useCallback(() => {
-    setShowFirstVisitPrompt(false);
-    localStorage.setItem('baytremor-seen-welcome', 'true');
-  }, []);
+  const openCitySelector = useCallback((source: string) => {
+    trackAction('city_selector_opened', { source, hasCity: Boolean(myCity) });
+    setShowCitySelector(true);
+  }, [myCity]);
 
   const handleGeolocate = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -339,6 +323,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
           return;
         }
         setCityByName(nearest.name);
+        trackAction('city_selected', { method: 'geolocation', city: nearest.name });
         setShowCitySelector(false);
         setCitySearch('');
         setGeolocating(false);
@@ -373,7 +358,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
           }),
         });
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { summary?: unknown };
           setAiSummary(typeof data.summary === 'string' ? data.summary : '');
         } else {
           setAiSummary('');
@@ -436,7 +421,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {myCityLoaded && myCity && (
                 <button
-                  onClick={() => setShowCitySelector(true)}
+                  onClick={() => openCitySelector('header_chip')}
                   className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 rounded-full text-xs transition-colors group"
                   title="Click to change city"
                 >
@@ -521,7 +506,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
             selectedEarthquake={selectedEarthquake}
             onSelectEarthquake={setSelectedEarthquake}
             onViewDetail={setDetailEarthquake}
-            onSetCity={() => setShowCitySelector(true)}
+            onSetCity={() => openCitySelector('live_hero')}
             onReportFelt={() => setShowQuickReport(true)}
             onShowAllQuakes={() => setShowAllQuakes(true)}
             largestRecent={largestRecent}
@@ -557,17 +542,6 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
       )}
 
       {/* --- Global Overlays --- */}
-
-      {showFirstVisitPrompt && experienceMode === 'calm' && !myCity && (
-        <FirstVisitPrompt
-          onSetCity={() => {
-            setShowFirstVisitPrompt(false);
-            localStorage.setItem('baytremor-seen-welcome', 'true');
-            setShowCitySelector(true);
-          }}
-          onDismiss={handleFirstVisitDismiss}
-        />
-      )}
 
       {feltPromptQuake && (
         <FeltItPrompt
@@ -673,6 +647,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
                     key={city.name}
                     onClick={() => {
                       setCityByName(city.name);
+                      trackAction('city_selected', { method: 'list', city: city.name, searched: citySearch.length > 0 });
                       setShowCitySelector(false);
                       setCitySearch('');
                     }}

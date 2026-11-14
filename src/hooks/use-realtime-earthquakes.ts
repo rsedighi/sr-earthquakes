@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Earthquake, EarthquakeFeedSnapshot, FeedState } from '@/lib/types';
 import { getRegionForCoordinates } from '@/lib/regions';
-import { trackAction, trackError } from '@/components/datadog-rum';
+import { trackAction, trackError } from '@/lib/telemetry';
 
 interface USGSFeature {
   id: string;

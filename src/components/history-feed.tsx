@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { formatDistanceToNow } from 'date-fns';
 import { Activity, Clock, MapPin, Loader2, Flame } from 'lucide-react';
@@ -8,6 +8,7 @@ import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { UnitProvider, useUnits } from '@/lib/unit-context';
 import { formatDepthDeep, formatPlaceDistance } from '@/lib/units';
+import { trackAction } from '@/lib/telemetry';
 
 const HistoricalSwarms = dynamic(
   () => import('@/components/historical-swarms').then(mod => mod.HistoricalSwarms),
@@ -47,33 +48,33 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
   const [isLoadingFull, setIsLoadingFull] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
+  // The full archive is several MB, so it loads only on explicit request
+  // until server-side swarm aggregates exist (10x plan task 2.1).
   const loadFullData = useCallback(async () => {
     if (isLoadingFull || allEarthquakes) return;
     setIsLoadingFull(true);
     setLoadError(false);
+    const startedAt = performance.now();
     try {
       const res = await fetch('/api/earthquakes/list?all=true');
       if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
+      const data = await res.json() as { earthquakes: Array<SerializedEarthquake & { time: string }> };
       const quakes: Earthquake[] = data.earthquakes.map(
-        (eq: SerializedEarthquake & { time: string }) => ({
+        (eq) => ({
           ...eq,
           time: new Date(eq.time),
         })
       );
       setAllEarthquakes(quakes);
-    } catch {
+      trackAction('history_archive_loaded', { rows: quakes.length }, Math.round(performance.now() - startedAt));
+    } catch (error) {
       console.error('Failed to load full earthquake data');
+      trackAction('history_archive_failed', { message: error instanceof Error ? error.message : 'unknown' });
       setLoadError(true);
     } finally {
       setIsLoadingFull(false);
     }
   }, [isLoadingFull, allEarthquakes]);
-
-  useEffect(() => {
-    const timer = setTimeout(loadFullData, 150);
-    return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-8">
@@ -165,15 +166,20 @@ function HistoryFeedInner({ initialData, totalCount }: HistoryFeedProps) {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Loading swarm analysis…</span>
               </div>
-            ) : loadError ? (
-              <button
-                onClick={loadFullData}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-neutral-300 hover:text-white transition-colors"
-              >
-                <Flame className="w-4 h-4" />
-                Retry Loading Swarm Analysis
-              </button>
-            ) : null}
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={loadFullData}
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-neutral-300 hover:text-white transition-colors"
+                >
+                  <Flame className="w-4 h-4" />
+                  {loadError ? 'Retry Loading Swarm Analysis' : 'Load Swarm Analysis'}
+                </button>
+                <p className="text-xs text-neutral-600">
+                  Analyzes {totalCount.toLocaleString()} historical earthquakes · large download
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>
