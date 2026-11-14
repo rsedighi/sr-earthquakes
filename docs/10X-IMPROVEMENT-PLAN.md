@@ -701,15 +701,18 @@ Acceptance criteria:
 **Priority:** P0  
 **Estimate:** 4-6 days
 
-- [ ] Support city selection without requesting precise location.
-- [ ] Support address search as an optional higher-precision path.
-- [ ] Explain why location is useful before browser permission prompts.
-- [ ] Default alert radius and magnitude sensibly.
-- [ ] Let users edit preferences before saving.
-- [ ] Persist anonymous preferences safely.
-- [ ] Emit `area_activated` only after a complete preference record exists.
-- [ ] Confirm location storage and privacy copy.
-- [ ] Provide a clear delete/reset control.
+Shipped as `src/components/monitor-area.tsx` (homepage card under the hero),
+`/api/alerts`, and D1 table `push_subscriptions` (migration 0004).
+
+- [~] Support city selection without requesting precise location (city-only by decision).
+- [ ] Support address search as an optional higher-precision path (deferred).
+- [~] Explain the permission prompt and storage before asking.
+- [~] Defaults: M3.0+ within 25 mi; options 10/25/50 mi and M2.5/3.0/3.5/4.0.
+- [~] Let users edit preferences before saving.
+- [~] Persist preferences server-side (push subscription) and locally (`bt-alert-prefs`).
+- [~] Emit `area_activated` only after the subscription is stored.
+- [~] Privacy copy: city only, never precise location; not an official early warning.
+- [~] Turn-off control (unsubscribes in the browser and deletes the D1 row).
 
 Acceptance criteria:
 
@@ -779,16 +782,29 @@ Phase 3 exit checklist:
 **Priority:** P0  
 **Estimate:** 5-8 days
 
-- [ ] Choose browser push, email, or both for the first release.
-- [ ] Ask for browser notification permission only after user intent.
-- [ ] Support radius and minimum-magnitude thresholds.
-- [ ] Deduplicate alerts by earthquake ID and user/channel.
+- [x] Choose browser push, email, or both for the first release (browser push first).
+- [~] Ask for browser notification permission only after user intent (button in the sheet).
+- [~] Support radius and minimum-magnitude thresholds.
+- [~] Deduplicate alerts by earthquake ID and subscription (`push_deliveries`).
 - [ ] Respect quiet hours where appropriate.
-- [ ] Provide unsubscribe/disable controls in every channel.
-- [ ] Record queued, delivered, failed, opened, and unsubscribed states.
-- [ ] Add retry and dead-letter behavior.
-- [ ] Add a delivery Synthetic/canary.
-- [ ] Clearly state that BayTremor is not official early warning.
+- [~] Provide unsubscribe/disable controls (Turn off in the sheet).
+- [~] Record delivered/failed/expired states (`alert_delivery` rows in Analytics Engine).
+- [ ] Record notification opens (`utm_source=push` landing is tracked; add an explicit event).
+- [~] Retry transient failures up to 3 queue attempts; delete 404/410 or 10 consecutive failures.
+- [ ] Add a delivery canary (internal subscription + monitor check).
+- [~] Clearly state that BayTremor is not official early warning.
+- [ ] iOS: alerts require Add to Home Screen; the card shows instructions. Measure how many iOS visitors complete it.
+- [ ] Email channel as a fallback for iOS visitors who will not install.
+
+Implementation notes:
+
+- Encryption must be RFC 8291 `aes128gcm`; Apple's push service rejects
+  legacy `aesgcm`. Uses `@block65/webcrypto-web-push`.
+- VAPID public key is `VAPID_PUBLIC_KEY` in `wrangler.toml`; the private key
+  is the `VAPID_PRIVATE_JWK` secret. Rotating keys invalidates all subscriptions.
+- The cron enqueues Bay Area M2.5+ quakes; APNs still applies its M3.0 floor
+  and sends only on the first queue attempt.
+- `/api/alerts` accepts only FCM, Mozilla, Windows, and Apple push endpoints (SSRF guard).
 
 Acceptance criteria:
 
@@ -1027,8 +1043,7 @@ This is the recommended execution order after the Datadog shutdown.
 7. [~] `2.1` Stop the automatic full-history download.
 8. [~] CI (`astro check`, build, dry-run deploy) and `npm run smoke`.
 9. [~] `0.5`/`1.5` Cron health checks with email alerts + weekly scorecard email (needs secrets; see 1.5).
-10. [ ] `3.2` Ship "Monitor my area" with activations stored in D1, then email
-    alerts on the existing `devices` table, notification queue, and `EMAIL` binding.
+10. [~] `3.2`/`4.1` "Monitor my area" with browser push alerts (city-only, M3.0+/25 mi defaults).
 
 Also fixed while getting `astro check` to zero errors (verify after deploy):
 

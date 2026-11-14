@@ -2,7 +2,7 @@
   "name": "norcal-quake-tracker",
   "type": "module",
   "version": "2.0.0",
-  "description": "Real-time Northern California Earthquake Tracker \u2014 Astro + Cloudflare",
+  "description": "Real-time Northern California Earthquake Tracker — Astro + Cloudflare",
   "private": true,
   "scripts": {
     "dev": "astro dev",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^12.0.0",
     "@astrojs/react": "^4.0.0",
+    "@block65/webcrypto-web-push": "^2.0.0",
     "@tsndr/cloudflare-worker-jwt": "^3.0.0",
     "@types/leaflet": "^1.9.21",
     "astro": "^5.0.0",

@@ -11,6 +11,7 @@ export const PRODUCT_EVENTS = [
   'alert_permission_requested',
   'alert_permission_result',
   'area_activated',
+  'alert_disabled',
   'earthquake_opened',
   'felt_report_started',
   'felt_report_submitted',
@@ -43,6 +44,7 @@ export const OPERATIONAL_EVENTS = [
   'feature_flag_evaluated',
   'history_archive_loaded',
   'history_archive_failed',
+  'alert_subscribe_failed',
 ] as const;
 
 export type ProductEvent = (typeof PRODUCT_EVENTS)[number];

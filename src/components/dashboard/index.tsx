@@ -26,6 +26,7 @@ import { QuickReportModal } from '@/components/quick-report-modal';
 import { FeedbackModal } from '@/components/feedback-modal';
 import { EarthquakeDetailModal } from '@/components/earthquake-detail-modal';
 import { trackAction } from '@/lib/telemetry';
+import { MonitorAreaCard } from '@/components/monitor-area';
 
 import type { DashboardProps, HotspotRegion } from './types';
 import { deduplicateEarthquakes } from './utils';
@@ -513,6 +514,14 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
             m3PlusCount={m3PlusCount}
             avgDepth={avgDepth}
             strongestToday={strongestToday}
+            monitorSlot={
+              <MonitorAreaCard
+                cities={availableCities}
+                currentCity={myCity?.cityName ?? null}
+                onCityChange={setCityByName}
+                source="home"
+              />
+            }
           />
         )}
 

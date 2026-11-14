@@ -13,6 +13,7 @@ import type { USGSResponse, USGSFeature } from './types';
 import { featuresToInsertable, upsertEarthquakes } from './earthquakes-db';
 import { backfillRange } from './backfill';
 import { trackNewQuake } from './analytics';
+import { MIN_ENQUEUE_MAGNITUDE, purgeOldDeliveries } from './push';
 
 // Safety-net backfill: once per hour the cron walks the last 7 days of USGS
 // Bay Area data and re-upserts into D1. Idempotent (INSERT OR IGNORE), so this
@@ -21,6 +22,9 @@ import { trackNewQuake } from './analytics';
 // invocations.
 const SAFETY_NET_KV_KEY  = 'earthquakes:safety-net:last-hour';
 const SAFETY_NET_WINDOW  = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Bay Area plus the largest alert radius (50 mi), so global quakes never reach the queue.
+const ALERT_BOUNDS = { minLat: 36.2, maxLat: 39.1, minLon: -123.9, maxLon: -120.7 };
 
 const USGS_BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
 const FEEDS     = ['all_hour', 'all_day', 'all_week'] as const;
@@ -108,6 +112,7 @@ export async function handleScheduled(env: CronEnv): Promise<void> {
         await env.EARTHQUAKE_KV.put(SAFETY_NET_KV_KEY, hourKey, { expirationTtl: 7200 });
         const now = Date.now();
         const result = await backfillRange(env.DB, now - SAFETY_NET_WINDOW, now, { minMagnitude: 0 });
+        await purgeOldDeliveries(env.DB).catch((err) => console.error('[cron] push delivery purge failed:', err));
         if (result.totalInserted > 0) {
           console.log(`[cron] safety-net backfilled ${result.totalInserted} missed quakes (last 7d)`);
         }
@@ -147,9 +152,15 @@ export async function handleScheduled(env: CronEnv): Promise<void> {
     console.error('[cron] EarthquakeRoom broadcast failed:', err);
   }
 
-  // 5. Enqueue M3.0+ for APNs (if queue is bound)
+  // 5. Enqueue alert-worthy quakes for APNs + browser push (if queue is bound).
+  // Consumers apply each subscriber's own magnitude/radius threshold.
   if (env.NOTIFICATION_QUEUE) {
-    const significant = newQuakes.filter((f) => (f.properties.mag ?? 0) >= 3.0);
+    const significant = newQuakes.filter((f) => {
+      const [lon, lat] = f.geometry.coordinates;
+      return (f.properties.mag ?? 0) >= MIN_ENQUEUE_MAGNITUDE &&
+        lat >= ALERT_BOUNDS.minLat && lat <= ALERT_BOUNDS.maxLat &&
+        lon >= ALERT_BOUNDS.minLon && lon <= ALERT_BOUNDS.maxLon;
+    });
     if (significant.length > 0) {
       await env.NOTIFICATION_QUEUE.sendBatch(
         significant.map((f) => ({

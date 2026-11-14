@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, type ReactNode } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
 import {
@@ -225,6 +225,7 @@ interface LiveTabProps {
   m3PlusCount: number;
   avgDepth: number;
   strongestToday: Earthquake | null;
+  monitorSlot?: ReactNode;
 }
 
 export function LiveTab({
@@ -251,6 +252,7 @@ export function LiveTab({
   m3PlusCount,
   avgDepth,
   strongestToday,
+  monitorSlot,
 }: LiveTabProps) {
   const { unitSystem } = useUnits();
   const [magnitudeFilter, setMagnitudeFilter] = useState<MagnitudeFilter>('all');
@@ -300,6 +302,8 @@ export function LiveTab({
           onSetCity={onSetCity}
         />
       )}
+
+      {monitorSlot}
 
       {experienceMode === 'active' && activeEarthquake && (
         <ActiveSafetyPanel

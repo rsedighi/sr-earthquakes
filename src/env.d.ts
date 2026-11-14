@@ -28,6 +28,8 @@ interface Env {
   CF_ACCOUNT_ID?: string;
   CF_ANALYTICS_TOKEN?: string;
   OPS_ALERT_EMAIL?: string;
+  // Browser push (src/lib/push.ts); VAPID_PUBLIC_KEY is a [vars] entry
+  VAPID_PRIVATE_JWK?: string;
 }
 
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
