@@ -24,6 +24,10 @@ interface Env {
   ADMIN_TOKEN?: string;
   LEAD_WEBHOOK_URL?: string;
   ANALYTICS?: AnalyticsEngineDataset;
+  // Ops monitoring (src/lib/monitor.ts)
+  CF_ACCOUNT_ID?: string;
+  CF_ANALYTICS_TOKEN?: string;
+  OPS_ALERT_EMAIL?: string;
 }
 
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;

@@ -29,7 +29,7 @@ export const PRODUCT_EVENTS = [
 ] as const;
 
 export const OPERATIONAL_EVENTS = [
-  'page_view',
+  'client_page_view',
   'web_vital',
   'js_error',
   'asset_load_failed',

@@ -361,8 +361,9 @@ below) or a small Grafana/admin page.
 - [ ] City-selection and activation funnel.
 - [ ] Core Web Vitals p75 by device and route family.
 - [ ] `js_error` / `asset_load_failed` by version.
-- [ ] Scheduled check (cron + `EMAIL` binding) for asset failures and feed health,
-  replacing Datadog monitors.
+- [~] Scheduled check (cron + `EMAIL` binding) for asset failures and feed health,
+  replacing Datadog monitors (see 1.5).
+- [~] Weekly scorecard email covering the items above.
 
 Phase 0 exit checklist:
 
@@ -393,7 +394,7 @@ Client events (`POST /api/events`, sent with `navigator.sendBeacon`):
 | `blob12` | Metric label for `web_vital` rows (`LCP`, `INP`, `CLS`, `FCP`, `TTFB`) |
 | `double1` | Value (web-vital value, duration, ...) |
 
-Worker page views: `blob1 = 'page_view'`, `blob2` country, `blob3` cache
+Browser page views use `blob1 = 'client_page_view'`. Worker HTML requests: `blob1 = 'page_view'`, `blob2` country, `blob3` cache
 hit/miss, `blob4` traffic class, `blob5` route family, `double1` status,
 `double2` duration ms.
 
@@ -403,7 +404,7 @@ Example queries:
 -- Human landing sessions by route family, last 7 days
 SELECT blob4 AS landing, count(DISTINCT blob9) AS sessions
 FROM earthquake_events
-WHERE blob1 = 'page_view' AND blob2 = 'human' AND timestamp > NOW() - INTERVAL '7' DAY
+WHERE blob1 = 'client_page_view' AND blob2 = 'human' AND timestamp > NOW() - INTERVAL '7' DAY
 GROUP BY landing ORDER BY sessions DESC;
 
 -- Mobile p75 LCP by route family
@@ -521,16 +522,45 @@ Acceptance criteria:
 **Priority:** P1  
 **Estimate:** 1 day
 
-Datadog monitors and Synthetics are gone. Replacements run on Cloudflare.
+Datadog monitors and Synthetics are gone. Replacements run in the Worker cron
+(`src/lib/monitor.ts`), every 15 minutes, emailing via the `EMAIL` binding from
+`alerts@baytremor.com`. Each check alerts at most once per 3 hours.
 
-- [ ] Scheduled Analytics Engine query for `asset_load_failed` and `js_error` spikes, alerting via the `EMAIL` binding.
-- [ ] Feed freshness check in the existing cron (alert if KV snapshot is stale).
+Setup (one time):
+
+```bash
+# Token: Account > Account Analytics > Read
+npx wrangler secret put CF_ANALYTICS_TOKEN
+npx wrangler secret put CF_ACCOUNT_ID
+npx wrangler secret put OPS_ALERT_EMAIL
+```
+
+Without `CF_ANALYTICS_TOKEN`/`CF_ACCOUNT_ID` only the feed check runs. Without
+`OPS_ALERT_EMAIL` findings are only logged to Workers Logs.
+
+- [~] Feed freshness: last-known `all_hour` USGS feed older than 10 minutes.
+- [~] Asset failures: 5+ human `asset_load_failed` in 15 minutes.
+- [~] JavaScript errors: 25+ human `js_error` in 15 minutes.
+- [~] Feed/map failure rate above 5% (minimum 20 loads in 15 minutes).
+- [~] Waitlist: 3+ `waitlist_failed` in 15 minutes.
+- [~] Telemetry silent: zero human `client_page_view` in 6 hours.
+- [~] Weekly scorecard email (Mondays after 16:00 UTC) replacing the Datadog dashboard.
+- [~] Enable `observability.traces` (10% head sampling).
+- [ ] External uptime check for `/` and `/api/earthquakes` (the cron cannot detect a Worker-wide outage).
 - [ ] History endpoint payload/latency (Workers Logs or `Server-Timing`).
-- [ ] Waitlist submit availability (`waitlist_failed` rate).
 - [ ] Alert pipeline freshness after Phase 4.
-- [ ] External uptime check for `/` and `/api/earthquakes` (free uptime service or Cloudflare Health Checks).
-- [ ] Enable `observability.traces` in `wrangler.toml`.
-- [ ] Add runbooks and owner/escalation details.
+- [ ] Tune thresholds after two weeks of real data.
+
+Runbooks:
+
+| Check | First steps |
+| --- | --- |
+| `feed_stale` / `feed_missing` | Workers Logs for `[cron]` errors; check USGS status; confirm cron trigger is active in the dashboard. |
+| `asset_failures` | Run `npm run smoke -- https://baytremor.com`; group `asset_load_failed` by `blob6` version. A previous version means stale HTML; the current version means a broken deploy, so roll back with `wrangler rollback`. |
+| `js_errors` | Group `js_error` by message (`blob11`) and version (`blob6`); roll back if it started with a deploy. |
+| `feed_failures` / `map_failures` | Check `/api/earthquakes` and `/api/map-tiles` in Workers Logs; check KV and upstream (USGS, CARTO). |
+| `waitlist_failures` | Workers Logs for `[api/ios-waitlist POST]`; check D1 status. |
+| `telemetry_silent` | Load the site; check `/api/events` returns 204 with a same-origin `Origin` header. |
 
 Phase 1 exit checklist:
 
@@ -996,7 +1026,7 @@ This is the recommended execution order after the Datadog shutdown.
 6. [~] `1.3` Fix the iOS waitlist GET/POST contract.
 7. [~] `2.1` Stop the automatic full-history download.
 8. [~] CI (`astro check`, build, dry-run deploy) and `npm run smoke`.
-9. [ ] `0.5`/`1.5` Saved Analytics Engine queries + cron/email alerting.
+9. [~] `0.5`/`1.5` Cron health checks with email alerts + weekly scorecard email (needs secrets; see 1.5).
 10. [ ] `3.2` Ship "Monitor my area" with activations stored in D1, then email
     alerts on the existing `devices` table, notification queue, and `EMAIL` binding.
 

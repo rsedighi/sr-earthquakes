@@ -6,6 +6,7 @@ import { createExports as _createExports } from '@astrojs/cloudflare/entrypoints
 import { EarthquakeRoom } from './durable-objects/EarthquakeRoom';
 import { CommentRoom } from './durable-objects/CommentRoom';
 import { handleScheduled } from './lib/cron';
+import { runMonitors } from './lib/monitor';
 import { sendAPNs, distanceMiles } from './lib/apns';
 import { getDevicesForNotification, unregisterDevice } from './lib/d1';
 import type { NotificationPayload } from './lib/apns';
@@ -17,6 +18,7 @@ export { EarthquakeRoom, CommentRoom };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function scheduled(_event: unknown, env: any, ctx: ExecutionContext): Promise<void> {
   ctx.waitUntil(handleScheduled(env));
+  ctx.waitUntil(runMonitors(env).catch((err) => console.error('[monitor] run failed:', err)));
 }
 
 // ── Queue consumer (APNs dispatch) ────────────────────────────────────────────
