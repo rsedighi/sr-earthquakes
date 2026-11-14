@@ -8,6 +8,7 @@ import { getRegionById, getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDepth, formatDistance, formatDistanceBoth, kmToMiles, getDepthDescription } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
+import { earthquakeShareCopy } from '@/lib/share-copy';
 import {
   X,
   ArrowLeft,
@@ -159,14 +160,7 @@ export function EarthquakeDetailModal({
   const shareUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/earthquake/${earthquake.id}`
     : `/earthquake/${earthquake.id}`;
-  const shareTitle = formattedMag !== '—' ? `M${formattedMag} Earthquake near ${earthquake.place}` : `Earthquake near ${earthquake.place}`;
-  const shareText = `Just ${(() => {
-    try {
-      return formatDistanceToNow(earthquake.time, { addSuffix: false });
-    } catch {
-      return 'recently';
-    }
-  })()} ago - ${shareTitle}. Did you feel it?`;
+  const { title: shareTitle, text: shareText } = earthquakeShareCopy(earthquake, unitSystem);
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
   const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;

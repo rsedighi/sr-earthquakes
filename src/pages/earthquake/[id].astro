@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { MonitorAreaIsland } from '@/components/monitor-area-island';
 import { ShareEarthquake } from '@/components/share-earthquake';
 import { fetchEarthquakeDetail } from '@/lib/usgs-detail';
+import { earthquakeShareCopy } from '@/lib/share-copy';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { getRegionById, getLocationContext, kmToMiles, BAY_AREA_LANDMARKS } from '@/lib/regions';
 import { distanceMiles } from '@/lib/apns';
@@ -22,7 +23,7 @@ const locationContext = getLocationContext(earthquake.latitude, earthquake.longi
 const magnitudeColor = getMagnitudeColor(earthquake.magnitude);
 const magnitudeLabel = getMagnitudeLabel(earthquake.magnitude);
 
-const formattedDate = earthquake.time.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const formattedDate = earthquake.time.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', year: 'numeric', month: 'long', day: 'numeric' });
 const title = `M${earthquake.magnitude.toFixed(1)} Earthquake ${earthquake.place} - ${formattedDate}`;
 const description = `A ${magnitudeLabel.toLowerCase()} magnitude ${earthquake.magnitude.toFixed(1)} earthquake occurred ${earthquake.place} on ${formattedDate} at a depth of ${earthquake.depth.toFixed(1)}km.${earthquake.felt ? ` Felt by ${earthquake.felt} people.` : ''} View detailed seismic data.`;
 
@@ -64,8 +65,7 @@ const nearestCity = BAY_AREA_LANDMARKS
 
 const depthCategory = earthquake.depth < 10 ? 'Very Shallow' : earthquake.depth < 30 ? 'Shallow' : earthquake.depth < 70 ? 'Intermediate' : 'Deep';
 const pageUrl = `${baseUrl}/earthquake/${earthquake.id}`;
-const shareTitle = `M${earthquake.magnitude.toFixed(1)} earthquake ${earthquake.place}`;
-const shareText = `${shareTitle}. Did you feel it?`;
+const { title: shareTitle } = earthquakeShareCopy(earthquake);
 const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/eventpage/${earthquake.id}`;
 ---
 
@@ -119,9 +119,9 @@ const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/event
         <div class="text-2xl font-semibold text-white mb-2">{magnitudeLabel}</div>
         <div class="text-neutral-400">{earthquake.place}</div>
         <div class="text-sm text-neutral-500 mt-2">
-          {earthquake.time.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {earthquake.time.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           {' '}at{' '}
-          {earthquake.time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}
+          {earthquake.time.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}
         </div>
       </div>
 
@@ -151,7 +151,7 @@ const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/event
 
       <!-- Share card (OG image) -->
       <div class="mb-8">
-        <ShareEarthquake client:visible id={earthquake.id} url={pageUrl} title={shareTitle} text={shareText} />
+        <ShareEarthquake client:visible id={earthquake.id} url={pageUrl} magnitude={earthquake.magnitude} place={earthquake.place} timestamp={earthquake.timestamp} />
       </div>
 
       <!-- Activation: Monitor my area (10x plan 3.3) -->

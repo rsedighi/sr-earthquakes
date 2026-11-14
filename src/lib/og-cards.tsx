@@ -1,5 +1,7 @@
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
-import { getLocationContext, getRegionById, kmToMiles } from '@/lib/regions';
+import { getLocationContext, getRegionById } from '@/lib/regions';
+import { formatDepthDeep, formatDistance, formatPlaceDistance } from '@/lib/units';
+import type { UnitSystem } from '@/lib/unit-context';
 import type { EarthquakeDetail } from '@/lib/usgs-detail';
 
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -75,22 +77,21 @@ function Detail({ icon, text }: { icon: 'clock' | 'depth' | 'pin'; text: string 
   );
 }
 
-export function EarthquakeCard({ quake, square = false }: { quake: EarthquakeDetail; square?: boolean }) {
+export function EarthquakeCard({ quake, square = false, units = 'imperial' }: { quake: EarthquakeDetail; square?: boolean; units?: UnitSystem }) {
   const hasMag = typeof quake.magnitude === 'number' && !isNaN(quake.magnitude);
   const color = getMagnitudeColor(quake.magnitude);
   const label = getMagnitudeLabel(quake.magnitude);
   const region = getRegionById(quake.region);
   const context = getLocationContext(quake.latitude, quake.longitude);
   // USGS place is authoritative; our nearest-city context becomes the subline.
-  const headline = truncate(quake.place || context.formattedLocation || 'Bay Area', square ? 40 : 44);
-  const miles = kmToMiles(context.distanceKm);
+  const headline = truncate(formatPlaceDistance(quake.place, units) || context.formattedLocation || 'Bay Area', square ? 40 : 44);
   const subline = context.nearestCity !== 'Unknown' && !quake.place?.includes(context.nearestCity)
-    ? `${miles < 1 ? 'Near' : `${miles.toFixed(1)} mi ${context.direction ? `${context.direction} of` : 'from'}`} ${context.nearestCity}`
+    ? `${context.distanceKm < 1.6 ? 'Near' : `${formatDistance(context.distanceKm, units)} ${context.direction ? `${context.direction} of` : 'from'}`} ${context.nearestCity}`
     : null;
 
   const date = quake.time.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const time = quake.time.toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-  const depth = `${quake.depth.toFixed(1)} km (${kmToMiles(quake.depth).toFixed(1)} mi) deep`;
+  const depth = formatDepthDeep(quake.depth, units);
   const coords = `${quake.latitude.toFixed(3)}°N, ${Math.abs(quake.longitude).toFixed(3)}°W`;
   const tile = square ? 300 : 220;
 

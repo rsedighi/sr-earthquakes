@@ -3,12 +3,15 @@
 import { useState, type ReactNode } from 'react';
 import { Check, Copy, Download, Share2 } from 'lucide-react';
 import { trackAction } from '@/lib/telemetry';
+import { UnitProvider, useUnits } from '@/lib/unit-context';
+import { earthquakeShareCopy, shareCardUrl } from '@/lib/share-copy';
 
 interface ShareEarthquakeProps {
   id: string;
   url: string;
-  title: string;
-  text: string;
+  magnitude: number;
+  place: string;
+  timestamp: number;
 }
 
 type Method = 'native' | 'x' | 'facebook' | 'nextdoor' | 'copy' | 'download';
@@ -38,10 +41,21 @@ function NextdoorIcon() {
 }
 
 // "Share This Earthquake" card for the server-rendered earthquake page.
-export function ShareEarthquake({ id, url, title, text }: ShareEarthquakeProps) {
+// Standalone island, so it brings its own UnitProvider (synced via localStorage).
+export function ShareEarthquake(props: ShareEarthquakeProps) {
+  return (
+    <UnitProvider>
+      <ShareEarthquakeCard {...props} />
+    </UnitProvider>
+  );
+}
+
+function ShareEarthquakeCard({ id, url, magnitude, place, timestamp }: ShareEarthquakeProps) {
   const [copied, setCopied] = useState(false);
-  const imageUrl = `/earthquake/${encodeURIComponent(id)}/opengraph-image`;
-  const squareUrl = `${imageUrl}?size=square`;
+  const { unitSystem } = useUnits();
+  const { title, text } = earthquakeShareCopy({ magnitude, place, timestamp }, unitSystem);
+  const imageUrl = shareCardUrl(id, { unitSystem });
+  const squareUrl = shareCardUrl(id, { square: true, unitSystem });
   const enc = encodeURIComponent;
 
   const track = (method: Method, completed = false) =>
