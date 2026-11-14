@@ -13,7 +13,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy-Report-Only': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://static.cloudflareinsights.com https://ep2.adtrafficquality.google https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
-    "style-src 'self' 'unsafe-inline' https://unpkg.com",
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://ws-na.amazon-adsystem.com https://www.google-analytics.com https://ep1.adtrafficquality.google",
     "font-src 'self'",
     "connect-src 'self' https://earthquake.usgs.gov wss: https://www.google-analytics.com https://cloudflareinsights.com",

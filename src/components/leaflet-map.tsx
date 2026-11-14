@@ -1,5 +1,6 @@
 'use client';
 
+import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
@@ -98,17 +99,6 @@ function LeafletMapInner({
     let mounted = true;
     
     const loadLeaflet = async () => {
-      // Add Leaflet CSS via link tag
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-        link.crossOrigin = '';
-        document.head.appendChild(link);
-      }
-      
       const [reactLeaflet, L] = await Promise.all([
         import('react-leaflet'),
         import('leaflet'),
@@ -238,7 +228,7 @@ function LeafletMapInner({
 
   if (mapError) {
     return (
-      <div data-map-state="error" className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
+      <div data-map-state="error" className={`w-full bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
         <p className="text-sm text-neutral-400">Map temporarily unavailable</p>
       </div>
     );
@@ -246,7 +236,7 @@ function LeafletMapInner({
 
   if (!containerClean || !mapReady || !leaflet) {
     return (
-      <div ref={wrapperRef} data-map-state="loading" className={`w-full min-h-[400px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
+      <div ref={wrapperRef} data-map-state="loading" className={`w-full bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
         <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
       </div>
     );
@@ -255,11 +245,11 @@ function LeafletMapInner({
   const { MapContainer, AttributionControl, TileLayer, CircleMarker, Circle, Popup } = leaflet;
 
   return (
-    <div data-map-state={tileState} className={`relative ${className}`}>
+    <div data-map-state={tileState} className={`relative w-full ${className}`}>
       <MapContainer
         center={[37.75, -122.0]}
         zoom={9}
-        className="w-full h-full min-h-[400px] rounded-xl z-0"
+        className="w-full h-full rounded-xl z-0"
         style={{ background: '#1a1a1a' }}
         attributionControl={false}
       >

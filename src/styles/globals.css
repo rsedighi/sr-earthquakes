@@ -150,6 +150,8 @@ body {
   font-family: inherit;
 }
 
+.leaflet-container:focus:not(:focus-visible) { outline: none; }
+
 .leaflet-popup-content-wrapper {
   background: #1a1a1a;
   color: #fafafa;

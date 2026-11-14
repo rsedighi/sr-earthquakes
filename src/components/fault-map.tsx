@@ -1,5 +1,6 @@
 'use client';
 
+import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 
@@ -52,17 +53,6 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
     let mounted = true;
 
     const loadLeaflet = async () => {
-      // Add Leaflet CSS via link tag
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-        link.crossOrigin = '';
-        document.head.appendChild(link);
-      }
-
       const reactLeaflet = await import('react-leaflet');
 
       if (mounted) {

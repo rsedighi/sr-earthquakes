@@ -562,6 +562,34 @@ Runbooks:
 | `waitlist_failures` | Workers Logs for `[api/ios-waitlist POST]`; check D1 status. |
 | `telemetry_silent` | Load the site; check `/api/events` returns 204 with a same-origin `Origin` header. |
 
+## 1.6 Map quality and self-hosted basemap
+
+**Priority:** P1  
+**Estimate:** 0.5 day (layout) + 3-4 days (vector basemap)
+
+The live map rendered at 400px inside a 500px card (`h-full` under a
+`min-h` parent), leaving a dead strip under the map with the legend in it.
+Blur comes from CARTO raster tiles being upscaled during zoom/`flyTo`, not
+from tile-proxy load (proxy serves @2x tiles from edge cache in ~0.2-0.3s).
+
+- [~] Give the live map a definite height so Leaflet fills the card.
+- [~] Bundle `leaflet.css` with the map chunks instead of loading it from unpkg
+  (and drop unpkg from the CSP).
+- [~] Hide the mouse-click focus ring on the map container.
+- [ ] Cut a Bay Area Protomaps PMTiles extract (bbox `-123,36.8,-121,38.5`) and
+  upload it to R2.
+- [ ] Serve tiles from R2 through the Worker with edge caching.
+- [ ] Port `leaflet-map`, `earthquake-detail-map`, and `fault-map` to MapLibre GL
+  with a dark Protomaps style; render faults as a vector layer.
+- [ ] Remove the CARTO tile proxy and `CARTO_API` secret.
+
+Acceptance criteria:
+
+- [ ] Map fills its card with the legend overlaid at all breakpoints.
+- [ ] Labels and roads stay sharp at every zoom level on retina displays.
+- [ ] Basemap has no third-party per-tile cost or commercial-license dependency.
+- [ ] `map_ready` / `map_failed` ratio does not regress after the MapLibre switch.
+
 Phase 1 exit checklist:
 
 - [ ] Zero sustained current-release asset failures.

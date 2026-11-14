@@ -39,7 +39,7 @@ const LeafletMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[400px] bg-[#0a0a0a] rounded-xl relative overflow-hidden flex items-center justify-center">
+      <div className="w-full h-[300px] sm:h-[400px] lg:h-[500px] bg-[#0a0a0a] rounded-xl relative overflow-hidden flex items-center justify-center">
         <div className="absolute top-4 left-4 w-8 h-16 bg-white/5 border border-white/10 rounded-md animate-pulse z-10"></div>
         <div className="absolute top-4 right-4 w-32 h-10 bg-white/5 border border-white/10 rounded-xl animate-pulse z-10"></div>
         <div className="absolute bottom-6 right-4 w-24 h-6 bg-white/5 border border-white/10 rounded animate-pulse z-10"></div>
@@ -344,7 +344,7 @@ export function LiveTab({
             earthquakes={realtimeQuakes}
             selectedEarthquake={selectedEarthquake}
             onSelectEarthquake={onSelectEarthquake}
-            className="min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]"
+            className="h-[300px] sm:h-[400px] lg:h-[500px]"
             initialRegion={hotspotRegion.isElevated ? hotspotRegion.regionId : undefined}
           />
         </section>
