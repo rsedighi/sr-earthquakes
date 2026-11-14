@@ -44,6 +44,22 @@ await check('basemap tile', fetch(`${base}/basemap/tiles/10/164/396.mvt`),
 await check('basemap glyphs', fetch(`${base}/basemap/fonts/Noto%20Sans%20Regular/0-255.pbf`, { method: 'HEAD' }),
   (r) => r.status === 200);
 
+// Share cards: site default plus a live event's card referenced from its page.
+const isPng = (r) => r.status === 200 && r.headers.get('content-type') === 'image/png';
+await check('og-image.png', fetch(`${base}/og-image.png`), isPng);
+const latest = await fetch('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1&minlatitude=36.7&maxlatitude=38.6&minlongitude=-123.2&maxlongitude=-120.9')
+  .then((r) => r.json()).then((d) => d.features?.[0]?.id).catch(() => null);
+if (latest) {
+  const page = await check(`GET /earthquake/${latest}`, fetch(`${base}/earthquake/${latest}`), (r) => r.status === 200);
+  const ogImage = page && (await page.text()).match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+  if (!ogImage?.endsWith(`/earthquake/${latest}/opengraph-image`)) {
+    console.log(`FAIL earthquake og:image -> ${ogImage}`);
+    failures.push('earthquake og:image');
+  }
+  await check('earthquake share card', fetch(`${base}/earthquake/${latest}/opengraph-image`), isPng);
+  await check('earthquake square card', fetch(`${base}/earthquake/${latest}/opengraph-image?size=square`), isPng);
+}
+
 await check('GET /api/ios-waitlist', fetch(`${base}/api/ios-waitlist`), (r) => r.status === 200);
 await check('POST /api/events', fetch(`${base}/api/events`, {
   method: 'POST',

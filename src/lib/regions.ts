@@ -429,7 +429,7 @@ export function getNearestCity(lat: number, lon: number): {
   
   if (!nearest) return null;
   
-  // Calculate direction
+  // Direction FROM the city TO the earthquake (e.g. quake south of city -> 'S').
   const dLon = nearest.lon - lon;
   const dLat = nearest.lat - lat;
   let direction = '';
@@ -442,17 +442,11 @@ export function getNearestCity(lat: number, lon: number): {
     else if (dLon < -0.01) direction += 'E';
   }
   
-  // Reverse direction (we want direction FROM city TO earthquake)
-  const reverseDir: Record<string, string> = {
-    'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E',
-    'NE': 'SW', 'NW': 'SE', 'SE': 'NW', 'SW': 'NE'
-  };
-  
   return {
     name: nearest.name,
     county: nearest.county,
     distanceKm: minDistance, // Return raw km, format later with unit system
-    direction: reverseDir[direction] || direction,
+    direction,
   };
 }
 

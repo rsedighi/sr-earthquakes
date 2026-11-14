@@ -1,64 +1,17 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { MonitorAreaIsland } from '@/components/monitor-area-island';
+import { ShareEarthquake } from '@/components/share-earthquake';
+import { fetchEarthquakeDetail } from '@/lib/usgs-detail';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
-import { getRegionForCoordinates, getRegionById, getLocationContext, kmToMiles, BAY_AREA_LANDMARKS } from '@/lib/regions';
+import { getRegionById, getLocationContext, kmToMiles, BAY_AREA_LANDMARKS } from '@/lib/regions';
 import { distanceMiles } from '@/lib/apns';
 import { generateEarthquakeEventSchema, generateEarthquakeArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
 const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
 const { id } = Astro.params;
 
-interface EarthquakeDetail {
-  id: string;
-  magnitude: number;
-  place: string;
-  time: Date;
-  timestamp: number;
-  latitude: number;
-  longitude: number;
-  depth: number;
-  felt: number | null;
-  significance: number;
-  url?: string;
-  region: string;
-}
-
-async function getEarthquake(eqId: string): Promise<EarthquakeDetail | null> {
-  try {
-    const response = await fetch(
-      `https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/${eqId}.geojson`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (response.ok) {
-      const feature = await response.json() as {
-        id: string;
-        geometry: { coordinates: [number, number, number] };
-        properties: { mag: number; place: string; time: number; felt: number | null; sig: number; url?: string };
-      };
-      const [longitude, latitude, depth] = feature.geometry.coordinates;
-      return {
-        id: feature.id,
-        magnitude: feature.properties.mag,
-        place: feature.properties.place,
-        time: new Date(feature.properties.time),
-        timestamp: feature.properties.time,
-        latitude,
-        longitude,
-        depth,
-        felt: feature.properties.felt,
-        significance: feature.properties.sig,
-        url: feature.properties.url,
-        region: getRegionForCoordinates(latitude, longitude),
-      };
-    }
-  } catch {
-    // Return null on error
-  }
-  return null;
-}
-
-const earthquake = await getEarthquake(id!);
+const earthquake = await fetchEarthquakeDetail(id!);
 
 if (!earthquake) {
   return Astro.redirect('/today', 307);
@@ -110,13 +63,19 @@ const nearestCity = BAY_AREA_LANDMARKS
   .sort((a, b) => a.miles - b.miles)[0]?.name ?? null;
 
 const depthCategory = earthquake.depth < 10 ? 'Very Shallow' : earthquake.depth < 30 ? 'Shallow' : earthquake.depth < 70 ? 'Intermediate' : 'Deep';
+const pageUrl = `${baseUrl}/earthquake/${earthquake.id}`;
+const shareTitle = `M${earthquake.magnitude.toFixed(1)} earthquake ${earthquake.place}`;
+const shareText = `${shareTitle}. Did you feel it?`;
 const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/eventpage/${earthquake.id}`;
 ---
 
 <BaseLayout
   title={title}
   description={description}
-  canonical={`${baseUrl}/earthquake/${earthquake.id}`}
+  canonical={pageUrl}
+  ogImage={`${pageUrl}/opengraph-image`}
+  ogImageAlt={`${shareTitle} on ${formattedDate}`}
+  ogType="article"
   schema={[eventSchema, articleSchema, breadcrumbSchema]}
 >
   <div class="min-h-screen bg-[#0a0a0a] text-white pb-20 md:pb-0">
@@ -188,6 +147,11 @@ const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/event
           <div class="text-lg font-bold leading-tight">{region?.name?.split(' / ')[0] || 'Bay Area'}</div>
           <div class="text-xs text-neutral-500">{region?.county || ''} County</div>
         </div>
+      </div>
+
+      <!-- Share card (OG image) -->
+      <div class="mb-8">
+        <ShareEarthquake client:visible id={earthquake.id} url={pageUrl} title={shareTitle} text={shareText} />
       </div>
 
       <!-- Activation: Monitor my area (10x plan 3.3) -->

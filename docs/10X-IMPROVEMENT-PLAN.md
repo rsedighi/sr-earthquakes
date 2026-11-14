@@ -869,7 +869,7 @@ Acceptance criteria:
 
 - [ ] Define significant-event thresholds by location and magnitude.
 - [ ] Prioritize "Did you feel it?" after relevant events.
-- [ ] Make event pages easily shareable with accurate metadata.
+- [~] Make event pages easily shareable with accurate metadata (per-event `og:image`, see 5.3).
 - [ ] Show community reports without overstating anecdotal data.
 - [ ] Invite users to save the affected area after reporting.
 - [ ] Track alert -> event view -> felt report -> activation.
@@ -918,10 +918,17 @@ Phase 4 exit checklist:
 
 ## 5.3 Create event-driven distribution
 
-- [ ] Generate accurate event share cards.
-- [ ] Add copy-link and native-share actions.
+- [~] Generate accurate event share cards. `/earthquake/:id/opengraph-image`
+  (1200x630, `?size=square` 1080x1080) rendered on the Worker with satori +
+  resvg-wasm (`src/lib/og.ts`, `src/lib/og-cards.tsx`); site default at
+  `/og-image.png`; legacy `/api/earthquake/:id/share-image` kept as an alias.
+  Edge-cached per deployment + card data so USGS magnitude revisions re-render.
+  satori is pinned to 0.32.0 (0.33+ compiles HarfBuzz WASM at load, which
+  Workers forbid). Verify: Facebook Sharing Debugger / X card on a live event.
+- [~] Add copy-link and native-share actions (`ShareEarthquake` island on
+  `/earthquake/:id`; native share attaches the square card where supported).
 - [ ] Add embeddable or social-ready local summaries where appropriate.
-- [ ] Track share completion and referred activation.
+- [~] Track share completion and referred activation (`share_started`/`share_completed` with `method`; referred activation not yet).
 - [ ] Prepare a significant-event operating checklist.
 - [ ] Avoid sensational or predictive wording.
 
@@ -1087,6 +1094,10 @@ Also fixed while getting `astro check` to zero errors (verify after deploy):
 - Comment replies posted as top-level comments (UI used Mongo-era `_id`; D1 returns `id`),
   and newly posted comments never appeared (UI waited for a removed Pusher event).
 - `/region/:unknown` called `Astro.redirect` with status 404; now returns a 404 response.
+- Share cards were broken since the Astro migration: every page pointed `og:image`
+  at a missing `/og-image.png` (served a 307) and JSON-LD at a 404 route. Fixed (5.3).
+- `getNearestCity` reversed compass directions twice ("NW of Livermore" for a quake
+  USGS places SE of Livermore); affected every `formattedLocation` in the UI.
 
 ---
 

@@ -41,3 +41,9 @@ declare namespace App {
     >;
   }
 }
+
+// Precompiled WASM modules (@astrojs/cloudflare `cloudflareModules`).
+declare module '*.wasm?module' {
+  const module: WebAssembly.Module;
+  export default module;
+}
