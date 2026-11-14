@@ -2,6 +2,9 @@
 
 This document describes the production monitoring implemented for [baytremor.com](https://baytremor.com), how the monitors work, and the remaining reliability work.
 
+The current findings, target scorecard, and checkable implementation roadmap
+are maintained in [`10X-IMPROVEMENT-PLAN.md`](./10X-IMPROVEMENT-PLAN.md).
+
 ## Current status
 
 Phase 1 monitoring was implemented and deployed on August 30, 2026.

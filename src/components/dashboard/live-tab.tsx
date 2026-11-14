@@ -17,16 +17,17 @@ import {
   MapPin,
   Loader2,
   X,
+  Shield,
 } from 'lucide-react';
 
-import type { Earthquake } from '@/lib/types';
+import type { Earthquake, FeedState } from '@/lib/types';
 import { getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { formatDepth, formatRadius, getDepthDescription } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { CommunityWidget } from '@/components/bay-tremor-community';
 import { AffiliateShowcase } from '@/components/affiliate-recommendations';
-import type { MagnitudeFilter, HotspotRegion, HistoricalSummary, MyCityData, MyCityStatsData } from './types';
+import type { ExperienceMode, MagnitudeFilter, HotspotRegion, HistoricalSummary, MyCityData, MyCityStatsData } from './types';
 import { deduplicateEarthquakes } from './utils';
 import { CompactEarthquakeRow } from './earthquake-rows';
 import { CollapsibleAlert } from './collapsible-alert';
@@ -144,12 +145,71 @@ function HeroQuakeSkeleton() {
   );
 }
 
+function ActiveSafetyPanel({
+  earthquake,
+  onViewDetail,
+  onReportFelt,
+}: {
+  earthquake: Earthquake;
+  onViewDetail: (earthquake: Earthquake) => void;
+  onReportFelt: () => void;
+}) {
+  const urgent = earthquake.magnitude >= 4;
+
+  return (
+    <section
+      aria-labelledby="active-safety-title"
+      className={`rounded-xl border p-4 sm:p-5 ${
+        urgent ? 'bg-red-500/10 border-red-500/35' : 'bg-amber-500/10 border-amber-500/30'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+          urgent ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
+        }`}>
+          <Shield className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-semibold uppercase tracking-wider ${urgent ? 'text-red-300' : 'text-amber-300'}`}>
+            If you are feeling shaking now
+          </p>
+          <p className="text-sm text-neutral-300 mt-1">Recent M{earthquake.magnitude.toFixed(1)} event · {earthquake.place}</p>
+          <h2 id="active-safety-title" className="text-lg sm:text-xl font-semibold mt-2">Drop, Cover, and Hold On</h2>
+          <p className="text-sm text-neutral-300 mt-2 leading-relaxed">
+            Drop to your hands and knees, take cover under sturdy furniture, and hold on until the shaking stops. If indoors, stay inside and away from windows.
+          </p>
+          <p className="text-xs text-neutral-400 mt-2">
+            After shaking stops, check for injuries and hazards and be ready for aftershocks.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <button onClick={onReportFelt} className="px-3 py-2 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200">
+              I felt this earthquake
+            </button>
+            <button onClick={() => onViewDetail(earthquake)} className="px-3 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/15">
+              View event details
+            </button>
+            <a href="/earthquake-preparedness" className="px-3 py-2 rounded-lg bg-white/5 text-neutral-200 text-sm font-medium hover:bg-white/10">
+              Safety steps
+            </a>
+          </div>
+          <p className="text-[11px] text-neutral-500 mt-3">
+            Event facts come from USGS. Bay Tremor is not an official earthquake early-warning service.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 interface LiveTabProps {
   realtimeQuakes: Earthquake[];
   isLoading: boolean;
+  feedState: FeedState;
+  experienceMode: ExperienceMode;
+  activeEarthquake: Earthquake | null;
   last24Hours: Earthquake[];
   hotspotRegion: HotspotRegion;
-  historicalSummary: HistoricalSummary;
+  historicalSummary: HistoricalSummary | null;
   aiSummary: string | null;
   isLoadingAiSummary: boolean;
   myCity: MyCityData | null;
@@ -159,6 +219,7 @@ interface LiveTabProps {
   onSelectEarthquake: (eq: Earthquake | null) => void;
   onViewDetail: (eq: Earthquake) => void;
   onSetCity: () => void;
+  onReportFelt: () => void;
   onShowAllQuakes: () => void;
   largestRecent: Earthquake | null;
   m3PlusCount: number;
@@ -169,6 +230,9 @@ interface LiveTabProps {
 export function LiveTab({
   realtimeQuakes,
   isLoading,
+  feedState,
+  experienceMode,
+  activeEarthquake,
   last24Hours,
   hotspotRegion,
   historicalSummary,
@@ -181,6 +245,7 @@ export function LiveTab({
   onSelectEarthquake,
   onViewDetail,
   onSetCity,
+  onReportFelt,
   onShowAllQuakes,
   largestRecent,
   m3PlusCount,
@@ -222,35 +287,33 @@ export function LiveTab({
 
   return (
     <>
-      <IOSAppBanner />
-
-      {!isLoading && (
-        <WeeklyContextBanner
-          weekCount={realtimeQuakes.length}
-          largestRecent={largestRecent}
-          last24HoursCount={last24Hours.length}
-          feltCount={realtimeQuakes.filter(eq => eq.felt && eq.felt > 0).length}
-        />
-      )}
-
-      {hotspotRegion.isElevated && (
-        <CollapsibleAlert
-          hotspotRegion={hotspotRegion}
-          aiSummary={aiSummary}
-          isLoadingAiSummary={isLoadingAiSummary}
-        />
-      )}
-
       {isLoading ? (
         <HeroQuakeSkeleton />
       ) : (
         <HeroQuake
           earthquakes={realtimeQuakes}
+          experienceMode={experienceMode}
           onViewDetails={onViewDetail}
           myCity={myCity}
           myCityStats={myCityStats}
           myCityLoaded={myCityLoaded}
           onSetCity={onSetCity}
+        />
+      )}
+
+      {experienceMode === 'active' && activeEarthquake && (
+        <ActiveSafetyPanel
+          earthquake={activeEarthquake}
+          onViewDetail={onViewDetail}
+          onReportFelt={onReportFelt}
+        />
+      )}
+
+      {hotspotRegion.isElevated && experienceMode !== 'degraded' && (
+        <CollapsibleAlert
+          hotspotRegion={hotspotRegion}
+          aiSummary={aiSummary}
+          isLoadingAiSummary={isLoadingAiSummary}
         />
       )}
 
@@ -260,7 +323,9 @@ export function LiveTab({
           <div className="p-2.5 sm:p-3 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Map className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-500" />
-              <span className="text-xs sm:text-sm font-medium">Bay Area • Live</span>
+              <span className="text-xs sm:text-sm font-medium">
+                Bay Area • {feedState === 'live' ? 'Live' : feedState === 'delayed' ? 'Delayed' : feedState === 'unavailable' ? 'Unavailable' : 'Connecting'}
+              </span>
             </div>
             <a 
               href="https://earthquake.usgs.gov/earthquakes/map/"
@@ -290,7 +355,9 @@ export function LiveTab({
               </div>
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <span className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-neutral-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    feedState === 'live' ? 'bg-green-500' : feedState === 'delayed' ? 'bg-amber-400' : 'bg-red-400'
+                  }`} />
                   {last24Hours.length} in 24h
                 </span>
                 {magnitudeFilteredQuakes.length > 20 && (
@@ -407,6 +474,15 @@ export function LiveTab({
           </div>
         </section>
       </div>
+
+      {!isLoading && experienceMode !== 'degraded' && (
+        <WeeklyContextBanner
+          weekCount={realtimeQuakes.length}
+          largestRecent={largestRecent}
+          last24HoursCount={last24Hours.length}
+          feltCount={realtimeQuakes.filter(eq => eq.felt && eq.felt > 0).length}
+        />
+      )}
 
       {/* Felt By Community */}
       {(() => {
@@ -577,7 +653,12 @@ export function LiveTab({
       </div>
 
       <CommunityWidget />
-      <AffiliateShowcase />
+      {experienceMode === 'calm' && (
+        <>
+          <AffiliateShowcase />
+          <IOSAppBanner />
+        </>
+      )}
     </>
   );
 }

@@ -325,7 +325,7 @@ export function LiveTimestamp({
     >
       <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${status.dot} ${isRefreshing ? 'animate-pulse' : ''}`} />
       <span className="font-medium">{status.label}</span>
-      {timeText && <span className="hidden sm:inline opacity-70">· {timeText}</span>}
+      {timeText && <span className="opacity-70 whitespace-nowrap">· {timeText}</span>}
       {isRefreshing && <Loader2 className="w-3 h-3 animate-spin" />}
     </div>
   );

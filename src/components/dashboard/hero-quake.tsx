@@ -13,10 +13,11 @@ import type { Earthquake } from '@/lib/types';
 import { getLocationContext } from '@/lib/regions';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { useUnits } from '@/lib/unit-context';
-import type { MyCityData, MyCityStatsData } from './types';
+import type { ExperienceMode, MyCityData, MyCityStatsData } from './types';
 
 export function HeroQuake({
   earthquakes,
+  experienceMode,
   onViewDetails,
   myCity,
   myCityStats,
@@ -24,6 +25,7 @@ export function HeroQuake({
   onSetCity,
 }: {
   earthquakes: Earthquake[];
+  experienceMode: ExperienceMode;
   onViewDetails: (eq: Earthquake) => void;
   myCity: MyCityData | null;
   myCityStats: MyCityStatsData | null;
@@ -32,9 +34,7 @@ export function HeroQuake({
 }) {
   const { unitSystem } = useUnits();
   
-  const notableQuake = useMemo(() => {
-    return earthquakes.find(eq => eq.magnitude >= 2.0) || earthquakes[0];
-  }, [earthquakes]);
+  const notableQuake = useMemo(() => earthquakes[0], [earthquakes]);
   
   const locationContext = notableQuake ? getLocationContext(notableQuake.latitude, notableQuake.longitude, unitSystem) : null;
   
@@ -57,23 +57,35 @@ export function HeroQuake({
       return 'recently';
     }
   })();
+  const formattedLocalTime = timeDate.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+  const heroLabel = experienceMode === 'degraded' ? 'Last known earthquake' : 'Latest Bay Area earthquake';
+  const heroAccent = experienceMode === 'degraded'
+    ? 'ring-1 ring-amber-500/30'
+    : isRecent
+      ? 'ring-1 ring-green-500/30'
+      : '';
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
       <button
         onClick={() => onViewDetails(notableQuake)}
-        className={`md:col-span-3 card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03] ${
-          isRecent ? 'ring-1 ring-green-500/30' : ''
-        }`}
+        className={`${experienceMode === 'calm' ? 'md:col-span-3' : 'md:col-span-4'} card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03] ${heroAccent}`}
       >
         <div className="flex items-center gap-1.5 mb-3">
           <Zap className="w-3 h-3 text-neutral-500" />
           <span className="text-[10px] sm:text-xs uppercase tracking-wider text-neutral-500 font-medium">
-            Latest Notable Quake
+            {heroLabel}
           </span>
-          {isRecent && (
-            <span className="px-1.5 py-0.5 text-[10px] rounded bg-green-500/20 text-green-400 border border-green-500/30">
-              Just now
+          {isRecent && experienceMode !== 'degraded' && (
+            <span className="px-1.5 py-0.5 text-[10px] rounded border bg-green-500/20 text-green-400 border-green-500/30">
+              Recent
             </span>
           )}
         </div>
@@ -97,7 +109,7 @@ export function HeroQuake({
           <div className="flex-1 min-w-0 overflow-hidden">
             <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
               <span className="text-xs text-neutral-500" suppressHydrationWarning>
-                {formattedTimeAgo}
+                {formattedTimeAgo} · {formattedLocalTime}
               </span>
               {notableQuake.felt && notableQuake.felt > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">
@@ -118,10 +130,11 @@ export function HeroQuake({
         </div>
       </button>
       
-      <button
-        onClick={onSetCity}
-        className="md:col-span-1 card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03]"
-      >
+      {experienceMode === 'calm' && (
+        <button
+          onClick={onSetCity}
+          className="md:col-span-1 card p-4 sm:p-5 text-left group transition-all hover:bg-white/[0.03]"
+        >
         {myCityLoaded && myCity ? (
           <div className="flex md:flex-col items-center md:items-start gap-3 sm:gap-4 md:gap-2 h-full">
             <div className="w-14 h-14 md:w-12 md:h-12 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
@@ -155,13 +168,14 @@ export function HeroQuake({
             <div className="flex-1 min-w-0 md:flex-none md:text-center">
               <div className="font-medium text-white text-sm">Set Your City</div>
               <div className="text-xs text-neutral-500 mt-0.5">
-                Get personalized alerts
+                See local distances and activity
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0 md:hidden" />
           </div>
-        )}
-      </button>
+          )}
+        </button>
+      )}
     </div>
   );
 }

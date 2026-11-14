@@ -17,7 +17,7 @@ import { getRegionById } from '@/lib/regions';
 import { useRealtimeEarthquakes } from '@/hooks/use-realtime-earthquakes';
 import { useHistoricalEarthquakes } from '@/hooks/use-historical-earthquakes';
 import { useMyCity } from '@/hooks/use-my-city';
-import { detectSwarms } from '@/lib/analysis';
+import { detectSwarms, findActiveEarthquake, getActiveEarthquakeExpiry } from '@/lib/analysis';
 import { formatRadius } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { BayAreaLogo } from '@/components/bay-area-logo';
@@ -218,6 +218,20 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
     return realtimeQuakes.filter(eq => now - eq.timestamp < 24 * 60 * 60 * 1000);
   }, [realtimeQuakes]);
 
+  const [modeClock, setModeClock] = useState(() => Date.now());
+  const activeEarthquake = useMemo(() => findActiveEarthquake(realtimeQuakes, Math.max(modeClock, Date.now())), [realtimeQuakes, modeClock]);
+  const activeExpiry = activeEarthquake ? getActiveEarthquakeExpiry(activeEarthquake) : null;
+  useEffect(() => {
+    if (activeExpiry === null) return;
+    const id = setTimeout(() => setModeClock(Date.now()), Math.max(0, activeExpiry - Date.now() + 100));
+    return () => clearTimeout(id);
+  }, [activeExpiry]);
+  const experienceMode = feedState === 'delayed' || feedState === 'unavailable'
+    ? 'degraded'
+    : activeEarthquake
+      ? 'active'
+      : 'calm';
+
   const hotspotRegion: HotspotRegion = useMemo(() => {
     const regionCounts: Record<string, number> = {};
     for (const eq of realtimeQuakes) {
@@ -279,13 +293,17 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
   // --- First visit prompt ---
   useEffect(() => {
     if (typeof window === 'undefined' || initialTab !== 'live') return;
+    if (experienceMode !== 'calm') {
+      setShowFirstVisitPrompt(false);
+      return;
+    }
     const hasSeenPrompt = localStorage.getItem('baytremor-seen-welcome');
     const hasCitySet = localStorage.getItem('baytremor-my-city');
     if (!hasSeenPrompt && !hasCitySet && !isLoading) {
       const timer = setTimeout(() => setShowFirstVisitPrompt(true), 3000);
       return () => clearTimeout(timer);
     }
-  }, [initialTab, isLoading]);
+  }, [initialTab, isLoading, experienceMode]);
 
   const handleFirstVisitDismiss = useCallback(() => {
     setShowFirstVisitPrompt(false);
@@ -335,7 +353,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
 
   // --- AI summary (one attempt per elevated period; null = not tried, '' = failed/unavailable) ---
   useEffect(() => {
-    if (!hotspotRegion.isElevated || aiSummary !== null || isLoadingAiSummary) return;
+    if (!hotspotRegion.isElevated || experienceMode === 'degraded' || aiSummary !== null || isLoadingAiSummary) return;
 
     const fetchAiSummary = async () => {
       setIsLoadingAiSummary(true);
@@ -374,6 +392,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
     hotspotRegion.regionId,
     hotspotRegion.count,
     hotspotRegion.multiplier,
+    experienceMode,
     largestRecent?.magnitude,
     currentSwarm,
     aiSummary,
@@ -386,6 +405,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
       id="baytremor-dashboard"
       data-monitor-state={feedState === 'unavailable' ? 'error' : 'ready'}
       data-feed-state={feedState}
+      data-experience-mode={experienceMode}
       className="min-h-screen bg-[#0a0a0a] text-white"
     >
       {/* Header */}
@@ -395,13 +415,21 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className="relative flex-shrink-0">
                 <BayAreaLogo variant="seismic-bridge" className="w-9 h-9 sm:w-11 sm:h-11" />
-                {hotspotRegion.isElevated && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full animate-pulse" />
+                {(hotspotRegion.isElevated || experienceMode === 'active') && (
+                  <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse ${
+                    experienceMode === 'active' ? 'bg-amber-400' : 'bg-white'
+                  }`} />
                 )}
               </div>
               <div className="min-w-0">
                 <h1 className="font-semibold text-sm sm:text-lg truncate">Bay Area Quake Tracker</h1>
-                <p className="text-[10px] sm:text-xs text-neutral-500 truncate">Live earthquake monitoring for the SF Bay Area</p>
+                <p className="text-[10px] sm:text-xs text-neutral-500 truncate">
+                  {experienceMode === 'active'
+                    ? 'Recent earthquake information and safety steps'
+                    : experienceMode === 'degraded'
+                      ? 'Showing the latest available USGS information'
+                      : 'Live earthquake monitoring for the SF Bay Area'}
+                </p>
               </div>
             </div>
             
@@ -479,6 +507,9 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
           <LiveTab
             realtimeQuakes={realtimeQuakes}
             isLoading={isLoading}
+            feedState={feedState}
+            experienceMode={experienceMode}
+            activeEarthquake={activeEarthquake}
             last24Hours={last24Hours}
             hotspotRegion={hotspotRegion}
             historicalSummary={historicalSummary}
@@ -491,6 +522,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
             onSelectEarthquake={setSelectedEarthquake}
             onViewDetail={setDetailEarthquake}
             onSetCity={() => setShowCitySelector(true)}
+            onReportFelt={() => setShowQuickReport(true)}
             onShowAllQuakes={() => setShowAllQuakes(true)}
             largestRecent={largestRecent}
             m3PlusCount={m3PlusCount}
@@ -526,7 +558,7 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
 
       {/* --- Global Overlays --- */}
 
-      {showFirstVisitPrompt && !myCity && (
+      {showFirstVisitPrompt && experienceMode === 'calm' && !myCity && (
         <FirstVisitPrompt
           onSetCity={() => {
             setShowFirstVisitPrompt(false);
@@ -724,7 +756,13 @@ export function Dashboard({ historicalSummary, initialTab = 'live', initialFeed 
               </div>
             </div>
             <div className="p-4 border-t border-white/10 flex-shrink-0">
-              <p className="text-xs text-neutral-500 text-center">Data from USGS • Live updates via push</p>
+              <p className="text-xs text-neutral-500 text-center">
+                {feedState === 'live'
+                  ? 'Data from USGS • Live updates via push'
+                  : feedState === 'delayed'
+                    ? 'Data from USGS • Showing last known information'
+                    : 'USGS feed unavailable • Displayed information may be incomplete'}
+              </p>
             </div>
           </div>
         </div>

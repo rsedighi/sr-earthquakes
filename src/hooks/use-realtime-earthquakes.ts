@@ -37,7 +37,8 @@ interface UseRealtimeEarthquakesResult {
   isRefreshing: boolean;
 }
 
-const LIVE_FEED_MAX_AGE_MS = 5 * 60 * 1000;
+const LIVE_FEED_MAX_AGE_MS = 2 * 60 * 1000;
+const CLOCK_SKEW_TOLERANCE_MS = 30 * 1000;
 
 function convertFeature(feature: USGSFeature): Earthquake {
   const [longitude = 0, latitude = 0, depth = 0] = feature.geometry?.coordinates ?? [0, 0, 0];
@@ -99,7 +100,10 @@ export function useRealtimeEarthquakes({
       const data = await res.json() as { features: USGSFeature[]; metadata?: { generated?: number } };
       if (!Array.isArray(data.features)) throw new Error('Invalid earthquake feed');
       const converted = data.features.map(convertFeature);
-      const generatedAt = typeof data.metadata?.generated === 'number' ? data.metadata.generated : null;
+      const candidateGeneratedAt = data.metadata?.generated;
+      const generatedAt = typeof candidateGeneratedAt === 'number' && Number.isFinite(candidateGeneratedAt) && candidateGeneratedAt > 0 && candidateGeneratedAt <= Date.now() + CLOCK_SKEW_TOLERANCE_MS
+        ? candidateGeneratedAt
+        : null;
       const sourceAgeMs = generatedAt === null ? null : Math.max(0, Date.now() - generatedAt);
       converted.sort((a, b) => b.timestamp - a.timestamp);
       if (requestId !== requestIdRef.current) return;

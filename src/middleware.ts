@@ -64,7 +64,7 @@ const CACHE_VERSION = 'v7';
 // Dynamic routes whose HTML embeds hashed asset paths AND/OR per-user data —
 // must never be served from the edge HTML cache. Matches the exact path or
 // any sub-path (e.g. '/community' and '/community/general/foo').
-const CACHE_BYPASS_PATHS = ['/api', '/community', '/my-area', '/history'];
+const CACHE_BYPASS_PATHS = ['/', '/api', '/community', '/my-area', '/history'];
 
 const cacheMiddleware = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);

@@ -37,7 +37,12 @@ function parseFeature(f: USGSFeature): Earthquake | null {
   };
 }
 
-const LIVE_FEED_MAX_AGE_MS = 5 * 60 * 1000;
+const LIVE_FEED_MAX_AGE_MS = 2 * 60 * 1000;
+const CLOCK_SKEW_TOLERANCE_MS = 30 * 1000;
+
+function isPlausibleGeneratedAt(generatedAt: unknown, now = Date.now()): generatedAt is number {
+  return typeof generatedAt === 'number' && Number.isFinite(generatedAt) && generatedAt > 0 && generatedAt <= now + CLOCK_SKEW_TOLERANCE_MS;
+}
 
 function parseResponse(data: USGSResponse): Earthquake[] {
   const quakes: Earthquake[] = [];
@@ -57,7 +62,7 @@ async function fetchUSGSFeed(feed: 'all_day' | 'all_week'): Promise<USGSResponse
     });
     if (!res.ok) return null;
     const data = await res.json() as Partial<USGSResponse>;
-    if (!Array.isArray(data.features) || !data.metadata || typeof data.metadata.generated !== 'number') return null;
+    if (!Array.isArray(data.features) || !data.metadata || typeof data.metadata.generated !== 'number' || !isPlausibleGeneratedAt(data.metadata.generated)) return null;
     return data as USGSResponse;
   } catch {
     return null;
@@ -65,7 +70,7 @@ async function fetchUSGSFeed(feed: 'all_day' | 'all_week'): Promise<USGSResponse
 }
 
 function snapshotFromResponse(data: USGSResponse): EarthquakeFeedSnapshot {
-  const generatedAt = Number.isFinite(data.metadata?.generated) ? data.metadata.generated : null;
+  const generatedAt = isPlausibleGeneratedAt(data.metadata?.generated) ? data.metadata.generated : null;
   const isLive = generatedAt !== null && Date.now() - generatedAt <= LIVE_FEED_MAX_AGE_MS;
   return {
     earthquakes: parseResponse(data),

@@ -17,6 +17,8 @@ export type TimeFilter = 'hour' | '6hours' | 'today' | 'week' | null;
 
 export type MagnitudeFilter = 'all' | 'm2plus' | 'm3plus' | 'felt';
 
+export type ExperienceMode = 'calm' | 'active' | 'degraded';
+
 export interface HistoricalSummary {
   totalCount: number;
   dateRange: {

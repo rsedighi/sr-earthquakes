@@ -527,3 +527,20 @@ export function wasLikelyFelt(magnitude: number | null | undefined, depth: numbe
   return magnitude >= 2.5 - depthFactor;
 }
 
+export function getActiveEarthquakeExpiry(earthquake: Earthquake): number | null {
+  const hour = 60 * 60 * 1000;
+  if (earthquake.magnitude >= 4) return earthquake.timestamp + 6 * hour;
+  if (earthquake.magnitude >= 3) return earthquake.timestamp + 2 * hour;
+  if (earthquake.magnitude >= 2.5 && earthquake.felt) return earthquake.timestamp + hour;
+  return null;
+}
+
+export function findActiveEarthquake(earthquakes: Earthquake[], now = Date.now()): Earthquake | null {
+  return [...earthquakes]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .find(earthquake => {
+      const expiresAt = getActiveEarthquakeExpiry(earthquake);
+      return earthquake.timestamp <= now && expiresAt !== null && expiresAt >= now;
+    }) ?? null;
+}
+

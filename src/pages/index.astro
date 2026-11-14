@@ -1,15 +1,17 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { DashboardWithProviders } from '@/components/dashboard-with-providers';
-import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
+import { findActiveEarthquake, getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { loadHomepageSnapshot } from '@/lib/server-data';
 
 const { env } = Astro.locals.runtime;
 const snapshot = await loadHomepageSnapshot(env.EARTHQUAKE_KV);
 const latestEarthquake = snapshot.earthquakes[0] ?? null;
 const latestSignificant = snapshot.earthquakes.find(earthquake => earthquake.magnitude >= 2.5) ?? null;
-const primaryEarthquake = latestSignificant ?? latestEarthquake;
-const primaryLabel = latestSignificant ? 'Latest significant earthquake' : 'Latest Bay Area earthquake';
+const primaryEarthquake = latestEarthquake;
+const primaryLabel = 'Latest Bay Area earthquake';
+const activeEarthquake = snapshot.state === 'live' ? findActiveEarthquake(snapshot.earthquakes) : null;
+const experienceMode = snapshot.state !== 'live' ? 'degraded' : activeEarthquake ? 'active' : 'calm';
 const generatedText = snapshot.generatedAt
   ? new Date(snapshot.generatedAt).toLocaleString('en-US', {
       timeZone: 'America/Los_Angeles',
@@ -42,6 +44,7 @@ const formatEarthquakeTime = (timestamp: number) => new Date(timestamp).toLocale
       id="server-earthquake-snapshot"
       data-monitor-state={snapshot.state === 'unavailable' ? 'error' : 'ready'}
       data-feed-state={snapshot.state}
+      data-experience-mode={experienceMode}
       class="min-h-screen bg-[#0a0a0a] text-white"
     >
       <header class="border-b border-white/10 bg-[#0a0a0a]">
@@ -125,13 +128,31 @@ const formatEarthquakeTime = (timestamp: number) => new Date(timestamp).toLocale
           </section>
         )}
 
-        {latestEarthquake && primaryEarthquake?.id !== latestEarthquake.id && (
+        {activeEarthquake && (
+          <section class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5" aria-labelledby="server-safety-title">
+            <p class="text-xs font-semibold uppercase tracking-wider text-amber-300">If you are feeling shaking now</p>
+            <p class="text-sm text-neutral-300 mt-1">Recent M{activeEarthquake.magnitude.toFixed(1)} event · {activeEarthquake.place}</p>
+            <h2 id="server-safety-title" class="text-lg sm:text-xl font-semibold mt-2">Drop, Cover, and Hold On</h2>
+            <p class="text-sm text-neutral-300 mt-2 leading-relaxed">
+              Drop to your hands and knees, take cover under sturdy furniture, and hold on until shaking stops. If indoors, stay inside and away from windows.
+            </p>
+            <p class="text-xs text-neutral-400 mt-2">After shaking stops, check for injuries and hazards and be ready for aftershocks.</p>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <a href="/felt-earthquake" class="px-3 py-2 rounded-lg bg-white text-black text-sm font-semibold hover:bg-neutral-200">I felt this earthquake</a>
+              <a href={`/earthquake/${activeEarthquake.id}`} class="px-3 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/15">View event details</a>
+              <a href="/earthquake-preparedness" class="px-3 py-2 rounded-lg bg-white/5 text-neutral-200 text-sm font-medium hover:bg-white/10">Safety steps</a>
+            </div>
+            <p class="text-[11px] text-neutral-500 mt-3">Event facts come from USGS. Bay Tremor is not an official earthquake early-warning service.</p>
+          </section>
+        )}
+
+        {latestSignificant && primaryEarthquake?.id !== latestSignificant.id && (
           <section class="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <p class="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Latest earthquake of any magnitude</p>
-              <p class="text-sm font-medium mt-1">M{latestEarthquake.magnitude.toFixed(1)} · {latestEarthquake.place}</p>
+              <p class="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Latest significant earthquake</p>
+              <p class="text-sm font-medium mt-1">M{latestSignificant.magnitude.toFixed(1)} · {latestSignificant.place}</p>
             </div>
-            <p class="text-xs text-neutral-400">{formatEarthquakeTime(latestEarthquake.timestamp)}</p>
+            <p class="text-xs text-neutral-400">{formatEarthquakeTime(latestSignificant.timestamp)}</p>
           </section>
         )}
 
