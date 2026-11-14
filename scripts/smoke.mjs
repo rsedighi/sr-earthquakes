@@ -38,6 +38,12 @@ for (const asset of assets) {
   await check(`asset ${asset}`, fetch(base + asset, { method: 'HEAD' }), (r) => r.status === 200);
 }
 
+// Basemap: a Bay Area vector tile from R2, plus self-hosted glyphs.
+await check('basemap tile', fetch(`${base}/basemap/tiles/10/164/396.mvt`),
+  (r) => r.status === 200 && r.headers.get('content-type') === 'application/x-protobuf');
+await check('basemap glyphs', fetch(`${base}/basemap/fonts/Noto%20Sans%20Regular/0-255.pbf`, { method: 'HEAD' }),
+  (r) => r.status === 200);
+
 await check('GET /api/ios-waitlist', fetch(`${base}/api/ios-waitlist`), (r) => r.status === 200);
 await check('POST /api/events', fetch(`${base}/api/events`, {
   method: 'POST',

@@ -20,3 +20,9 @@ Astro 5 + React islands on Cloudflare Workers (`@astrojs/cloudflare`, `wrangler.
   coordinates, or free-form input.
 - HTML edge cache is keyed by `CF_VERSION_METADATA.id`; do not reintroduce a manual cache version.
 - `docs/10X-IMPROVEMENT-PLAN.md` is the roadmap; update it in the same change as the work.
+- Maps use MapLibre GL with a self-hosted Protomaps basemap: tiles come from the PMTiles
+  archive in `MEDIA_R2` (`BASEMAP_KEY` in `src/lib/basemap.ts`) via `/basemap/tiles/*`,
+  glyphs/sprites from `public/basemap/`. Do not reintroduce third-party tile providers.
+  To refresh: `pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles out.pmtiles
+  --bbox=-123.2,36.7,-120.9,38.6 --maxzoom=15`, upload under a new key with
+  `wrangler r2 object put earthquake-media/basemap/<key> --file out.pmtiles --remote`, bump `BASEMAP_KEY`.

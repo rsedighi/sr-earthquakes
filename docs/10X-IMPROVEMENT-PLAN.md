@@ -558,7 +558,7 @@ Runbooks:
 | `feed_stale` / `feed_missing` | Workers Logs for `[cron]` errors; check USGS status; confirm cron trigger is active in the dashboard. |
 | `asset_failures` | Run `npm run smoke -- https://baytremor.com`; group `asset_load_failed` by `blob6` version. A previous version means stale HTML; the current version means a broken deploy, so roll back with `wrangler rollback`. |
 | `js_errors` | Group `js_error` by message (`blob11`) and version (`blob6`); roll back if it started with a deploy. |
-| `feed_failures` / `map_failures` | Check `/api/earthquakes` and `/api/map-tiles` in Workers Logs; check KV and upstream (USGS, CARTO). |
+| `feed_failures` / `map_failures` | Check `/api/earthquakes` and `[basemap]` errors in Workers Logs; check KV, USGS, and the `MEDIA_R2` basemap object. |
 | `waitlist_failures` | Workers Logs for `[api/ios-waitlist POST]`; check D1 status. |
 | `telemetry_silent` | Load the site; check `/api/events` returns 204 with a same-origin `Origin` header. |
 
@@ -572,16 +572,19 @@ The live map rendered at 400px inside a 500px card (`h-full` under a
 Blur comes from CARTO raster tiles being upscaled during zoom/`flyTo`, not
 from tile-proxy load (proxy serves @2x tiles from edge cache in ~0.2-0.3s).
 
-- [~] Give the live map a definite height so Leaflet fills the card.
-- [~] Bundle `leaflet.css` with the map chunks instead of loading it from unpkg
-  (and drop unpkg from the CSP).
+- [~] Give the live map a definite height so the map fills the card.
+- [~] Drop unpkg from the CSP; map CSS ships in the bundle.
 - [~] Hide the mouse-click focus ring on the map container.
-- [ ] Cut a Bay Area Protomaps PMTiles extract (bbox `-123,36.8,-121,38.5`) and
-  upload it to R2.
-- [ ] Serve tiles from R2 through the Worker with edge caching.
-- [ ] Port `leaflet-map`, `earthquake-detail-map`, and `fault-map` to MapLibre GL
-  with a dark Protomaps style; render faults as a vector layer.
-- [ ] Remove the CARTO tile proxy and `CARTO_API` secret.
+- [~] Cut a Bay Area Protomaps PMTiles extract (bbox `-123.2,36.7,-120.9,38.6`,
+  z0-15, 271MB) and upload it to `MEDIA_R2` as `basemap/bayarea-20261112.pmtiles`.
+- [~] Serve tiles at `/basemap/tiles/{z}/{x}/{y}.mvt` from R2 in the Worker entry
+  (`src/lib/basemap.ts`, before Astro middleware) with edge caching.
+- [~] Self-host Noto Sans glyphs and the dark sprite under `public/basemap/`.
+- [~] Replace Leaflet with MapLibre GL in the live/My Area map (`quake-map`),
+  `earthquake-detail-map`, and `fault-map`; faults render as a vector layer.
+- [~] Remove the CARTO tile proxy, Leaflet packages, and `CARTO_API` from types.
+- [ ] Delete the production `CARTO_API` Worker secret and the CARTO account/key.
+- [ ] Refresh the extract periodically (new key, bump `BASEMAP_KEY`).
 
 Acceptance criteria:
 
@@ -642,7 +645,7 @@ Acceptance criteria:
 - [ ] Keep the initial LCP candidate server-rendered through hydration.
 - [ ] Avoid replacing above-the-fold fallback content unnecessarily.
 - [ ] Split the dashboard bundle by immediately visible functionality.
-- [ ] Defer Leaflet until the map approaches the viewport or idle time.
+- [ ] Defer MapLibre (~300KB gz + ~150KB gz worker) until the map approaches the viewport or idle time.
 - [ ] Confirm fonts do not delay text rendering.
 - [ ] Keep layout dimensions stable.
 - [ ] Compare production p75 before and after release.

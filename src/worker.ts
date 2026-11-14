@@ -2,10 +2,12 @@
 // Wraps @astrojs/cloudflare's default handler to:
 //   • Export Durable Object classes (required by wrangler deploy)
 //   • Export `scheduled` cron handler and `queue` consumer on the default object
+//   • Serve basemap vector tiles before Astro (no middleware, no page_view noise)
 import { createExports as _createExports } from '@astrojs/cloudflare/entrypoints/server.js';
 import { EarthquakeRoom } from './durable-objects/EarthquakeRoom';
 import { CommentRoom } from './durable-objects/CommentRoom';
 import { handleScheduled } from './lib/cron';
+import { BASEMAP_TILE_PATH, handleBasemapTile } from './lib/basemap';
 import { runMonitors } from './lib/monitor';
 import { dispatchWebPushAlerts } from './lib/push';
 import { sendAPNs, distanceMiles } from './lib/apns';
@@ -86,6 +88,13 @@ export function createExports(manifest: any) {
     ...base,
     default: {
       ...base.default,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetch(request: Request, env: any, ctx: ExecutionContext) {
+        if (new URL(request.url).pathname.startsWith(BASEMAP_TILE_PATH)) {
+          return handleBasemapTile(request, env, ctx);
+        }
+        return base.default.fetch(request, env, ctx);
+      },
       scheduled,
       queue,
     },

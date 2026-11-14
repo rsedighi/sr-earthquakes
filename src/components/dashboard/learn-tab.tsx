@@ -318,7 +318,7 @@ export function LearnSection() {
             Several major fault systems run through our region, each capable of producing significant earthquakes.
           </p>
           
-          {/* Interactive Fault Map - Using Leaflet with GeoJSON */}
+          {/* Interactive Fault Map - MapLibre with GeoJSON */}
           <div className="rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
             <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
               <span className="text-sm text-neutral-400">Interactive Fault Map</span>

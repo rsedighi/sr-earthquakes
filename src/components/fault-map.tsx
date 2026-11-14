@@ -1,8 +1,11 @@
 'use client';
 
-import 'leaflet/dist/leaflet.css';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { FeatureCollection, LineString } from 'geojson';
+import type { MapLayerMouseEvent, Popup } from 'maplibre-gl';
 import { Loader2 } from 'lucide-react';
+import { useMapLibre } from './map/maplibre';
+import { MapPopup } from './map/map-popup';
 
 // Import the fault data (stored in lib/ to avoid being processed as earthquake data)
 import faultData from '@/lib/bay-area-faults.json';
@@ -26,203 +29,162 @@ interface FaultMapProps {
   height?: string;
 }
 
+// Bay Area cities for reference
+const CITIES = [
+  { name: 'San Francisco', lat: 37.7749, lon: -122.4194 },
+  { name: 'Oakland', lat: 37.8044, lon: -122.2712 },
+  { name: 'San Jose', lat: 37.3382, lon: -121.8863 },
+  { name: 'Berkeley', lat: 37.8716, lon: -122.2727 },
+  { name: 'Fremont', lat: 37.5485, lon: -121.9886 },
+  { name: 'San Ramon', lat: 37.7799, lon: -121.9780 },
+  { name: 'Hayward', lat: 37.6688, lon: -122.0808 },
+  { name: 'Concord', lat: 37.9780, lon: -122.0311 },
+  { name: 'Santa Rosa', lat: 38.4404, lon: -122.7141 },
+  { name: 'Napa', lat: 38.2975, lon: -122.2869 },
+];
+
+const faults = faultData as unknown as FeatureCollection<LineString, FaultProperties>;
+const faultsById = new Map(faults.features.map(f => [f.properties.id, f.properties]));
+
+const RISK_BADGE = {
+  'Very High': { background: '#fecaca', color: '#991b1b' },
+  High: { background: '#fed7aa', color: '#9a3412' },
+  Moderate: { background: '#fef3c7', color: '#92400e' },
+} as const;
+
 export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
-  const [containerClean, setContainerClean] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [leaflet, setLeaflet] = useState<{
-    MapContainer: typeof import('react-leaflet').MapContainer;
-    AttributionControl: typeof import('react-leaflet').AttributionControl;
-    TileLayer: typeof import('react-leaflet').TileLayer;
-    GeoJSON: typeof import('react-leaflet').GeoJSON;
-    CircleMarker: typeof import('react-leaflet').CircleMarker;
-    Tooltip: typeof import('react-leaflet').Tooltip;
-  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<{ fault: FaultProperties; lngLat: [number, number] } | null>(null);
+  const { map, maplibre, state } = useMapLibre(
+    containerRef,
+    { center: [-122.15, 37.75], zoom: 8 },
+    { component: 'fault-map' },
+  );
 
-  // Purge stale Leaflet containers surviving cacheComponents restoration
   useEffect(() => {
-    if (wrapperRef.current) {
-      wrapperRef.current.querySelectorAll('.leaflet-container').forEach(el => el.remove());
-    }
-    setContainerClean(true);
-    return () => setContainerClean(false);
-  }, []);
-
-  // Dynamically import leaflet modules
-  useEffect(() => {
-    let mounted = true;
-
-    const loadLeaflet = async () => {
-      const reactLeaflet = await import('react-leaflet');
-
-      if (mounted) {
-        setLeaflet({
-          MapContainer: reactLeaflet.MapContainer,
-          AttributionControl: reactLeaflet.AttributionControl,
-          TileLayer: reactLeaflet.TileLayer,
-          GeoJSON: reactLeaflet.GeoJSON,
-          CircleMarker: reactLeaflet.CircleMarker,
-          Tooltip: reactLeaflet.Tooltip,
-        });
-        setMapReady(true);
-      }
-    };
-
-    loadLeaflet();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Style function for fault lines - memoized
-  const faultStyle = useCallback((feature: GeoJSON.Feature | undefined) => {
-    if (!feature?.properties) return {};
-    const props = feature.properties as FaultProperties;
-    return {
-      color: props.color || '#ef4444',
-      weight: props.risk === 'Very High' ? 5 : props.risk === 'High' ? 4 : 3,
-      opacity: 0.85,
-      lineCap: 'round' as const,
-      lineJoin: 'round' as const,
-    };
-  }, []);
-
-  // Popup content for each fault - memoized
-  const onEachFault = useCallback((feature: GeoJSON.Feature, layer: L.Layer) => {
-    if (!feature.properties) return;
-    const props = feature.properties as FaultProperties;
-    const yearsSince = new Date().getFullYear() - props.lastMajor.year;
-    
-    const popupContent = `
-      <div style="min-width: 240px; font-family: system-ui, sans-serif;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <div style="width: 12px; height: 12px; border-radius: 50%; background: ${props.color};"></div>
-          <strong style="font-size: 14px;">${props.name}</strong>
-        </div>
-        <div style="background: ${props.risk === 'Very High' ? '#fecaca' : props.risk === 'High' ? '#fed7aa' : '#fef3c7'}; 
-                    color: ${props.risk === 'Very High' ? '#991b1b' : props.risk === 'High' ? '#9a3412' : '#92400e'}; 
-                    padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 8px;">
-          ${props.risk} Risk
-        </div>
-        <p style="font-size: 12px; color: #4b5563; margin: 0 0 12px 0; line-height: 1.4;">
-          ${props.description}
-        </p>
-        <div style="background: #f9fafb; border-radius: 6px; padding: 10px; margin-top: 8px;">
-          <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 4px;">Last Major Event (M6+)</div>
-          <div style="font-size: 18px; font-weight: 600; color: ${props.color};">
-            M${props.lastMajor.magnitude.toFixed(1)}
-          </div>
-          <div style="font-size: 12px; color: #374151; margin-top: 2px;">
-            ${props.lastMajor.location}, ${props.lastMajor.year}
-          </div>
-          <div style="font-size: 11px; color: ${yearsSince >= 100 ? '#ef4444' : yearsSince >= 50 ? '#f97316' : '#eab308'}; font-weight: 600; margin-top: 4px;">
-            ${yearsSince} years ago
-          </div>
-        </div>
-      </div>
-    `;
-    
-    layer.bindPopup(popupContent, { maxWidth: 280 });
-    
-    // Add tooltip with fault name on hover
-    layer.bindTooltip(props.name, {
-      permanent: false,
-      direction: 'top',
-      className: 'fault-tooltip',
+    if (!map || !maplibre) return;
+    map.addSource('faults', { type: 'geojson', data: faults });
+    map.addSource('cities', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: CITIES.map(c => ({ type: 'Feature', properties: { name: c.name }, geometry: { type: 'Point', coordinates: [c.lon, c.lat] } })),
+      },
     });
-  }, []);
+    map.addLayer({
+      id: 'faults', type: 'line', source: 'faults',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': ['coalesce', ['get', 'color'], '#ef4444'],
+        'line-width': ['match', ['get', 'risk'], 'Very High', 5, 'High', 4, 3],
+        'line-opacity': 0.85,
+      },
+    });
+    // Wide invisible line makes thin faults easy to hover and tap.
+    map.addLayer({
+      id: 'faults-hit', type: 'line', source: 'faults',
+      paint: { 'line-color': '#000000', 'line-width': 16, 'line-opacity': 0 },
+    });
+    map.addLayer({
+      id: 'cities', type: 'circle', source: 'cities',
+      paint: { 'circle-radius': 4, 'circle-color': '#ffffff', 'circle-opacity': 0.9, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
+    });
+    map.addLayer({
+      id: 'city-labels', type: 'symbol', source: 'cities',
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 11,
+        'text-anchor': 'left',
+        'text-offset': [0.7, 0],
+      },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': 'rgba(0,0,0,0.9)', 'text-halo-width': 1.5 },
+    });
 
-  if (!containerClean || !mapReady || !leaflet) {
-    return (
-      <div 
-        ref={wrapperRef}
-        className={`w-full bg-neutral-900/50 flex items-center justify-center ${className}`}
-        style={{ height }}
-      >
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
-      </div>
-    );
-  }
+    let tooltip: Popup | null = null;
+    const onMove = (e: MapLayerMouseEvent) => {
+      const fault = faultsById.get(e.features?.[0]?.properties?.id);
+      if (!fault) return;
+      map.getCanvas().style.cursor = 'pointer';
+      tooltip ??= new maplibre.Popup({ closeButton: false, closeOnClick: false, className: 'fault-tooltip', offset: 10, anchor: 'bottom' });
+      tooltip.setLngLat(e.lngLat).setText(fault.name).addTo(map);
+    };
+    const onLeave = () => {
+      map.getCanvas().style.cursor = '';
+      tooltip?.remove();
+    };
+    const onClick = (e: MapLayerMouseEvent) => {
+      const fault = faultsById.get(e.features?.[0]?.properties?.id);
+      if (!fault) return;
+      setSelected({ fault, lngLat: [e.lngLat.lng, e.lngLat.lat] });
+      map.easeTo({ center: e.lngLat, duration: 400 });
+    };
+    map.on('mousemove', 'faults-hit', onMove);
+    map.on('mouseleave', 'faults-hit', onLeave);
+    map.on('click', 'faults-hit', onClick);
+    return () => {
+      map.off('mousemove', 'faults-hit', onMove);
+      map.off('mouseleave', 'faults-hit', onLeave);
+      map.off('click', 'faults-hit', onClick);
+      tooltip?.remove();
+    };
+  }, [map, maplibre]);
 
-  const { MapContainer, AttributionControl, TileLayer, GeoJSON, CircleMarker, Tooltip } = leaflet;
-
-  // Bay Area cities for reference
-  const cities = [
-    { name: 'San Francisco', lat: 37.7749, lon: -122.4194 },
-    { name: 'Oakland', lat: 37.8044, lon: -122.2712 },
-    { name: 'San Jose', lat: 37.3382, lon: -121.8863 },
-    { name: 'Berkeley', lat: 37.8716, lon: -122.2727 },
-    { name: 'Fremont', lat: 37.5485, lon: -121.9886 },
-    { name: 'San Ramon', lat: 37.7799, lon: -121.9780 },
-    { name: 'Hayward', lat: 37.6688, lon: -122.0808 },
-    { name: 'Concord', lat: 37.9780, lon: -122.0311 },
-    { name: 'Santa Rosa', lat: 38.4404, lon: -122.7141 },
-    { name: 'Napa', lat: 38.2975, lon: -122.2869 },
-  ];
+  const yearsSince = selected ? new Date().getFullYear() - selected.fault.lastMajor.year : 0;
 
   return (
-    <div className={`relative ${className}`} style={{ height }}>
-      <MapContainer
-        center={[37.75, -122.15]}
-        zoom={9}
-        className="w-full h-full z-0"
-        style={{ background: '#1a1a1a' }}
-        scrollWheelZoom={true}
-        attributionControl={false}
-      >
-        <AttributionControl prefix={false} />
-        {/* Dark mode tile layer - CartoDB Dark Matter */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="/api/map-tiles/{z}/{x}/{y}{r}.png"
-        />
+    <div className={`relative w-full overflow-hidden bg-[#121212] ${className}`} style={{ height }}>
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
-        {/* GeoJSON fault lines */}
-        <GeoJSON
-          key="fault-lines"
-          data={faultData as GeoJSON.FeatureCollection}
-          style={faultStyle}
-          onEachFeature={onEachFault}
-        />
+      {state !== 'ready' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/50">
+          {state === 'error'
+            ? <p className="text-sm text-neutral-400">Map temporarily unavailable</p>
+            : <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />}
+        </div>
+      )}
 
-        {/* City markers */}
-        {cities.map((city) => (
-          <CircleMarker
-            key={city.name}
-            center={[city.lat, city.lon]}
-            radius={4}
-            pathOptions={{
-              color: '#ffffff',
-              fillColor: '#ffffff',
-              fillOpacity: 0.9,
-              weight: 1,
-            }}
-          >
-            <Tooltip
-              permanent
-              direction="right"
-              offset={[6, 0]}
-              className="city-label"
+      {map && maplibre && selected && (
+        <MapPopup
+          map={map}
+          maplibre={maplibre}
+          lngLat={selected.lngLat}
+          onClose={() => setSelected(null)}
+          className="popup-light"
+        >
+          <div className="min-w-[240px]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full" style={{ background: selected.fault.color }} />
+              <strong className="text-sm">{selected.fault.name}</strong>
+            </div>
+            <div
+              className="inline-block mb-2 px-2 py-0.5 rounded text-[11px] font-semibold"
+              style={RISK_BADGE[selected.fault.risk]}
             >
-              <span style={{ 
-                fontSize: '10px', 
-                fontWeight: 500,
-                color: '#ffffff',
-                textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.7)',
-                background: 'transparent',
-                border: 'none',
-                boxShadow: 'none',
-              }}>
-                {city.name}
-              </span>
-            </Tooltip>
-          </CircleMarker>
-        ))}
-      </MapContainer>
+              {selected.fault.risk} Risk
+            </div>
+            <p className="text-xs text-gray-600 mb-3 leading-snug">{selected.fault.description}</p>
+            <div className="bg-gray-50 rounded-md p-2.5 mt-2">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">Last Major Event (M6+)</div>
+              <div className="text-lg font-semibold" style={{ color: selected.fault.color }}>
+                M{selected.fault.lastMajor.magnitude.toFixed(1)}
+              </div>
+              <div className="text-xs text-gray-700 mt-0.5">
+                {selected.fault.lastMajor.location}, {selected.fault.lastMajor.year}
+              </div>
+              <div
+                className="text-[11px] font-semibold mt-1"
+                style={{ color: yearsSince >= 100 ? '#ef4444' : yearsSince >= 50 ? '#f97316' : '#eab308' }}
+              >
+                {yearsSince} years ago
+              </div>
+            </div>
+          </div>
+        </MapPopup>
+      )}
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 text-xs z-[1000]">
+      <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm rounded-lg p-3 text-xs z-10">
         <div className="text-neutral-400 mb-2 font-medium">Fault Risk Level</div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
@@ -241,54 +203,11 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
       </div>
 
       {/* Attribution */}
-      <div className="absolute bottom-4 right-4 text-[10px] text-neutral-600 z-[1000]">
+      <div className="absolute bottom-10 right-2 text-[10px] text-neutral-400 bg-black/60 px-1.5 py-0.5 rounded z-10">
         Data: USGS Quaternary Fault Database
       </div>
-      
-      {/* Custom tooltip styles */}
-      <style>{`
-        .fault-tooltip {
-          background: rgba(0, 0, 0, 0.85) !important;
-          border: 1px solid rgba(255, 255, 255, 0.2) !important;
-          border-radius: 4px !important;
-          color: white !important;
-          font-size: 12px !important;
-          font-weight: 500 !important;
-          padding: 4px 8px !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
-        }
-        .fault-tooltip::before {
-          border-top-color: rgba(0, 0, 0, 0.85) !important;
-        }
-        .city-label {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          padding: 0 !important;
-        }
-        .city-label::before {
-          display: none !important;
-        }
-        .leaflet-popup-content-wrapper {
-          background: white !important;
-          border-radius: 8px !important;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
-        }
-        .leaflet-popup-tip {
-          background: white !important;
-        }
-        .leaflet-popup-close-button {
-          color: #6b7280 !important;
-          font-size: 18px !important;
-          padding: 8px !important;
-        }
-        .leaflet-popup-close-button:hover {
-          color: #111827 !important;
-        }
-      `}</style>
     </div>
   );
 }
 
 export default FaultMap;
-

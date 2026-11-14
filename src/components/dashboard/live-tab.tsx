@@ -34,8 +34,8 @@ import { CollapsibleAlert } from './collapsible-alert';
 import { HeroQuake } from './hero-quake';
 import { IOSAppBanner } from './prompts';
 
-const LeafletMap = dynamic(
-  () => import('@/components/leaflet-map').then(mod => mod.LeafletMap),
+const QuakeMap = dynamic(
+  () => import('@/components/quake-map').then(mod => mod.QuakeMap),
   { 
     ssr: false,
     loading: () => (
@@ -340,7 +340,7 @@ export function LiveTab({
               USGS <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             </a>
           </div>
-          <LeafletMap 
+          <QuakeMap 
             earthquakes={realtimeQuakes}
             selectedEarthquake={selectedEarthquake}
             onSelectEarthquake={onSelectEarthquake}

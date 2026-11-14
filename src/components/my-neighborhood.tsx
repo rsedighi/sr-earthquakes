@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import type { Earthquake } from '@/lib/types';
-import { AddressSearch, getDistanceKm } from './leaflet-map';
+import { AddressSearch, getDistanceKm } from './address-search';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { EarthquakeDetailModal } from './earthquake-detail-modal';
 import { HomeRiskReport } from './home-risk-report';
@@ -12,9 +12,9 @@ import { useUnits } from '@/lib/unit-context';
 import { formatDistance } from '@/lib/units';
 import { MapPin, ChevronRight, Loader2 } from 'lucide-react';
 
-// Dynamically import Leaflet map to avoid SSR issues
-const LeafletMap = dynamic(
-  () => import('./leaflet-map').then(mod => mod.LeafletMap),
+// Dynamically import the map to avoid SSR issues
+const QuakeMap = dynamic(
+  () => import('./quake-map').then(mod => mod.QuakeMap),
   {
     ssr: false,
     loading: () => (
@@ -37,7 +37,7 @@ const LAST_ADDRESS_KEY = 'baytremor_last_address';
 
 // Radius used to define "near you" (~15 miles).
 const NEARBY_RADIUS_KM = 25;
-// Cap the number of markers handed to Leaflet — dense urban areas can match
+// Cap the number of markers handed to the map — dense urban areas can match
 // thousands of micro-quakes and one SVG circle each locks up the page.
 const MAX_MAP_MARKERS = 300;
 
@@ -165,7 +165,7 @@ export function MyNeighborhood({ historicalEarthquakes, isLoadingHistorical = fa
       {/* Map */}
       {userLocation && (
         <div className="rounded-xl overflow-hidden border border-white/10">
-          <LeafletMap
+          <QuakeMap
             earthquakes={mapEarthquakes}
             userLocation={userLocation}
             searchRadius={NEARBY_RADIUS_KM}

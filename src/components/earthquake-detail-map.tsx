@@ -1,7 +1,7 @@
 'use client';
 
-import 'leaflet/dist/leaflet.css';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { MapLayerMouseEvent } from 'maplibre-gl';
 import type { Earthquake } from '@/lib/types';
 import { getMagnitudeColor } from '@/lib/analysis';
 import { format } from 'date-fns';
@@ -9,6 +9,9 @@ import { Loader2 } from 'lucide-react';
 import { formatDepth, formatDistance } from '@/lib/units';
 import { useUnits } from '@/lib/unit-context';
 import { getLocationContext } from '@/lib/regions';
+import { getDistanceKm } from './address-search';
+import { BASEMAP_BOUNDS, circlePolygon, inBasemap, useMapLibre } from './map/maplibre';
+import { MapPopup } from './map/map-popup';
 
 interface EarthquakeDetailMapProps {
   earthquake: Earthquake;
@@ -16,17 +19,9 @@ interface EarthquakeDetailMapProps {
   className?: string;
 }
 
-// Haversine distance calculation
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+// Get size based on magnitude
+function getMagnitudeSize(magnitude: number): number {
+  return Math.max(8, Math.min(30, Math.pow(2, magnitude) * 1.5));
 }
 
 export function EarthquakeDetailMap({
@@ -35,170 +30,112 @@ export function EarthquakeDetailMap({
   className = '',
 }: EarthquakeDetailMapProps) {
   const { unitSystem } = useUnits();
-  const [containerClean, setContainerClean] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [leaflet, setLeaflet] = useState<{
-    MapContainer: typeof import('react-leaflet').MapContainer;
-    AttributionControl: typeof import('react-leaflet').AttributionControl;
-    TileLayer: typeof import('react-leaflet').TileLayer;
-    CircleMarker: typeof import('react-leaflet').CircleMarker;
-    Circle: typeof import('react-leaflet').Circle;
-    Popup: typeof import('react-leaflet').Popup;
-    Marker: typeof import('react-leaflet').Marker;
-    L: typeof import('leaflet');
-  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [popupQuake, setPopupQuake] = useState<Earthquake | null>(null);
+  const { map, maplibre, state } = useMapLibre(
+    containerRef,
+    {
+      center: [earthquake.longitude, earthquake.latitude],
+      zoom: 10,
+      scrollZoom: false,
+      maxBounds: inBasemap(earthquake.longitude, earthquake.latitude) ? BASEMAP_BOUNDS : undefined,
+    },
+    { component: 'earthquake-detail-map', earthquakeCount: nearbyEarthquakes.length },
+  );
 
-  // Purge stale Leaflet containers surviving cacheComponents restoration
+  const nearbyRef = useRef(nearbyEarthquakes);
+  nearbyRef.current = nearbyEarthquakes;
+  const mainRef = useRef(earthquake);
+  mainRef.current = earthquake;
+
   useEffect(() => {
-    if (wrapperRef.current) {
-      wrapperRef.current.querySelectorAll('.leaflet-container').forEach(el => el.remove());
+    if (!map) return;
+    const mainColor = getMagnitudeColor(earthquake.magnitude);
+    const mainSize = getMagnitudeSize(earthquake.magnitude);
+    const center: [number, number] = [earthquake.longitude, earthquake.latitude];
+    const nearby = nearbyEarthquakes.filter(eq => eq.id !== earthquake.id);
+
+    map.addSource('epicenter-radius', { type: 'geojson', data: circlePolygon(center[0], center[1], 5) });
+    map.addSource('nearby', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: nearby.map(eq => ({
+          type: 'Feature',
+          properties: { id: eq.id, color: getMagnitudeColor(eq.magnitude), radius: getMagnitudeSize(eq.magnitude) * 0.6 },
+          geometry: { type: 'Point', coordinates: [eq.longitude, eq.latitude] },
+        })),
+      },
+    });
+    map.addSource('epicenter', {
+      type: 'geojson',
+      data: { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: center } },
+    });
+
+    map.addLayer({ id: 'epicenter-radius-fill', type: 'fill', source: 'epicenter-radius', paint: { 'fill-color': mainColor, 'fill-opacity': 0.1 } });
+    map.addLayer({ id: 'epicenter-radius-line', type: 'line', source: 'epicenter-radius', paint: { 'line-color': mainColor, 'line-width': 1, 'line-dasharray': [5, 5] } });
+    map.addLayer({
+      id: 'nearby', type: 'circle', source: 'nearby',
+      paint: {
+        'circle-radius': ['get', 'radius'],
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.3,
+        'circle-stroke-color': ['get', 'color'],
+        'circle-stroke-width': 1,
+        'circle-stroke-opacity': 0.5,
+      },
+    });
+    map.addLayer({ id: 'epicenter-halo', type: 'circle', source: 'epicenter', paint: { 'circle-radius': mainSize * 1.5, 'circle-color': mainColor, 'circle-opacity': 0.2 } });
+    map.addLayer({
+      id: 'epicenter', type: 'circle', source: 'epicenter',
+      paint: { 'circle-radius': mainSize, 'circle-color': mainColor, 'circle-opacity': 0.9, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 },
+    });
+
+    const onNearbyClick = (e: MapLayerMouseEvent) => {
+      const id = e.features?.[0]?.properties?.id;
+      setPopupQuake(nearbyRef.current.find(eq => eq.id === id) ?? null);
+    };
+    const onEpicenterClick = () => setPopupQuake(mainRef.current);
+    const pointer = () => { map.getCanvas().style.cursor = 'pointer'; };
+    const reset = () => { map.getCanvas().style.cursor = ''; };
+    for (const layer of ['nearby', 'epicenter']) {
+      map.on('mouseenter', layer, pointer);
+      map.on('mouseleave', layer, reset);
     }
-    setContainerClean(true);
-    return () => setContainerClean(false);
-  }, []);
-
-  // Dynamically import leaflet modules
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadLeaflet = async () => {
-      const [reactLeaflet, L] = await Promise.all([
-        import('react-leaflet'),
-        import('leaflet'),
-      ]);
-
-      if (mounted) {
-        setLeaflet({
-          MapContainer: reactLeaflet.MapContainer,
-          AttributionControl: reactLeaflet.AttributionControl,
-          TileLayer: reactLeaflet.TileLayer,
-          CircleMarker: reactLeaflet.CircleMarker,
-          Circle: reactLeaflet.Circle,
-          Popup: reactLeaflet.Popup,
-          Marker: reactLeaflet.Marker,
-          L: L.default,
-        });
-        setMapReady(true);
-      }
-    };
-
-    loadLeaflet();
-
+    map.on('click', 'nearby', onNearbyClick);
+    map.on('click', 'epicenter', onEpicenterClick);
     return () => {
-      mounted = false;
+      for (const layer of ['nearby', 'epicenter']) {
+        map.off('mouseenter', layer, pointer);
+        map.off('mouseleave', layer, reset);
+      }
+      map.off('click', 'nearby', onNearbyClick);
+      map.off('click', 'epicenter', onEpicenterClick);
     };
-  }, []);
+    // Props are fixed for the lifetime of a detail view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
 
-  // Get size based on magnitude
-  const getMagnitudeSize = (magnitude: number): number => {
-    return Math.max(8, Math.min(30, Math.pow(2, magnitude) * 1.5));
-  };
-
-  if (!containerClean || !mapReady || !leaflet) {
-    return (
-      <div ref={wrapperRef} className={`w-full min-h-[250px] bg-neutral-900/50 rounded-xl flex items-center justify-center ${className}`}>
-        <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
-      </div>
-    );
-  }
-
-  const { MapContainer, AttributionControl, TileLayer, CircleMarker, Circle, Popup } = leaflet;
   const mainColor = getMagnitudeColor(earthquake.magnitude);
-  const mainSize = getMagnitudeSize(earthquake.magnitude);
 
   return (
-    <div className={`relative ${className}`}>
-      <MapContainer
-        center={[earthquake.latitude, earthquake.longitude]}
-        zoom={11}
-        className="w-full h-full min-h-[250px] rounded-xl z-0"
-        style={{ background: '#1a1a1a' }}
-        scrollWheelZoom={false}
-        dragging={true}
-        zoomControl={true}
-        attributionControl={false}
-      >
-        <AttributionControl prefix={false} />
-        {/* Dark mode tile layer - CartoDB Dark Matter */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="/api/map-tiles/{z}/{x}/{y}{r}.png"
-        />
-        
-        {/* Nearby earthquakes (dimmed) */}
-        {nearbyEarthquakes
-          .filter(eq => eq.id !== earthquake.id)
-          .map((eq, idx) => (
-            <CircleMarker
-              key={`${eq.id}-${idx}`}
-              center={[eq.latitude, eq.longitude]}
-              radius={getMagnitudeSize(eq.magnitude) * 0.6}
-              pathOptions={{
-                color: getMagnitudeColor(eq.magnitude),
-                fillColor: getMagnitudeColor(eq.magnitude),
-                fillOpacity: 0.3,
-                weight: 1,
-                opacity: 0.5,
-              }}
-            >
-              <Popup>
-                <div className="text-sm">
-                  <div className="font-bold" style={{ color: getMagnitudeColor(eq.magnitude) }}>
-                    M{eq.magnitude.toFixed(1)}
-                  </div>
-                  <div className="text-gray-600">{getLocationContext(eq.latitude, eq.longitude, unitSystem).formattedLocation || eq.place}</div>
-                  <div className="text-xs text-gray-400">
-                    {format(eq.time, 'MMM d, yyyy')}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {formatDistance(getDistanceKm(earthquake.latitude, earthquake.longitude, eq.latitude, eq.longitude), unitSystem)} away
-                  </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
-        
-        {/* Epicenter radius indicator */}
-        <Circle
-          center={[earthquake.latitude, earthquake.longitude]}
-          radius={5000}
-          pathOptions={{
-            color: mainColor,
-            fillColor: mainColor,
-            fillOpacity: 0.1,
-            weight: 1,
-            dashArray: '5, 5',
-          }}
-        />
-        
-        {/* Main earthquake marker - Pulsing effect */}
-        <CircleMarker
-          center={[earthquake.latitude, earthquake.longitude]}
-          radius={mainSize * 1.5}
-          pathOptions={{
-            color: mainColor,
-            fillColor: mainColor,
-            fillOpacity: 0.2,
-            weight: 0,
-          }}
-        />
-        
-        {/* Main earthquake marker - Core */}
-        <CircleMarker
-          center={[earthquake.latitude, earthquake.longitude]}
-          radius={mainSize}
-          pathOptions={{
-            color: '#ffffff',
-            fillColor: mainColor,
-            fillOpacity: 0.9,
-            weight: 3,
-          }}
-        >
-          <Popup>
+    <div className={`relative w-full min-h-[250px] rounded-xl overflow-hidden bg-[#121212] ${className}`}>
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {state !== 'ready' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/50">
+          {state === 'error'
+            ? <p className="text-sm text-neutral-400">Map temporarily unavailable</p>
+            : <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />}
+        </div>
+      )}
+
+      {map && maplibre && popupQuake && (
+        <MapPopup map={map} maplibre={maplibre} lngLat={[popupQuake.longitude, popupQuake.latitude]} onClose={() => setPopupQuake(null)}>
+          {popupQuake.id === earthquake.id ? (
             <div className="min-w-[180px]">
               <div className="flex items-center gap-2 mb-2">
-                <div 
+                <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
                   style={{ backgroundColor: mainColor }}
                 >
@@ -206,39 +143,52 @@ export function EarthquakeDetailMap({
                 </div>
                 <div>
                   <div className="font-semibold">Epicenter</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-neutral-400">
                     {format(earthquake.time, 'PPpp')}
                   </div>
                 </div>
               </div>
-              <div className="text-sm text-gray-700 mb-2">{earthquake.place}</div>
-              <div className="text-xs text-gray-500 space-y-1">
+              <div className="text-sm text-neutral-200 mb-2">{earthquake.place}</div>
+              <div className="text-xs text-neutral-400 space-y-1">
                 <div>Depth: {formatDepth(earthquake.depth)}</div>
                 <div>Lat: {earthquake.latitude.toFixed(4)}°</div>
                 <div>Lon: {earthquake.longitude.toFixed(4)}°</div>
               </div>
             </div>
-          </Popup>
-        </CircleMarker>
-      </MapContainer>
-      
+          ) : (
+            <div className="text-sm">
+              <div className="font-bold" style={{ color: getMagnitudeColor(popupQuake.magnitude) }}>
+                M{popupQuake.magnitude.toFixed(1)}
+              </div>
+              <div className="text-neutral-300">{getLocationContext(popupQuake.latitude, popupQuake.longitude, unitSystem).formattedLocation || popupQuake.place}</div>
+              <div className="text-xs text-neutral-500">
+                {format(popupQuake.time, 'MMM d, yyyy')}
+              </div>
+              <div className="text-xs text-neutral-400">
+                {formatDistance(getDistanceKm(earthquake.latitude, earthquake.longitude, popupQuake.latitude, popupQuake.longitude), unitSystem)} away
+              </div>
+            </div>
+          )}
+        </MapPopup>
+      )}
+
       {/* Coordinates overlay */}
-      <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
+      <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-10">
         <div className="text-xs text-neutral-400">
           <span className="font-mono">{earthquake.latitude.toFixed(4)}°N, {earthquake.longitude.toFixed(4)}°W</span>
         </div>
       </div>
 
       {/* Depth indicator */}
-      <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
+      <div className="absolute bottom-14 left-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-10">
         <div className="text-xs text-neutral-400">
           Depth: <span className="text-white font-medium">{formatDepth(earthquake.depth)}</span>
         </div>
       </div>
-      
+
       {/* Legend for nearby quakes */}
       {nearbyEarthquakes.length > 1 && (
-        <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-[1000]">
+        <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 z-10">
           <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">Nearby Events</div>
           <div className="text-xs text-neutral-300">{nearbyEarthquakes.length - 1} earthquakes</div>
         </div>
@@ -248,4 +198,3 @@ export function EarthquakeDetailMap({
 }
 
 export { getDistanceKm };
-
