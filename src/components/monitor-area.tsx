@@ -23,6 +23,7 @@ interface MonitorAreaCardProps {
   currentCity: string | null;
   onCityChange: (cityName: string) => void;
   source: string;
+  headline?: string;
 }
 
 function readPrefs(): AlertPrefs | null {
@@ -54,7 +55,7 @@ async function getRegistration(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.ready;
 }
 
-export function MonitorAreaCard({ cities, currentCity, onCityChange, source }: MonitorAreaCardProps) {
+export function MonitorAreaCard({ cities, currentCity, onCityChange, source, headline }: MonitorAreaCardProps) {
   const [support, setSupport] = useState<Support>('checking');
   const [activePrefs, setActivePrefs] = useState<AlertPrefs | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -171,11 +172,13 @@ export function MonitorAreaCard({ cities, currentCity, onCityChange, source }: M
     }
   }, [source]);
 
-  if (support === 'checking' || support === 'unsupported') return null;
+  if (support === 'unsupported') return null;
+  // Same footprint as the card so server-rendered pages don't shift on hydration.
+  if (support === 'checking') return <div className="card min-h-[84px]" aria-hidden="true" />;
 
   return (
     <>
-      <div className="card p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+      <div className="card min-h-[84px] p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border ${activePrefs ? 'bg-green-500/10 border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
           <Bell className={`w-5 h-5 ${activePrefs ? 'text-green-400' : 'text-blue-400'}`} />
         </div>
@@ -197,7 +200,7 @@ export function MonitorAreaCard({ cities, currentCity, onCityChange, source }: M
           ) : (
             <>
               <div className="font-medium text-white text-sm">
-                Monitor {currentCity ? currentCity : 'my area'}
+                {headline ?? `Monitor ${currentCity ?? 'my area'}`}
               </div>
               <div className="text-xs text-neutral-500 mt-0.5">
                 Get a notification when a nearby earthquake happens

@@ -1,7 +1,9 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { MonitorAreaIsland } from '@/components/monitor-area-island';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
-import { getRegionForCoordinates, getRegionById, getLocationContext, kmToMiles } from '@/lib/regions';
+import { getRegionForCoordinates, getRegionById, getLocationContext, kmToMiles, BAY_AREA_LANDMARKS } from '@/lib/regions';
+import { distanceMiles } from '@/lib/apns';
 import { generateEarthquakeEventSchema, generateEarthquakeArticleSchema, generateBreadcrumbSchema } from '@/lib/seo';
 
 const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
@@ -100,6 +102,13 @@ const breadcrumbSchema = generateBreadcrumbSchema([
   { name: `M${earthquake.magnitude.toFixed(1)} ${earthquake.place.split(',')[0]}`, url: `${baseUrl}/earthquake/${earthquake.id}` },
 ]);
 
+// Nearest selectable city within 30 mi pre-fills the alert CTA.
+const nearestCity = BAY_AREA_LANDMARKS
+  .filter(l => l.type === 'city')
+  .map(l => ({ name: l.name, miles: distanceMiles(l.lat, l.lon, earthquake.latitude, earthquake.longitude) }))
+  .filter(c => c.miles <= 30)
+  .sort((a, b) => a.miles - b.miles)[0]?.name ?? null;
+
 const depthCategory = earthquake.depth < 10 ? 'Very Shallow' : earthquake.depth < 30 ? 'Shallow' : earthquake.depth < 70 ? 'Intermediate' : 'Deep';
 const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/eventpage/${earthquake.id}`;
 ---
@@ -179,6 +188,11 @@ const usgsUrl = earthquake.url || `https://earthquake.usgs.gov/earthquakes/event
           <div class="text-lg font-bold leading-tight">{region?.name?.split(' / ')[0] || 'Bay Area'}</div>
           <div class="text-xs text-neutral-500">{region?.county || ''} County</div>
         </div>
+      </div>
+
+      <!-- Activation: Monitor my area (10x plan 3.3) -->
+      <div class="mb-8">
+        <MonitorAreaIsland client:visible city={nearestCity} source="earthquake" headline={nearestCity ? `Get alerts for the next one near ${nearestCity}` : "Get alerts for the next one near you"} />
       </div>
 
       <!-- Location Info -->

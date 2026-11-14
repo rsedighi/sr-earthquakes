@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { MonitorAreaIsland } from '@/components/monitor-area-island';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { BAY_AREA_LANDMARKS, REGIONS } from '@/lib/regions';
@@ -143,6 +144,11 @@ const description = `Complete list of all earthquakes near ${cityName}, Californ
           <div class="text-3xl font-bold">30</div>
           <div class="text-xs text-neutral-500">miles</div>
         </div>
+      </div>
+
+      <!-- Activation: Monitor my area (10x plan 3.3) -->
+      <div class="mb-8">
+        <MonitorAreaIsland client:visible city={cityData.name} source="city_year" headline={`Get alerts for the next earthquake near ${cityData.name}`} />
       </div>
 
       <!-- Earthquake List -->

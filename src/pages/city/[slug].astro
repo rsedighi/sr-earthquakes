@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { MonitorAreaIsland } from '@/components/monitor-area-island';
 import { loadAllEarthquakes } from '@/lib/server-data';
 import { getMagnitudeColor, getMagnitudeLabel } from '@/lib/analysis';
 import { BAY_AREA_LANDMARKS } from '@/lib/regions';
@@ -121,6 +122,11 @@ const faqs = generateCityFAQs(cityLandmark.name, cityLandmark.county, region?.fa
           <div class="text-xs text-neutral-500 uppercase tracking-wider mb-1">Average</div>
           <div class="text-2xl font-bold">{avgMagnitude > 0 ? `M${avgMagnitude.toFixed(1)}` : '—'}</div>
         </div>
+      </div>
+
+      <!-- Activation: Monitor my area (10x plan 3.3) -->
+      <div class="mb-8">
+        <MonitorAreaIsland client:visible city={cityLandmark.name} source="city_overview" headline={`Save ${cityLandmark.name} and get earthquake alerts`} />
       </div>
 
       <!-- Fault Info -->

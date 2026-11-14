@@ -766,12 +766,17 @@ Route-specific intent:
 | `/` | What is happening now? | Monitor my area |
 | `/history` | What patterns exist? | Save a region |
 
-- [ ] Add one dominant CTA per route family.
-- [ ] Pre-fill known city/region context.
-- [ ] Keep the immediate answer above the CTA.
+Shipped as `MonitorAreaIsland` (`client:visible`, 4KB gzip) on `/:city-earthquake-today`,
+`/:city-earthquakes-:year`, `/city/:city`, `/region/:id`, `/earthquake/:id`, and `/today`,
+placed directly after each page's immediate answer.
+
+- [~] Add one dominant CTA per route family (route-specific headline; `source` tags each surface).
+- [~] Pre-fill known city context (URL city, or nearest city within 30 mi for events).
+- [~] Keep the immediate answer above the CTA.
 - [ ] Remove competing above-the-fold promotions.
-- [ ] Track CTA impression and completion by route family.
+- [~] Track CTA impression (`alert_offer_viewed`) and completion (`area_activated`) by `source` and route family.
 - [ ] Add internal links from SEO pages to the relevant local action.
+- [ ] `/risk/:city` CTA ("Check my address") still points at the risk report only.
 
 Acceptance criteria:
 
