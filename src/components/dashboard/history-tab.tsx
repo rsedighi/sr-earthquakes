@@ -34,7 +34,7 @@ interface HistoryTabProps {
   allHistoricalQuakes: Earthquake[];
   historicalLoading: boolean;
   historicalLoaded: boolean;
-  historicalSummary: HistoricalSummary;
+  historicalSummary: HistoricalSummary | null;
 }
 
 export function HistoryTab({
@@ -77,15 +77,15 @@ export function HistoryTab({
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-white/5">
               <span className="text-neutral-400">Total Earthquakes</span>
-              <span className="text-2xl font-light">{historicalSummary.totalCount.toLocaleString()}</span>
+              <span className="text-2xl font-light">{historicalSummary?.totalCount.toLocaleString() ?? '—'}</span>
             </div>
             <div className="flex items-center justify-between py-3 border-b border-white/5">
               <span className="text-neutral-400">Swarm Events Detected</span>
-              <span className="text-2xl font-light">{historicalSummary.swarmSummaries.length}</span>
+              <span className="text-2xl font-light">{historicalSummary?.swarmSummaries.length ?? '—'}</span>
             </div>
             <div className="flex items-center justify-between py-3 border-b border-white/5">
               <span className="text-neutral-400">Largest Recorded</span>
-              <span className="text-2xl font-light">M{historicalSummary.biggestQuake?.magnitude.toFixed(1)}</span>
+              <span className="text-2xl font-light">{historicalSummary?.biggestQuake ? `M${historicalSummary.biggestQuake.magnitude.toFixed(1)}` : '—'}</span>
             </div>
             <div className="flex items-center justify-between py-3">
               <span className="text-neutral-400">Data Range</span>
@@ -100,13 +100,13 @@ export function HistoryTab({
             How does earthquake activity compare across Northern California regions?
           </p>
           <div className="space-y-4">
-            {historicalSummary.regionStats
+            {(historicalSummary?.regionStats ?? [])
               .filter(r => r.totalCount > 0)
               .sort((a, b) => b.totalCount - a.totalCount)
               .slice(0, 4)
               .map(stat => {
                 const region = getRegionById(stat.regionId);
-                const maxCount = Math.max(...historicalSummary.regionStats.map(r => r.totalCount));
+                const maxCount = Math.max(...(historicalSummary?.regionStats ?? []).map(r => r.totalCount));
                 return (
                   <div key={stat.regionId} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">

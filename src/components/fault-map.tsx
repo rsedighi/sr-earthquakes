@@ -256,7 +256,7 @@ export function FaultMap({ className = '', height = '400px' }: FaultMapProps) {
       </div>
       
       {/* Custom tooltip styles */}
-      <style jsx global>{`
+      <style>{`
         .fault-tooltip {
           background: rgba(0, 0, 0, 0.85) !important;
           border: 1px solid rgba(255, 255, 255, 0.2) !important;

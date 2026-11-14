@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getAISummary, setAISummary } from '@/lib/kv';
 import { generateActivitySummary, type ActivitySummaryInput } from '@/lib/openai';
+import { trackAiSummary } from '@/lib/analytics';
 
 // Per-IP OpenAI cost guard. Cache hits don't count against the limit;
 // only requests that would actually invoke OpenAI do.

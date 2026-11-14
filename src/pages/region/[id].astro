@@ -13,7 +13,7 @@ const { id } = Astro.params;
 const baseUrl = import.meta.env.PUBLIC_BASE_URL ?? 'https://baytremor.com';
 
 const region = REGIONS.find(r => r.id === id);
-if (!region) return Astro.redirect('/404', 404);
+if (!region) return new Response('Not found', { status: 404 });
 
 const seoData = getRegionSEOData(id!);
 

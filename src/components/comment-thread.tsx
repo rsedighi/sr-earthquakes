@@ -16,8 +16,7 @@ import {
   CornerDownRight,
   X,
 } from 'lucide-react';
-import { getPusherClient, getEarthquakeChannel, PUSHER_EVENTS } from '@/lib/pusher';
-import type { CommentWithId } from '@/lib/mongodb';
+import type { Comment } from '@/lib/d1';
 
 interface CommentThreadProps {
   earthquakeId: string;
@@ -25,7 +24,7 @@ interface CommentThreadProps {
 }
 
 export function CommentThread({ earthquakeId }: CommentThreadProps) {
-  const [comments, setComments] = useState<CommentWithId[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -65,7 +64,7 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
         clearTimeout(timeoutId);
 
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { comments?: Comment[] };
           setComments(data.comments || []);
           setError(null);
           return;
@@ -120,24 +119,8 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
     loadComments(controller.signal).finally(() => {
       if (!controller.signal.aborted) setIsLoading(false);
     });
-    
-    const pusher = getPusherClient();
-    if (!pusher) return () => controller.abort();
-    
-    const channel = pusher.subscribe(getEarthquakeChannel(earthquakeId));
-    
-    channel.bind(PUSHER_EVENTS.NEW_COMMENT, (newComment: CommentWithId) => {
-      setComments(prev => {
-        if (prev.some(c => c._id === newComment._id)) return prev;
-        return [newComment, ...prev];
-      });
-    });
-    
-    return () => {
-      controller.abort();
-      channel.unbind_all();
-      pusher.unsubscribe(getEarthquakeChannel(earthquakeId));
-    };
+
+    return () => controller.abort();
   }, [earthquakeId, loadComments]);
   
   // Submit comment or reply
@@ -162,16 +145,16 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
         }),
       });
       
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to post comment');
-      }
+      const data = await res.json().catch(() => ({})) as { error?: string; comment?: Comment };
+      if (!res.ok) throw new Error(data.error || 'Failed to post comment');
+      const created = data.comment;
+      if (created) setComments(prev => (prev.some(c => c.id === created.id) ? prev : [created, ...prev]));
       
       // Show success state
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
       
-      // Clear form (the new comment will come via Pusher)
+      // Clear form
       setContent('');
       setFeltIt(false);
       setReplyingTo(null);
@@ -378,9 +361,9 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
             ) : (
               topLevelComments.map(comment => (
                 <CommentCard 
-                  key={comment._id} 
+                  key={comment.id} 
                   comment={comment} 
-                  replies={getReplies(comment._id)}
+                  replies={getReplies(comment.id)}
                   onReply={(commentId) => setReplyingTo(commentId)}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
@@ -401,8 +384,8 @@ export function CommentThread({ earthquakeId }: CommentThreadProps) {
 }
 
 interface CommentCardProps {
-  comment: CommentWithId;
-  replies: CommentWithId[];
+  comment: Comment;
+  replies: Comment[];
   onReply: (commentId: string) => void;
   replyingTo: string | null;
   onCancelReply: () => void;
@@ -428,7 +411,7 @@ function CommentCard({
   setReplyContent,
 }: CommentCardProps) {
   const [showReplies, setShowReplies] = useState(true);
-  const isReplying = replyingTo === comment._id;
+  const isReplying = replyingTo === comment.id;
   
   return (
     <div className="bg-white/[0.02] rounded-xl border border-white/5 hover:border-white/10 transition-all overflow-hidden">
@@ -456,7 +439,7 @@ function CommentCard({
                 {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
               </span>
               <button
-                onClick={() => onReply(comment._id)}
+                onClick={() => onReply(comment.id)}
                 className="text-xs text-neutral-400 hover:text-blue-400 transition-colors flex items-center gap-1"
               >
                 <Reply className="w-3 h-3" />
@@ -480,7 +463,7 @@ function CommentCard({
       {/* Reply Form */}
       {isReplying && (
         <div className="px-4 pb-4 pt-2 border-t border-white/5 bg-blue-500/5">
-          <form onSubmit={(e) => onSubmitReply(e, comment._id)} className="space-y-3">
+          <form onSubmit={(e) => onSubmitReply(e, comment.id)} className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-blue-400 flex items-center gap-1">
                 <CornerDownRight className="w-3 h-3" />
@@ -527,7 +510,7 @@ function CommentCard({
       {replies.length > 0 && showReplies && (
         <div className="border-t border-white/5 bg-white/[0.01]">
           {replies.map(reply => (
-            <ReplyCard key={reply._id} reply={reply} />
+            <ReplyCard key={reply.id} reply={reply} />
           ))}
         </div>
       )}
@@ -535,7 +518,7 @@ function CommentCard({
   );
 }
 
-function ReplyCard({ reply }: { reply: CommentWithId }) {
+function ReplyCard({ reply }: { reply: Comment }) {
   return (
     <div className="px-4 py-3 border-b border-white/5 last:border-b-0">
       <div className="flex items-start gap-3 pl-6">

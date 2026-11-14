@@ -99,7 +99,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     if (!token) return;
     errorEl.classList.add('hidden');
 
-    const category = ($('category') as HTMLSelectElement).value;
+    const category = (document.getElementById('category') as HTMLSelectElement | null)?.value ?? '';
     const params = new URLSearchParams({ limit: '500' });
     if (category) params.set('category', category);
 
