@@ -103,7 +103,7 @@ export function routeFamily(pathname: string): string {
 export type TrafficClass = 'human' | 'bot' | 'automation' | 'internal';
 
 const CRAWLER_UA = /bot\b|bot\/|crawl|spider|slurp|mediapartners|bingpreview|facebookexternalhit|embedly|preview|feedfetcher|validator|archiver/i;
-const AUTOMATION_UA = /headless|phantomjs|puppeteer|playwright|selenium|lighthouse|chrome-lighthouse|pagespeed|gtmetrix|pingdom|uptime|datadog|synthetics|python-requests|python-urllib|curl\/|wget\/|go-http-client|node-fetch|axios|okhttp|java\//i;
+const AUTOMATION_UA = /headless|phantomjs|puppeteer|playwright|selenium|lighthouse|chrome-lighthouse|pagespeed|gtmetrix|pingdom|uptime|datadog|synthetics|python-requests|python-urllib|curl\/|wget\/|go-http-client|node-fetch|axios|okhttp|java\/|^node$|undici|baytremor-smoke/i;
 
 export function classifyTraffic(input: {
   userAgent: string | null;
