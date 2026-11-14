@@ -69,3 +69,4 @@ will-reccomendation.md
 
 # Claude Code local state
 .claude/
+dist-dry-run/
